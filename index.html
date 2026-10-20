@@ -5,11 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>地球の24時間</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="日本時間の0:00に地球が生まれ、24:00が今。46億年を、今日の1日として流す。">
+<meta name="description" content="46億年のどこかに、生まれる。進化を選び、大量絶滅をくぐり抜けて、今日まで生き残れるか。日本時間の0:00に地球が生まれ、24:00が今。">
 <meta property="og:title" content="地球の24時間">
-<meta property="og:description" content="日本時間の0:00に地球が生まれ、24:00が今。46億年を、今日の1日として流す。進化ガチャで、あなたの系統は今日まで生き残れるか。">
+<meta property="og:description" content="46億年のどこかに、生まれる。進化を選び、大量絶滅をくぐり抜けて、今日まで生き残れるか。日本時間の0:00に地球が生まれ、24:00が今。">
 <meta property="og:type" content="website">
-<meta name="twitter:card" content="summary">
+<meta property="og:url" content="https://m0hir0.github.io/earth-24h/">
+<meta property="og:image" content="https://m0hir0.github.io/earth-24h/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://m0hir0.github.io/earth-24h/og.png">
 <style>
   /* レイアウト：1カラムの縦スクロール。上に切り替えタブ、各画面はドット絵の風景から始まる */
   :root {
@@ -59,10 +62,22 @@
   h1, h2, h3 { text-wrap: balance; }
 
   /* タブ */
-  .tabs {
+  .topbar {
     position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
-    display: flex; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); margin-bottom: 14px;
+    border-bottom: 1px solid var(--line); margin-bottom: 14px; padding: 8px 0 8px;
   }
+  .tabs { display: flex; gap: 4px; align-items: center; }
+  .livebar {
+    display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 6px; padding: 5px 10px;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text-2);
+    font: inherit; font-size: 12.5px; cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden;
+  }
+  .livebar:hover { border-color: var(--accent); }
+  .livebar .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; animation: blink 2s ease-in-out infinite; }
+  .livebar b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .livebar .ago { color: var(--accent); font-weight: 800; }
+  .livebar .era { color: var(--muted); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  @keyframes blink { 50% { opacity: .3; } }
   .tabs .brand { font-weight: 900; font-size: 15px; margin-right: auto; align-self: center; letter-spacing: .02em; white-space: nowrap; }
   @media (max-width: 420px) { .tabs .brand { font-size: 13px; } .tab { font-size: 12.5px; padding: 6px 8px; } }
   .tab {
@@ -272,6 +287,55 @@
   footer.src { font-size: 11.5px; color: var(--muted); line-height: 1.7; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 12px; }
   footer.src a { color: var(--text-2); }
 
+  .hero { padding: 6px 0 12px; }
+  .hero .kicker { font-size: 12.5px; font-weight: 800; color: var(--muted); letter-spacing: .08em; }
+  .hero h1 { font-size: clamp(30px, 8.6vw, 46px); line-height: 1.2; margin: 6px 0 10px; letter-spacing: .01em; }
+  .hero p { color: var(--text-2); margin: 0; font-size: 15px; max-width: 34em; }
+  .birth-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 12px 0 6px; }
+  .birth-actions .sub { font-size: 12.5px; color: var(--muted); text-align: center; }
+  .shared { border: 2px solid var(--accent); }
+  .shared .kick { font-size: 12px; font-weight: 800; color: var(--accent); letter-spacing: .06em; margin-bottom: 8px; }
+  .shared .ttl { font-size: 22px; font-weight: 900; margin: 10px 0 4px; }
+  .shared .ttl.dead { color: var(--bad); }
+  .shared .ttl.live { color: var(--good); }
+  .shared p { margin: 0 0 8px; color: var(--text-2); font-size: 14px; }
+  .shared ol { margin: 0 0 12px; padding-left: 20px; font-size: 13px; color: var(--text-2); }
+
+  .z-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .z-rate { font-size: 12.5px; font-weight: 700; color: var(--text-2); }
+  .z-clock { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin: 2px 0 2px; }
+  .z-clock .big { font-size: clamp(22px, 6.6vw, 34px); font-weight: 900; line-height: 1.15; }
+  .z-clock .ago { font-size: 17px; font-weight: 800; color: var(--accent); }
+  .z-remain { font-size: 13px; color: var(--text-2); margin-bottom: 10px; }
+  .z-remain b { color: var(--text); }
+  .strip-box { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px 4px; margin-bottom: 12px; }
+  .strip-cap { font-size: 12px; color: var(--muted); }
+  .strip-box svg { display: block; width: 100%; height: auto; }
+  .strip-axis { stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+  .strip-fill { stroke: var(--accent); stroke-width: 6; stroke-linecap: round; }
+  .strip-dot { fill: var(--surface); stroke: var(--muted); stroke-width: 2; }
+  .strip-dot.passed { fill: var(--accent); stroke: var(--accent); }
+  .strip-dot.ai { stroke: #7a5ae0; }
+  .strip-dot.ai.passed { fill: #7a5ae0; }
+  .strip-end { fill: var(--muted); font-size: 12px; }
+  .strip-label { fill: var(--text); font-size: 13px; font-weight: 700; }
+  .strip-cursor { fill: var(--text); }
+  .banner {
+    position: absolute; inset: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; text-align: center;
+    background: var(--text); color: var(--bg); font-weight: 800; font-size: 14px; padding: 8px 14px; line-height: 1.5; white-space: pre-line;
+    opacity: 0; pointer-events: none; transition: opacity .35s ease;
+  }
+  .banner.show { opacity: .96; }
+  .evt-card.ai { border-color: #7a5ae0; }
+  .evt-card.ai .t { color: #7a5ae0; }
+  .z-controls { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 4px 0 14px; }
+  .z-controls .btn { padding: 8px 12px; }
+  .z-end { text-align: center; padding: 6px 0 4px; }
+  .z-end .big { font-size: 34px; font-weight: 900; }
+  .z-end p { color: var(--text-2); margin: 6px 0 10px; }
+  details.card summary { cursor: pointer; font-weight: 800; }
+  .copy-ok { font-size: 12.5px; color: var(--good); text-align: center; min-height: 1.4em; margin: 0; }
+
   @media (prefers-reduced-motion: reduce) {
     .evt-card.pop { animation: none; }
     .trait .fill, .risk .pin { transition: none; }
@@ -280,15 +344,21 @@
 </head>
 <body>
 <div class="app">
-  <nav class="tabs" role="tablist" aria-label="画面">
-    <span class="brand">地球の24時間</span>
-    <button class="tab" role="tab" data-tab="home" aria-selected="true">いまの地球</button>
-    <button class="tab" role="tab" data-tab="now" aria-selected="false">今を拡大</button>
-    <button class="tab" role="tab" data-tab="evo" aria-selected="false">進化ガチャ</button>
-  </nav>
+  <header class="topbar">
+    <nav class="tabs" role="tablist" aria-label="画面">
+      <span class="brand">地球の24時間</span>
+      <button class="tab" role="tab" data-tab="evo" aria-selected="true">生まれる</button>
+      <button class="tab" role="tab" data-tab="home" aria-selected="false">いまの地球</button>
+      <button class="tab" role="tab" data-tab="now" aria-selected="false">今を拡大</button>
+    </nav>
+    <button class="livebar" id="live" aria-label="いまの地球を見る">
+      <span class="dot" aria-hidden="true"></span>
+      <span>日本時間</span><b id="live-jst">--:--:--</b><span>＝</span><b class="ago" id="live-ago">—</b><span class="era" id="live-era"></span>
+    </button>
+  </header>
 
   <!-- ================= いまの地球（日本時間と同期） ================= -->
-  <section id="screen-home">
+  <section id="screen-home" hidden>
     <div class="jst">
       <span class="lbl">日本時間の0:00に地球が生まれ、24:00が今。</span>
       <span class="big num" id="h-jst">--:--:--</span>
@@ -342,23 +412,69 @@
   <!-- ================= 今を拡大 ================= -->
   <section id="screen-now" hidden>
     <h2 style="margin:0 0 6px">24:00の直前を拡大する</h2>
-    <p class="lead">日本時間の時計では、人類の歴史は毎晩 23:59:54 からの最後の5.6秒。AIの歴史は、そのさらに最後の約1ミリ秒です。</p>
-    <canvas class="scene" id="n-scene" aria-hidden="true"></canvas>
-    <p class="scene-cap" id="n-cap"></p>
-    <div id="n-zoom"></div>
-    <div class="card" id="n-ai">
-      <h3>AIの台頭 — 最後の1ミリ秒</h3>
-      <div class="ai-head" id="n-ai-head"></div>
-      <ol class="ai-list" id="n-ai-list"></ol>
+    <p class="lead">23:57からの最後の3分間を、時間をゆるめながら再生します。人類の歴史は最後の5.6秒。最後の区間は、AIが台頭したこの十数年です。</p>
+    <div class="z-top">
+      <span class="chip" id="z-chip"></span>
+      <span class="z-rate num" id="z-rate"></span>
     </div>
+    <canvas class="scene" id="z-scene" aria-hidden="true"></canvas>
+    <p class="scene-cap" id="z-cap"></p>
+    <div class="z-clock">
+      <span class="big num" id="z-clock"></span>
+      <span class="ago num" id="z-ago"></span>
+    </div>
+    <div class="z-remain num" id="z-remain"></div>
+    <div class="strip-box">
+      <div class="strip-cap" id="z-strip-cap"></div>
+      <svg id="z-strip" viewBox="0 0 640 76" aria-hidden="true"></svg>
+      <div class="banner" id="z-banner"></div>
+    </div>
+    <div class="evt-card" id="z-evt" aria-live="polite">
+      <div class="t num" id="z-evt-t"></div>
+      <div class="n" id="z-evt-n"></div>
+      <div class="s" id="z-evt-s"></div>
+    </div>
+    <div class="card z-end" id="z-end" hidden>
+      <div class="big num">24:00 — 今</div>
+      <p id="z-end-t"></p>
+      <button class="btn btn-primary" id="z-again">もう一度再生する</button>
+    </div>
+    <div class="z-controls">
+      <button class="btn" id="z-play">⏸ 一時停止</button>
+      <button class="btn on" data-zspeed="1">×1</button>
+      <button class="btn" data-zspeed="4">×4</button>
+      <button class="btn" data-zspeed="16">×16</button>
+      <button class="btn" id="z-restart">最初から</button>
+    </div>
+    <details class="card" id="n-ai">
+      <summary>AIの歩みを一覧で読む</summary>
+      <div class="ai-head" id="n-ai-head" style="margin-top:12px"></div>
+      <ol class="ai-list" id="n-ai-list"></ol>
+    </details>
   </section>
 
   <!-- ================= 進化ガチャ：誕生 ================= -->
-  <section id="screen-birth" hidden>
-    <h2 style="margin:0 0 6px">進化ガチャ</h2>
-    <p class="lead">46億年のどこかで生まれ、その生き物の系統として今日まで生き残れるかに挑みます。分かれ道では、進化の道を自分で選びます。</p>
+  <section id="screen-birth">
+    <div class="card shared" id="shared" hidden>
+      <div class="kick">シェアされた進化の記録</div>
+      <canvas class="scene" id="s-scene" aria-hidden="true"></canvas>
+      <div class="ttl" id="s-ttl"></div>
+      <p id="s-text"></p>
+      <ol id="s-path"></ol>
+      <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="s-play">あなたも生まれてみる</button></div>
+    </div>
+    <div class="hero">
+      <div class="kicker">進化ガチャ</div>
+      <h1>46億年のどこかに、<br>生まれる。</h1>
+      <p>どの時代に、何として生まれるかは選べません。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
+    </div>
     <canvas class="scene" id="b-scene" aria-hidden="true"></canvas>
     <p class="scene-cap" id="b-cap"></p>
+    <div class="birth-actions">
+      <button class="btn btn-primary" id="b-spin">生まれる</button>
+      <button class="btn" id="b-now">いまの地球時計の時代に生まれる</button>
+      <div class="sub">生まれる時代は46億年のうちから均等に選ばれます。地球に現れた種の99%以上は、すでに絶滅しています。</div>
+    </div>
     <div class="dial-wrap">
       <svg id="b-dial" aria-hidden="true"></svg>
       <div class="dial-center">
@@ -367,7 +483,6 @@
         <div class="ago num" id="b-ago"></div>
       </div>
     </div>
-    <div class="gacha-actions"><button class="btn btn-primary" id="b-spin">ガチャを引く</button></div>
 
     <div class="card none-box" id="b-none" hidden>
       <div class="big">生まれることができませんでした</div>
@@ -483,12 +598,15 @@
     <div class="card"><h3>同じ瞬間に生まれた4つの系統の結末</h3><ul class="rivals" id="r-rivals"></ul></div>
     <p class="fact-big">地球に現れた種の99%以上は、すでに絶滅しています。</p>
     <div class="share-row">
-      <a class="btn" id="r-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">Xでシェア</a>
+      <a class="btn btn-primary" id="r-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">Xでシェア</a>
+      <button class="btn" id="r-share" hidden>共有…</button>
+      <button class="btn" id="r-copy">リンクをコピー</button>
       <button class="btn" id="r-save">画像を保存</button>
     </div>
+    <p class="copy-ok" id="r-copy-ok" aria-live="polite"></p>
     <div class="preview"><img id="r-img" alt="シェア用カード"><p class="save-hint" id="r-hint" hidden>画像は長押し（PCでは右クリック）で保存できます。</p></div>
     <div class="share-row">
-      <button class="btn btn-primary" id="r-again">もう一度ガチャを引く</button>
+      <button class="btn btn-primary" id="r-again">もう一度生まれる</button>
       <button class="btn" id="r-home">いまの地球へ</button>
     </div>
   </section>
