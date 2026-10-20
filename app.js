@@ -7,7 +7,7 @@
     S, DAY, ago, fmtYears, fmtAgo, fmtSec, fmtCountdown, fmtClock, clockDecFor, fmtOneIn, fmtProb,
     fracOf, ERAS, eraOf, periodLabel, EVENTS, status, AI_STORY,
   } = E;
-  const { sceneView, sceneCaption, drawScene, PW, PH } = E.scenes;
+  const { sceneView, sceneCaption, drawScene, drawCreatureCard, PW, PH } = E.scenes;
   const { yaOfSec, fmtSpan } = E;
   const evo = E.evo;
   const $ = (id) => document.getElementById(id);
@@ -436,12 +436,48 @@
   requestAnimationFrame(zLoop);
 
   /* ============================================================
+     生き物の姿：体のつくり＋変種＋特徴（大きさ・守り・羽毛）
+     ============================================================ */
+  function variantOf(plan, f, hab, armor) {
+    if (plan === 'microbe') return hab === 'deep' ? 'archaea' : f.predator ? 'hunter' : f.o2 ? 'oxy' : 'rod';
+    if (plan === 'cyano') return 'cyano';
+    if (plan === 'cell') return f.sex ? 'para' : 'euk';
+    if (plan === 'colony') return f.photo ? 'alga' : 'volvox';
+    if (plan === 'arthropod') return hab === 'land' ? 'millipede' : f.burrow ? 'horseshoe' : 'trilo';
+    if (plan === 'reptile' && armor >= 70) return 'turtle';
+    if ((plan === 'dino_small' || plan === 'theropod') && f.feather) return 'feather';
+    return '';
+  }
+  const lookOfL = (L) => ({ plan: L.plan, v: variantOf(L.plan, L.flags, L.habitat, L.traits.armor), size: Math.round(L.traits.size), armor: Math.round(L.traits.armor), feather: !!L.flags.feather });
+  const formKey = (k) => `${k.plan}:${k.v}`;
+  // 姿が変わったのに名前が変わらなかったときの、新しい姿の名前（保存用の日本語）
+  const VARIANT_NAMES = {
+    rod: '浅い海の微生物', archaea: '熱水の古細菌', oxy: '酸素を使う細菌', hunter: '微生物を食べる微生物', cyano: 'シアノバクテリア',
+    euk: '核を持つ細胞', para: 'ゾウリムシの仲間', volvox: 'ボルボックスの仲間', alga: '藻類の祖先',
+    trilo: '三葉虫の仲間', horseshoe: 'カブトガニの仲間', millipede: '陸の節足動物', turtle: 'カメの仲間', feather: '羽毛恐竜',
+  };
+  // 記録（g: [[体のつくり, 変種, 名前], ...]）から姿へ
+  const lookOfG = (g) => ({ plan: g[0], v: g[1] });
+  function renderChain(box, g) {
+    box.textContent = '';
+    (g || []).forEach((f, i) => {
+      if (i) { const a = document.createElement('span'); a.className = 'arrow'; a.textContent = '→'; box.appendChild(a); }
+      const w = document.createElement('div'); w.className = 'form';
+      const cv = document.createElement('canvas'); cv.width = 64; cv.height = 48;
+      drawCreatureCard(cv.getContext('2d'), lookOfG(f), 3);
+      const n = document.createElement('span'); n.className = 'fn'; n.textContent = tr(f[2]);
+      w.append(cv, n); box.appendChild(w);
+    });
+    box.hidden = !(g && g.length);
+  }
+
+  /* ============================================================
      進化ガチャ：誕生
      ============================================================ */
   const bDial = buildDial($('b-dial'), { reveal: false });
   bDial.set(0);
   const G = { angle: 0, spinning: false, viewYa: null, birth: null };
-  sceneView($('b-scene'), () => (G.viewYa == null ? null : { ya: G.viewYa, plan: G.birth ? G.birth.player.plan : null, habitat: G.birth ? G.birth.player.habitat : null }));
+  sceneView($('b-scene'), () => (G.viewYa == null ? null : { ya: G.viewYa, plan: G.birth ? G.birth.player.plan : null, habitat: G.birth ? G.birth.player.habitat : null, look: G.birth ? lookOfL(G.birth.player) : null }));
 
   const DUP = ['', '', '②', '③', '④', '⑤'];
   const nameOf = (L) => tr(L.name) + (L.dup ? ` ${DUP[L.dup] || ''}` : '');
@@ -514,6 +550,10 @@
     const options = evo.birthOptions(t);
     if (!options.length) {
       $('b-none').hidden = false;
+      const unborn = { v: 1, u: 1, b: Math.round(t), e: Math.round(t), a: 0, f: '', n: '', p: 'microbe', h: '', k: [], c: '' };
+      const isNewU = !foundEndings().has('u-unborn');
+      histAdd(unborn);
+      $('b-none-rec').textContent = isNewU ? T('はじめての結末！「{t}」として図鑑に残りました。', { t: evo.endingOf(unborn).title }) : T('「あなたが生きた系統」に記録しました。');
       $('b-none-t').textContent = T('{a}（地球時計 {c}）。地球はまだ熱く、生命が生まれる前でした。この時代を引く確率は{p}。生命が生まれるのは、地球時計の4:10ごろです。', { a: fmtAgo(t), c: fmtClock(t), p: fmtProb((S - 3.8e9) / S) });
       return;
     }
@@ -550,7 +590,8 @@
      進化ガチャ：プレイ
      ============================================================ */
   const P = { on: false };
-  sceneView($('p-scene'), (now) => (P.on || P.L ? { ya: P.ya, plan: P.L.alive ? P.L.plan : null, habitat: P.L.habitat, fx: now < P.fxUntil ? P.fx : null } : null));
+  sceneView($('p-scene'), (now) => (P.on || P.L ? { ya: P.ya, plan: P.L.alive ? P.L.plan : null, habitat: P.L.habitat, look: lookOfL(P.L), fx: now < P.fxUntil ? P.fx : null } : null));
+  const pDial = buildDial($('p-dial'), { reveal: true });
 
   const yaAtP = (p) => P.ya0 * Math.pow(1 - Math.min(1, Math.max(0, p)), 2);   // 今に近いほどゆっくり
   const pAtYa = (ya) => 1 - Math.sqrt(Math.max(0, ya) / P.ya0);
@@ -565,22 +606,51 @@
       done: new Set(), log: [], startedAt: t,
     });
     $('p-log').textContent = '';
+    player.forms = [{ ya: t, look: lookOfL(player), name: player.name }];
     document.querySelectorAll('#p-controls [data-speed]').forEach((b) => b.classList.toggle('on', b.dataset.speed === '1'));
     $('p-pause').textContent = T('⏸ 一時停止');
     $('p-traits').textContent = '';
-    plog(t, T('{a}、「{n}」として生まれた。', { a: fmtAgo(t), n: nameOf(player) }));
+    plog(t, T('「{n}」として生まれた。', { n: nameOf(player) }), 'birth');
     show('play');
     checkNode();
     renderPlay(true);
     requestAnimationFrame(playLoop);
   });
 
-  function plog(ya, text, cls) {
-    const li = document.createElement('li');
-    const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = `${fmtClock(ya, clockDecFor(ya))}${SEP}${fmtAgo(ya)}`;
-    const tx = document.createElement('span'); tx.textContent = text; if (cls) tx.className = cls;
+  // 系統のタイムライン。kind: birth / choice / evo / event / dead / rival
+  function logItem(e) {
+    const li = document.createElement('li'); li.className = `k-${e.kind}`;
+    const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = `${fmtClock(e.ya, clockDecFor(e.ya))}${SEP}${fmtAgo(e.ya)}`;
+    const tx = document.createElement('span'); tx.textContent = e.text; if (e.kind === 'dead') tx.className = 'dead';
     li.append(tt, tx);
-    $('p-log').prepend(li);
+    return li;
+  }
+  function plog(ya, text, kind = 'info') {
+    const e = { ya, text, kind };
+    P.log.push(e);
+    $('p-log').prepend(logItem(e));
+    P.mapDirty = true;
+  }
+  // 横長の地図：生まれてから今日まで。時代の色の帯と、出来事の印
+  function drawLineMap(svg, log, ya0, cur) {
+    svg.textContent = '';
+    const x = (ya) => 12 + 616 * (1 - Math.max(0, ya) / ya0);          // 年数どおり
+    for (const e of ERAS) {
+      const a = Math.min(e.from, ya0), b = Math.max(e.to, 0);
+      if (a <= b) continue;
+      el('rect', { x: x(a), y: 18, width: Math.max(1, x(b) - x(a)), height: 14, fill: e.color, opacity: 0.55 }, svg);
+    }
+    for (const e of log) {
+      const cx = x(e.ya);
+      if (e.kind === 'choice') el('circle', { cx, cy: 25, r: 7, class: 'lm-choice' }, svg);
+      else if (e.kind === 'evo') el('rect', { x: cx - 7, y: 18, width: 14, height: 14, transform: `rotate(45 ${cx} 25)`, class: 'lm-evo' }, svg);
+      else if (e.kind === 'event') el('path', { d: `M${cx},13 l9,15 h-18 Z`, class: 'lm-event' }, svg);
+      else if (e.kind === 'dead') { el('line', { x1: cx - 8, y1: 17, x2: cx + 8, y2: 33, class: 'lm-dead' }, svg); el('line', { x1: cx + 8, y1: 17, x2: cx - 8, y2: 33, class: 'lm-dead' }, svg); }
+      else if (e.kind === 'birth') el('circle', { cx, cy: 25, r: 7, class: 'lm-birth' }, svg);
+    }
+    if (cur != null) el('line', { x1: x(cur), y1: 10, x2: x(cur), y2: 40, class: 'lm-cursor' }, svg);
+    el('text', { x: 12, y: 60, class: 'lm-label' }, svg).textContent = fmtAgo(ya0);
+    el('text', { x: 628, y: 60, class: 'lm-label', 'text-anchor': 'end' }, svg).textContent = T('今');
   }
 
   function checkNode() {
@@ -595,8 +665,15 @@
     const box = $('p-opts'); box.textContent = '';
     node.opts.forEach((o) => {
       const b = document.createElement('button'); b.className = 'opt';
-      b.innerHTML = '<b></b><span></span>';
+      b.innerHTML = '<b></b><span></span><div class="chips"></div>';
       b.children[0].textContent = tr(o.label); b.children[1].textContent = o.desc;
+      const fx = previewOption(P.L, o), chips = b.children[2];
+      const chip = (text, cls) => { const c = document.createElement('i'); c.className = cls; c.textContent = text; chips.appendChild(c); };
+      if (fx.plan) chip(T('→ {p}', { p: evo.PLANS[fx.plan].name }), 'form');
+      if (fx.hab) chip(T('暮らす場所 → {h}', { h: evo.HAB_LABEL[fx.hab] }), 'hab');
+      for (const k of evo.TRAITS) if (fx.d[k]) chip(`${evo.TRAIT_LABEL[k]} ${fx.d[k] > 0 ? '▲' : '▼'}${Math.abs(fx.d[k])}`, fx.d[k] > 0 ? 'up' : 'down');
+      if (fx.n) chip(T('種の数 ×{x}', { x: trimNum(fx.n) }), 'up');
+      if (!chips.children.length) chips.remove();
       b.addEventListener('click', () => choose(node, o));
       box.appendChild(b);
     });
@@ -604,14 +681,32 @@
     $('p-choice').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
     return true;
   }
+  // 選んだらどう変わるかを、写しで試して調べる
+  function previewOption(L, o) {
+    const c = { ...L, traits: { ...L.traits }, flags: { ...L.flags }, taken: new Set(L.taken), path: [...L.path] };
+    o.apply(c);
+    const d = {};
+    for (const k of evo.TRAITS) { const x = Math.round(c.traits[k] - L.traits[k]); if (x) d[k] = x; }
+    return { d, plan: c.plan !== L.plan ? c.plan : null, hab: c.habitat !== L.habitat ? c.habitat : null, n: c.N > L.N + 0.5 ? c.N / L.N : null };
+  }
+  const trimNum = (x) => E.trim(x.toFixed(1));
   function choose(node, o) {
     const L = P.L;
+    const before = lookOfL(L), beforeName = nameOf(L);
     o.apply(L);
     L.taken.add(node.id);
     L.path.push({ ya: P.ya, label: o.label });
-    plog(P.ya, T('分かれ道：{l}', { l: tr(o.label) }) + (o.real ? ` ${o.real}` : ''));
+    plog(P.ya, T('分かれ道：{l}', { l: tr(o.label) }) + (o.real ? ` ${o.real}` : ''), 'choice');
     $('p-choice').hidden = true;
     P.pending = null;
+    const after = lookOfL(L);
+    if (formKey(before) !== formKey(after)) {
+      if (tr(L.name) === beforeName.replace(/ [②-⑤]$/, '')) L.name = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
+      L.forms.push({ ya: P.ya, look: after, name: L.name });
+      plog(P.ya, T('{a}は、{b}に進化した！', { a: beforeName, b: nameOf(L) }), 'evo');
+      playEvolution(before, after, beforeName, nameOf(L), () => { renderPlay(true); checkNode(); });
+      return;
+    }
     renderPlay(true);
     checkNode();                                                   // 同じ時代に続けて訪れる分かれ道
   }
@@ -623,8 +718,8 @@
     const others = P.rivals.map((R) => ({ R, res: evo.applyExtinction(R, ev, P.rnd) }));
     if (!me) return;
     const dead = !P.L.alive;
-    plog(ev.ya, T('{e}：{b}種 → {a}種', { e: tr(ev.name), b: me.before, a: me.after }) + (dead ? T('。系統が絶滅した') : ''), dead ? 'dead' : '');
-    others.forEach(({ R, res }) => { if (res && !R.alive) plog(ev.ya, T('{n}の系統が、{e}で絶滅した', { n: nameOf(R), e: mid(tr(ev.name)) })); });
+    plog(ev.ya, T('{e}：{b}種 → {a}種', { e: tr(ev.name), b: me.before, a: me.after }) + (dead ? T('。系統が絶滅した') : ''), dead ? 'dead' : me.p >= 0.05 ? 'event' : 'info');
+    others.forEach(({ R, res }) => { if (res && !R.alive) plog(ev.ya, T('{n}の系統が、{e}で絶滅した', { n: nameOf(R), e: mid(tr(ev.name)) }), 'rival'); });
     if (me.p < 0.05 && !dead) return;                              // ほとんど影響のない出来事は記録だけ
     P.pending = { type: 'event', ev };
     P.skipping = false;
@@ -660,6 +755,46 @@
     checkNode();
   });
 
+  // 進化の演出：今の姿と次の姿が白く光って入れ替わり、新しい姿が現れる（タップで飛ばせる）
+  function playEvolution(fromLook, toLook, fromName, toName, done) {
+    P.pending = { type: 'evo' };
+    const m = $('evo-modal'), cv = $('evo-cv'), ctx = cv.getContext('2d');
+    m.classList.remove('done');
+    m.hidden = false;
+    $('evo-msg').textContent = T('{n}の体が、変わりはじめた…！', { n: fromName });
+    $('evo-sub').textContent = '';
+    $('evo-ok').hidden = true;
+    const t0 = performance.now(), DUR = REDUCE ? 500 : 4200;
+    let finished = false, last = 0;
+    function finish() {
+      if (finished) return;
+      finished = true;
+      drawCreatureCard(ctx, toLook, 3);
+      m.classList.add('done');
+      $('evo-msg').textContent = T('{a}は、{b}に進化した！', { a: fromName, b: toName });
+      $('evo-sub').textContent = evo.PLANS[toLook.plan].name;
+      $('evo-ok').hidden = false;
+      $('evo-ok').focus();
+    }
+    function frame(now) {
+      if (finished) return;
+      const k = (now - t0) / DUR;
+      if (k >= 1) { finish(); return; }
+      if (now - last > 40) {
+        last = now;
+        if (k < 0.15) drawCreatureCard(ctx, fromLook, Math.floor(now / 125));
+        else if (k < 0.9) { const q = (k - 0.15) / 0.75; drawCreatureCard(ctx, Math.sin(q * q * 70) > 0 ? toLook : fromLook, 0, '#ffffff'); }
+        else { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 64, 48); }
+      }
+      requestAnimationFrame(frame);
+    }
+    // 画面が止まっていても最後まで進むように
+    const guard = setTimeout(finish, DUR + 200);
+    cv.onclick = finish;
+    $('evo-ok').onclick = () => { clearTimeout(guard); m.hidden = true; P.pending = null; if (done) done(); };
+    requestAnimationFrame(frame);
+  }
+
   // ya を target まで進める（大量絶滅と分かれ道で止まる）
   function advance(target) {
     const all = [P.L, ...P.rivals];
@@ -678,7 +813,7 @@
         for (const L of all) {
           const was = L.alive;
           evo.step(L, yy, dt, P.rnd, L.isPlayer && grace);
-          if (was && !L.alive) plog(L.deathYa, L.isPlayer ? T('あなたの系統が、数を減らし続けて絶滅した') : T('{n}の系統が、数を減らし続けて絶滅した', { n: nameOf(L) }), L.isPlayer ? 'dead' : '');
+          if (was && !L.alive) plog(L.deathYa, L.isPlayer ? T('あなたの系統が、数を減らし続けて絶滅した') : T('{n}の系統が、数を減らし続けて絶滅した', { n: nameOf(L) }), L.isPlayer ? 'dead' : 'rival');
         }
         if (!P.L.alive) break;
       }
@@ -711,6 +846,7 @@
   function renderPlay(force) {
     const ya = P.ya, L = P.L;
     setClock($('p-clock'), T('地球時計 {c}', { c: fmtClock(ya, clockDecFor(ya)) }));
+    pDial.set(fracOf(ya) * 360);
     $('p-ago').textContent = fmtAgo(ya);
     $('p-period').textContent = periodLabel(ya);
     const p = pAtYa(ya);
@@ -721,6 +857,7 @@
     if (!force && now - lastSlow < 250) return;
     lastSlow = now;
     $('p-name').textContent = nameOf(L);
+    drawLineMap($('p-map'), P.log, P.ya0, ya);
     $('p-sub').textContent = `${evo.PLANS[L.plan].name}${SEP}${evo.HAB_LABEL[L.habitat] || ''}`;
     $('p-n').textContent = L.alive ? (L.N >= evo.CAP ? `${evo.CAP}+` : Math.round(L.N)) : 0;
     const { lam, mu } = evo.rates(L, ya);
@@ -762,10 +899,11 @@
     careful: T('ルールをつくりながら、AIとの付き合い方を探しています。'),
   };
   // 結末の場面：生き残れば今日の子孫の暮らし、絶滅すればその化石が眠る地層
-  function endScene(alive, endYa, plan, habitat, cause) {
+  function endScene(alive, endYa, plan, habitat, cause, look) {
     const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause });
-    return { ya: alive ? 0.3 : Math.max(endYa, 1), ending: { ...e, plan } };
+    return { ya: alive ? 0.3 : Math.max(endYa, 1), ending: { ...e, plan, look: look || { plan } } };
   }
+  const sceneOfData = (d) => (d.u ? { ya: d.b, ending: { ...evo.endingOf(d), ya: d.b } } : endScene(d.a, d.e, d.p, d.h, d.c, d.g && d.g.length ? lookOfG(d.g[d.g.length - 1]) : null));
   const endingLabel = (e) => T('結末 No.{no}「{t}」', { no: String(e.no).padStart(2, '0'), t: e.title });
   const foundEndings = () => new Set(histLoad().map((h) => evo.endingOf(h).id));
   function rivalStatus(Rv) {
@@ -775,7 +913,7 @@
     P.on = false;
     const L = P.L, alive = L.alive;
     const endYa = alive ? 0 : L.deathYa;
-    Object.assign(R, endScene(alive, endYa, L.plan, L.habitat, L.deathCause));
+    Object.assign(R, endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L)));
     const isNew = !foundEndings().has(R.ending.id);
     $('r-ending').textContent = endingLabel(R.ending);
     $('r-new').hidden = !isNew;
@@ -814,6 +952,10 @@
       li.children[1].className = `st ${Rv.alive ? 'live' : 'dead'}`;
       rv.appendChild(li);
     });
+    renderChain($('r-chain'), L.forms.map((f) => [f.look.plan, f.look.v, f.name]));
+    drawLineMap($('r-map'), P.log, P.ya0, null);
+    const rl = $('r-log'); rl.textContent = '';
+    P.log.forEach((e) => rl.appendChild(logItem(e)));
     const card = drawCard(L, alive, endYa);
     $('r-img').src = card.toDataURL('image/png');
     $('r-save').hidden = EMBEDDED;
@@ -839,7 +981,7 @@
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#0c111b'; ctx.fillRect(0, 0, 1200, 630);
     const sc = document.createElement('canvas'); sc.width = PW; sc.height = PH;
-    const es = endScene(alive, endYa, L.plan, L.habitat, L.deathCause);
+    const es = endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L));
     drawScene(sc.getContext('2d'), es.ya, 3, es);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(sc, 24, 24, PW * 6, PH * 6);
@@ -869,15 +1011,18 @@
   }
   // 1回の人生（系統）の記録。シェアのリンクにも、履歴にも同じ形で使う
   function resultData(L, alive, endYa) {
-    return { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause };
+    return { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause,
+      g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name]) };
   }
   function cleanData(d) {
     if (!d || d.v !== 1 || !evo.PLANS[d.p] || !(d.b > 0 && d.b <= S) || !(d.e >= 0 && d.e <= d.b)) return null;
     const str = (x, n) => String(x || '').slice(0, n);
-    return { v: 1, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)) };
+    const g = (Array.isArray(d.g) ? d.g : []).filter((f) => Array.isArray(f) && evo.PLANS[f[0]]).slice(0, 12).map((f) => [f[0], str(f[1], 12), str(f[2], 40)]);
+    return { v: 1, u: d.u ? 1 : 0, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)), g };
   }
   function shareTextFrom(d) {
     const e = evo.endingOf(d);
+    if (d.u) return `${T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) })}\n${endingLabel(e)}\n${T('#地球の24時間 #進化ガチャ')}`;
     const body = d.a
       ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残った。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅した。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n) });
@@ -888,8 +1033,8 @@
   const unb64 = (str) => decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))));
   function shareUrlFrom(d) {
     if (EMBEDDED || !/^https?:/.test(location.protocol)) return '';
-    const { v, b, f, n, p, h, a, e, k, c } = d;
-    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, b, f, n, p, h, a, e, k, c }))}`;
+    const { v, u, b, f, n, p, h, a, e, k, c, g } = d;
+    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, u, b, f, n, p, h, a, e, k, c, g }))}`;
   }
   function readShared() {
     const m = location.hash.match(/^#r=([A-Za-z0-9_-]+)$/);
@@ -951,18 +1096,24 @@
     $('hist-clear').hidden = list.length === 0;
     renderZukan();
     if (!list.length) { $('hist-sum').textContent = ''; return; }
-    const alive = list.filter((d) => d.a).length;
-    const longest = list.reduce((m, d) => (d.b - d.e > m.b - m.e ? d : m), list[0]);
-    $('hist-sum').textContent = T('これまで{n}回生まれ、{a}回は今日まで生き残りました（生存率{p}%）。いちばん長く続いたのは「{f}」からの系統（{y}）。', { n: list.length, a: alive, p: Math.round(alive / list.length * 100), f: tr(longest.f), y: fmtSpan(longest.b - longest.e) });
+    const born = list.filter((d) => !d.u), unborn = list.length - born.length;
+    const alive = born.filter((d) => d.a).length;
+    let sum = '';
+    if (born.length) {
+      const longest = born.reduce((m, d) => (d.b - d.e > m.b - m.e ? d : m), born[0]);
+      sum = T('これまで{n}回生まれ、{a}回は今日まで生き残りました（生存率{p}%）。いちばん長く続いたのは「{f}」からの系統（{y}）。', { n: born.length, a: alive, p: Math.round(alive / born.length * 100), f: tr(longest.f), y: fmtSpan(longest.b - longest.e) });
+    }
+    if (unborn) sum += (sum ? ' ' : '') + T('生まれる前の地球を引いたのは{n}回。', { n: unborn });
+    $('hist-sum').textContent = sum;
     list.forEach((d) => {
       const li = document.createElement('li');
       const b = document.createElement('button');
       b.innerHTML = '<span class="tag"></span><span class="hn"><span class="hm"></span><span class="hs"></span></span>';
       const tag = b.querySelector('.tag');
-      tag.textContent = d.a ? T('生存') : T('絶滅');
-      tag.classList.add(d.a ? 'alive' : 'dead');
-      b.querySelector('.hm').textContent = `「${evo.endingOf(d).title}」 ${d.f === d.n ? tr(d.n) : `${tr(d.f)} → ${tr(d.n)}`}`;
-      b.querySelector('.hs').textContent = T('{a}〜{e}・分かれ道{k}回・{d}', { a: fmtAgo(d.b), e: d.a ? T('今') : fmtAgo(d.e), k: d.k.length, d: fmtDate(d.t) });
+      tag.textContent = d.u ? T('誕生前') : d.a ? T('生存') : T('絶滅');
+      tag.classList.add(d.u ? 'unborn' : d.a ? 'alive' : 'dead');
+      b.querySelector('.hm').textContent = d.u ? `「${evo.endingOf(d).title}」` : `「${evo.endingOf(d).title}」 ${d.f === d.n ? tr(d.n) : `${tr(d.f)} → ${tr(d.n)}`}`;
+      b.querySelector('.hs').textContent = d.u ? `${fmtAgo(d.b)}${SEP}${T('生命が生まれる前')}${SEP}${fmtDate(d.t)}` : T('{a}〜{e}・分かれ道{k}回・{d}', { a: fmtAgo(d.b), e: d.a ? T('今') : fmtAgo(d.e), k: d.k.length, d: fmtDate(d.t) });
       b.addEventListener('click', () => openHist(d));
       li.appendChild(b);
       ul.appendChild(li);
@@ -981,7 +1132,7 @@
       if (has) {
         const cv = document.createElement('canvas'); cv.width = PW; cv.height = PH;
         const last = list.find((h) => evo.endingOf(h).id === e.id);
-        const st = endScene(!!last.a, last.e, last.p, last.h, last.c);
+        const st = sceneOfData(last);
         drawScene(cv.getContext('2d'), st.ya, 3, st);
         b.appendChild(cv);
         b.addEventListener('click', () => openHist(last));
@@ -991,7 +1142,7 @@
         b.disabled = true;
       }
       const cap = document.createElement('span');
-      cap.textContent = has ? `${String(e.no).padStart(2, '0')} ${e.title}` : `${String(e.no).padStart(2, '0')} ${e.alive ? (e.alt ? T('もしもの生存') : T('生き残る')) : T('絶滅')}`;
+      cap.textContent = has ? `${String(e.no).padStart(2, '0')} ${e.title}` : `${String(e.no).padStart(2, '0')} ${e.unborn ? T('誕生前') : e.alive ? (e.alt ? T('もしもの生存') : T('生き残る')) : T('絶滅')}`;
       if (e.alt) b.classList.add('alt');
       b.appendChild(cap);
       box.appendChild(b);
@@ -999,12 +1150,13 @@
   }
   function openHist(d) {
     HD.d = d;
-    HD.st = endScene(d.a, d.e, d.p, d.h, d.c);
+    HD.st = sceneOfData(d);
+    renderChain($('hd-chain'), d.g);
     $('hd-ending').textContent = `${endingLabel(HD.st.ending)}：${HD.st.ending.desc}`;
     const t = $('hd-ttl');
-    t.textContent = d.a ? T('今も生きている') : T('絶滅');
-    t.className = `ttl ${d.a ? 'alive' : 'dead'}`;
-    $('hd-text').textContent = d.a
+    t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
+    t.className = `ttl ${d.u ? '' : d.a ? 'alive' : 'dead'}`;
+    $('hd-text').textContent = d.u ? T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) }) : d.a
       ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。今の子孫：{d}。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n), d: evo.PLANS[d.p].today })
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。続いた期間は{y}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c), y: fmtSpan(d.b - d.e) });
     const ol = $('hd-path'); ol.textContent = '';
@@ -1034,12 +1186,13 @@
   const SH = { st: null };
   sceneView($('s-scene'), () => SH.st);
   function showShared(d) {
-    SH.st = endScene(d.a, d.e, d.p, d.h, d.c);
+    SH.st = sceneOfData(d);
+    renderChain($('s-chain'), d.g);
     $('s-ending').textContent = `${endingLabel(SH.st.ending)}：${SH.st.ending.desc}`;
     const t = $('s-ttl');
-    t.textContent = d.a ? T('今も生きている') : T('絶滅');
-    t.className = `ttl ${d.a ? 'live' : 'dead'}`;
-    $('s-text').textContent = d.a
+    t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
+    t.className = `ttl ${d.u ? '' : d.a ? 'live' : 'dead'}`;
+    $('s-text').textContent = d.u ? T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) }) : d.a
       ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c) });
     const ol = $('s-path'); ol.textContent = '';
@@ -1063,6 +1216,7 @@
   // 開発用（localhost のときだけ）：生まれる時代と生き物を指定して試す
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
     window.__e24 = {
+      spin: (ya) => spinTo(ya),
       born(ya, name) {
         show('birth');
         const opts = evo.birthOptions(ya);

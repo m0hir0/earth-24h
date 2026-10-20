@@ -8,9 +8,9 @@
      ============================================================ */
   const PW = 192, PH = 64;
 
-  function painter(ctx) {
+  function painter(ctx, override = null) {
     const P = {
-      rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
+      rect(x, y, w, h, c) { ctx.fillStyle = override || c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
       disc(cx, cy, r, c) {
         for (let dy = -r; dy <= r; dy++) { const w = Math.floor(Math.sqrt(r * r - dy * dy)); P.rect(cx - w, cy + dy, 2 * w + 1, 1, c); }
       },
@@ -524,16 +524,17 @@
     for (let k = 0; k < 30; k++) P.rect((k * 37 + t * 0.2) % PW, 50 + (k * 7) % 9, 1, 1, k % 3 ? '#8ad0c8' : '#e0f0a0');   // 微生物のマット
   }
 
-  /* ---------------- あなたの系統（生き物の姿） ---------------- */
+  /* ---------------- あなたの系統（生き物の姿） ----------------
+     look = { plan: 体のつくり, v: 変種, size: 大きさ, armor: 守り, feather: 羽毛 }
+     分かれ道で体のつくりや特徴が変わると、絵も変わる */
+  const MICRO_PLANS = ['microbe', 'cyano', 'cell', 'colony'];
   const PLAYER_SPR = {
-    soft: null, sponge: null, ediacaran: null,
     arthropod: ['trilo', { a: '#e0b04a', b: '#7a5a20' }, 2],
     anomalo: ['anomalo', { a: '#e0805a', b: '#8a4a38' }, 2],
-    jawless: ['fish', { a: '#d8b070' }, 2],
+    jawless: ['eel', { a: '#8a7a6a', b: '#3a3030' }, 2],
     fish: ['fish', { a: '#f0c060' }, 3],
     shark: ['shark', { a: '#7a92a6', b: '#e8eef2' }, 2],
     armorfish: ['armorfish', { a: '#b0a070', b: '#6a6040' }, 2],
-    insect: null,
     amphibian: ['amphib', { a: '#4f8a3a', b: '#f0e6c0' }, 2],
     reptile: ['reptile', { a: '#b08a3e', b: '#2a2a1a' }, 2],
     synapsid: ['dimetro', { a: '#b0603a', b: '#e0a060' }, 2],
@@ -550,54 +551,136 @@
     hominin: ['homA', { a: '#7a4e34', b: '#4c3426' }, 2],
     human: ['hunter', { a: '#c08a66', b: '#3a6a9a', c: '#e0cfa0' }, 2],
   };
+  const VARIANT_SPR = {
+    millipede: ['millipede', { a: '#8a5a3a', b: '#4a3020' }, 2],
+    horseshoe: ['horseshoe', { a: '#8a7a5a', b: '#4a3e2a' }, 2],
+    turtle: ['turtle', { a: '#6a8a4a', b: '#3e5a2e', c: '#9ab07a' }, 2],
+    feather: ['raptor', { a: '#3a7ab0', b: '#f4ead0' }, 2],
+  };
+  Object.assign(SPR, {
+    horseshoe: ['..aaaaaa......', '.aaaaaaaa.....', 'aaabbbbaaa....', 'aaaaaaaaaabbbb', '.a.a..a.a.....'],
+    millipede: ['.aaaaaaaaaaaa.', 'aaaaaaaaaaaaab', 'b.b.b.b.b.b.b.', '.b.b.b.b.b.b..'],
+    eel: ['..aaaaaaaaaaa.', 'aaaaaaaaaaaaab', '..aaaaaaaaaaa.'],
+    turtle: ['...aaaaa....', '..aaabaaa...', '.aaabbbaaacc', 'aaaaaaaaaacc', '.c.c...c.c..'],
+  });
+  const DEFAULT_V = { microbe: 'rod', cyano: 'cyano', cell: 'euk', colony: 'alga', arthropod: 'trilo' };
+  const lookOf = (x) => (typeof x === 'string' ? { plan: x, v: DEFAULT_V[x] || '' } : { ...x, v: x.v || DEFAULT_V[x.plan] || '' });
+  const specOf = (look) => VARIANT_SPR[look.v] || PLAYER_SPR[look.plan];
+  const formScale = (look, base) => Math.max(1, Math.min(3, Math.round(base * (0.7 + (look.size == null ? 45 : look.size) / 150))));
+
+  // 顕微鏡で見る微生物。変種ごとに形が違う
+  function drawMicro(P, v, cx, cy, r, t, frame = true) {
+    if (frame) { P.disc(cx, cy, r + 2, '#33413f'); P.disc(cx, cy, r, '#dcefe0'); }
+    const at = (k, n, d) => { const a = t * 0.05 + k * (6.283 / n); return [cx + Math.round(Math.cos(a) * d), cy + Math.round(Math.sin(a) * d * 0.75)]; };
+    if (v === 'archaea') {                                   // 熱水の古細菌：丸くて、とげ
+      for (let k = 0; k < 5; k++) { const [x, y] = at(k, 5, k ? 11 : 0); P.disc(x, y, 3, '#d8703a'); P.disc(x, y, 1, '#f0a060');
+        [[-4, 0], [4, 0], [0, -4], [0, 4], [-3, -3], [3, 3], [3, -3], [-3, 3]].forEach(([dx, dy]) => P.rect(x + dx, y + dy, 1, 1, '#9a3a20')); }
+    } else if (v === 'oxy') {                                // 酸素を使う細菌：細長い体と、べん毛
+      for (let k = 0; k < 4; k++) { const [x, y] = at(k, 4, 9); P.rect(x - 3, y - 1, 7, 3, '#4a7ac0'); P.rect(x - 2, y - 2, 5, 5, '#4a7ac0'); P.rect(x - 1, y, 3, 1, '#8ab0e0');
+        for (let i = 0; i < 5; i++) P.rect(x + 4 + i, y + ((i + t) % 2 ? 1 : -1), 1, 1, '#2a4a80'); }
+    } else if (v === 'hunter') {                             // ほかの微生物を食べる：アメーバのような体
+      const w = Math.round(Math.sin(t * 0.3) * 2);
+      P.disc(cx, cy, 8, '#b08ac8'); P.disc(cx + 8 + w, cy - 3, 3, '#b08ac8'); P.disc(cx - 7, cy + 5 - w, 3, '#b08ac8'); P.disc(cx - 3, cy - 8, 3, '#b08ac8');
+      P.disc(cx + 2, cy + 1, 2, '#8a9a5a'); P.disc(cx - 2, cy - 2, 2, '#7a5aa0');
+    } else if (v === 'cyano') {                              // シアノバクテリア：数珠つなぎの糸
+      for (let c = 0; c < 3; c++) for (let i = 0; i < 7; i++) {
+        const x = cx - 15 + i * 4 + c * 2, y = cy - 8 + c * 8 + Math.round(Math.sin(i * 0.8 + t * 0.15 + c) * 2);
+        P.disc(x, y, 2, i === 3 && c === 1 ? '#2a7a4a' : '#3fa05a'); P.rect(x, y, 1, 1, '#8ad89a');
+      }
+    } else if (v === 'euk') {                                // 核を持つ細胞：核とミトコンドリア
+      P.disc(cx, cy, 11, '#b8dca8'); P.disc(cx, cy, 10, '#cde8bc');
+      P.disc(cx - 2, cy - 1, 4, '#7a5aa0'); P.disc(cx - 3, cy - 2, 1, '#a88ad0');
+      [[5, 4], [4, -5], [-6, 5]].forEach(([dx, dy], i) => { P.rect(cx + dx - 1, cy + dy, 4, 2, '#e08a3a'); P.rect(cx + dx, cy + dy, 2, 1, (t + i) % 4 < 2 ? '#f0b060' : '#e08a3a'); });
+    } else if (v === 'para') {                               // ゾウリムシ：くつのような形と、せん毛
+      for (let dx = -12; dx <= 12; dx++) { const h = Math.round(5 * Math.sqrt(1 - (dx / 13) ** 2)) - (dx > 2 && dx < 7 ? 1 : 0); P.rect(cx + dx, cy - h, 1, h * 2 + 1, '#a8c8e8'); if ((dx + t) % 2 === 0) { P.rect(cx + dx, cy - h - 1, 1, 1, '#5a7aa0'); P.rect(cx + dx, cy + h + 1, 1, 1, '#5a7aa0'); } }
+      P.disc(cx - 2, cy, 2, '#5a6a9a'); P.rect(cx + 4, cy - 1, 2, 2, '#e8f0f8');
+    } else if (v === 'volvox') {                             // 細胞のかたまり：ボルボックスのような球
+      P.disc(cx, cy, 12, '#9ad09a'); P.disc(cx, cy, 11, '#bfe4b8');
+      for (let k = 0; k < 14; k++) { const a = k * 0.449 + t * 0.03; P.rect(cx + Math.round(Math.cos(a) * 10), cy + Math.round(Math.sin(a) * 10), 1, 1, '#2f7a3f'); }
+      P.disc(cx - 3, cy + 2, 3, '#4f9a4f'); P.disc(cx + 4, cy - 3, 2, '#4f9a4f');
+    } else if (v === 'alga') {                               // 紅藻・藻類：枝分かれする赤い糸
+      const col = '#c0505a';
+      for (let i = 0; i < 18; i++) { const x = cx - 2 + Math.round(Math.sin(i * 0.4 + t * 0.1) * 2); P.rect(x, cy + 11 - i, 3, 1, col); }
+      for (const [bx, by, dir] of [[cx, cy + 3, 1], [cx, cy - 3, -1], [cx, cy + 7, -1], [cx + 1, cy - 7, 1]]) for (let i = 0; i < 8; i++) P.rect(bx + dir * i, by - Math.round(i * 0.7), 2, 2, i % 3 ? col : '#e07a80');
+    } else {                                                 // rod：浅い海の細菌。カプセル形で、分裂しているものも
+      for (let k = 0; k < 5; k++) { const [x, y] = at(k, 5, k ? 10 : 0); const vert = k % 2;
+        if (vert) { P.rect(x - 1, y - 3, 3, 7, '#8a9a5a'); P.rect(x, y - 3, 1, 7, '#a8b878'); }
+        else { P.rect(x - 3, y - 1, 7, 3, '#8a9a5a'); P.rect(x - 3, y, 7, 1, '#a8b878'); }
+        if (k === 0) { P.rect(x + 4, y - 1, 7, 3, '#8a9a5a'); P.rect(x + 3, y - 1, 1, 3, '#5a6a3a'); } }
+    }
+  }
+  // とげ：体のいちばん上にそって
+  function spikes(P, rows, x0, y0, s, c) {
+    const W = rows[0].length;
+    for (let i = 1; i < W - 1; i += 3) {
+      let top = -1;
+      for (let j = 0; j < rows.length; j++) if (rows[j][i] !== '.') { top = j; break; }
+      if (top >= 0) P.rect(x0 + i * s, y0 + (top - 1) * s, s, s, c);
+    }
+  }
+  // 生き物を1体描く。戻り値は頭の上の y（矢印を置く位置）
+  function drawForm(P, look, t, cx, ground, card = false) {
+    look = lookOf(look);
+    const plan = look.plan, sz = look.size == null ? 45 : look.size;
+    if (MICRO_PLANS.includes(plan)) { const r = card ? 22 : 20, cy = card ? 24 : 30; drawMicro(P, look.v, cx, cy, r, t, !card); return cy - r - 1; }
+    if (plan === 'sponge') {
+      const h = 8 + Math.round(sz / 6);
+      P.rect(cx - 3, ground - h, 7, h, '#e0a050'); P.rect(cx - 2, ground - h - 1, 5, 1, '#f0c070'); P.rect(cx - 1, ground - h, 3, 2, '#7a4a20');
+      for (let y = ground - h + 3; y < ground; y += 3) { P.rect(cx - 2, y, 1, 1, '#b07030'); P.rect(cx + 2, y + 1, 1, 1, '#b07030'); }
+      return ground - h - 2;
+    }
+    if (plan === 'ediacaran') {
+      const h = 10 + Math.round(sz / 5);
+      for (let y = 0; y < h; y++) { const sw = card ? 0 : Math.round(Math.sin(y * 0.3 + t * 0.2)); P.rect(cx + sw - 3 + (y % 2), ground - y, 3, 1, '#d08050'); P.rect(cx + sw, ground - y, 1, 1, '#a05a3a'); P.rect(cx + sw + 1, ground - y, 3 - (y % 2), 1, '#f0a070'); }
+      return ground - h - 1;
+    }
+    if (plan === 'soft') {                                   // ゴカイのような、くねる体
+      const n = 6 + Math.round(sz / 6), y0 = ground - 4;
+      for (let i = 0; i < n; i++) { const yy = y0 + Math.round(Math.sin(i * 0.7 + t * 0.4) * 2), x = cx - n + i * 2; P.rect(x, yy, 2, 2, i % 2 ? '#d0607a' : '#e07a8a'); if (i % 2 === 0) { P.rect(x, yy - 1, 1, 1, '#f0b0b8'); P.rect(x, yy + 2, 1, 1, '#f0b0b8'); } }
+      P.rect(cx + n, y0 - 1 + Math.round(Math.sin(n * 0.7 + t * 0.4) * 2), 3, 3, '#a03a50');
+      return y0 - 5;
+    }
+    if (plan === 'insect') {                                 // トンボのような昆虫
+      const s = sz > 25 ? 2 : 1, y = card ? ground - 14 : 22 + Math.round(Math.sin(t * 0.4) * 3);
+      P.rect(cx - 5 * s, y, 10 * s, s + 1, '#2f6f9a'); P.rect(cx + 5 * s, y - 1, 2 * s, s + 2, '#1f4f7a');
+      const wing = t % 2 ? 'rgba(240,250,255,0.95)' : 'rgba(240,250,255,0.55)';
+      P.rect(cx - 2 * s, y - 2 * s, 5 * s, 2 * s, wing); P.rect(cx - 2 * s, y + s + 1, 5 * s, 2 * s, wing);
+      return y - 2 * s - 2;
+    }
+    const spec = specOf(look);
+    if (!spec) return ground;
+    const [name, pal] = spec;
+    let rows = SPR[name];
+    let s = formScale(look, spec[2]);
+    if (card) s = Math.max(1, Math.min(4, Math.floor(56 / rows[0].length), Math.floor(38 / rows.length)));   // カードでは枠いっぱいに
+    const w = rows[0].length * s, h = rows.length * s;
+    const swim = ['jawless', 'fish', 'shark', 'armorfish', 'marine_reptile', 'whale', 'anomalo'].includes(plan);
+    const fly = plan === 'pterosaur' || plan === 'bird';
+    const y = card ? ground - h - (swim || fly ? 6 : 0) : fly ? 14 + Math.round(Math.sin(t * 0.2) * 3) : swim ? 30 - Math.round(h / 2) + Math.round(Math.sin(t * 0.15) * 2) : ground - h;
+    const x = cx - Math.round(w / 2) + (card ? 0 : Math.round(Math.sin(t * 0.07) * 4));
+    if (fly && name === 'pteroA' && t % 4 >= 2) rows = SPR.pteroB;
+    P.sprite(rows, pal, x, y, false, s);
+    if ((look.armor || 0) >= 65 && !['arthropod', 'armorfish', 'turtle', 'horseshoe'].includes(look.v || plan) && plan !== 'arthropod' && plan !== 'armorfish') spikes(P, rows, x, y, s, '#5a4a3a');
+    if (look.feather && (plan === 'dino_small' || plan === 'theropod')) {    // 羽毛：頭の飾りと、しっぽの羽
+      P.rect(x + w - 3 * s, y - s, s, s, '#e0503a'); P.rect(x + w - 2 * s, y - 2 * s, s, s, '#f0c040');
+      P.rect(x, y + 3 * s, s, s, '#f0c040'); P.rect(x - s, y + 2 * s, s, s, '#e0503a');
+    }
+    return y - 1;
+  }
+  function drawPlayer(P, look, t, ground = 56) {
+    const top = drawForm(P, look, t, 92, ground);
+    marker(P, 92, top, t);
+  }
   function marker(P, x, y, t) {                       // あなたを示す矢印
     const b = t % 6 < 3 ? 0 : 1;
     P.rect(x - 2, y - 5 + b, 5, 1, '#ffd84a'); P.rect(x - 1, y - 4 + b, 3, 1, '#ffd84a'); P.rect(x, y - 3 + b, 1, 1, '#ffd84a');
   }
-  function drawPlayer(P, plan, t, ground = 56) {
-    if (plan === 'microbe' || plan === 'cyano' || plan === 'cell' || plan === 'colony') {
-      const cx = 96, cy = 30, r = 20;                 // 顕微鏡の窓
-      P.disc(cx, cy, r + 2, '#33413f'); P.disc(cx, cy, r, '#dcefe0');
-      const col = plan === 'cyano' ? '#3f9a5a' : plan === 'microbe' ? '#8a9a6a' : '#7ab08a';
-      const n = plan === 'colony' ? 7 : 5;
-      for (let k = 0; k < n; k++) {
-        const a = t * 0.06 + k * (6.283 / n), d = plan === 'colony' ? 6 : 11;
-        const x = cx + Math.round(Math.cos(a) * d), y = cy + Math.round(Math.sin(a) * d * 0.7);
-        if (plan === 'microbe' || plan === 'cyano') { P.rect(x - 3, y - 1, 6, 3, col); P.rect(x - 2, y - 2, 4, 5, col); }
-        else { P.disc(x, y, 3, col); P.disc(x, y, 1, '#3e6a4a'); }
-      }
-      marker(P, cx, cy - r - 1, t);
-      return;
-    }
-    const x = 92;
-    if (plan === 'soft' || plan === 'sponge' || plan === 'ediacaran') {
-      if (plan === 'sponge') { P.rect(x, ground - 12, 6, 12, '#e0a050'); P.rect(x + 1, ground - 13, 4, 1, '#f0c070'); marker(P, x + 3, ground - 14, t); return; }
-      if (plan === 'ediacaran') { for (let y = 0; y < 14; y++) P.rect(x + Math.round(Math.sin(y * 0.3 + t * 0.2)) - 1, ground - y, 4, 1, y % 2 ? '#f0a070' : '#d08050'); marker(P, x + 1, ground - 15, t); return; }
-      const y = 24 + Math.round(Math.sin(t * 0.2) * 3);
-      P.dome(x, y, 6, 'rgba(255,200,240,0.85)');
-      for (let i = -5; i <= 5; i += 2) P.rect(x + i, y + 1, 1, 4 + ((t + i) % 3), 'rgba(255,200,240,0.7)');
-      marker(P, x, y - 8, t);
-      return;
-    }
-    if (plan === 'insect') {
-      const y = 22 + Math.round(Math.sin(t * 0.4) * 3);
-      P.rect(x, y, 10, 2, '#2f6f9a'); P.rect(x + 2, y - 2, 5, 2, t % 2 ? 'rgba(240,250,255,0.95)' : 'rgba(240,250,255,0.5)'); P.rect(x + 2, y + 2, 5, 2, 'rgba(240,250,255,0.7)');
-      marker(P, x + 4, y - 4, t);
-      return;
-    }
-    const spec = PLAYER_SPR[plan];
-    if (!spec) return;
-    const [name, pal, s] = spec;
-    const rows = SPR[name];
-    const w = rows[0].length * s, h = rows.length * s;
-    const swim = ['jawless', 'fish', 'shark', 'armorfish', 'marine_reptile', 'whale', 'anomalo'].includes(plan);
-    const fly = plan === 'pterosaur' || plan === 'bird';
-    const y = fly ? 14 + Math.round(Math.sin(t * 0.2) * 3) : swim ? 30 + Math.round(Math.sin(t * 0.15) * 2) : ground - h;
-    const xx = x - Math.round(w / 2) + Math.round(Math.sin(t * 0.07) * 4);
-    P.sprite(fly && t % 4 >= 2 && name === 'pteroA' ? SPR.pteroB : rows, pal, xx, y, false, s);
-    marker(P, xx + Math.round(w / 2), y - 1, t);
+  // 生き物だけを小さなキャンバス（64×48）に。silhouette で白一色（進化の演出用）
+  function drawCreatureCard(ctx, look, t = 0, silhouette = null) {
+    ctx.clearRect(0, 0, 64, 48);
+    const P = painter(ctx, silhouette);
+    drawForm(P, look, t, 32, 44, true);
   }
-
 
   /* ============================================================
      結末の場面：今日の子孫の暮らし／化石が眠る地層
@@ -617,12 +700,22 @@
 
   const TODAY = {
     hotspring(P, t) {
-      P.bands(['#9cc8e6', '#b3d5ea', '#cbe2ec', '#e0ecee']);
-      P.ridge(34, 9, 1.1, '#8f9a7e', 0.05);
-      for (let k = 0; k < 6; k++) { P.rect(150 + k * 7, 22 + (k % 3) * 2, 2, 14, '#5e7a4a'); P.tri(151 + k * 7, 24 + (k % 3) * 2, 6, '#4a6a3a', 0.6); }
-      P.ground(40, '#c9b48e');
-      [['#c8642e', 30, 16], ['#e0a03a', 25, 13], ['#e8d06a', 20, 10], ['#7fbf8a', 15, 8], ['#3f9fc0', 10, 5], ['#2f6fa8', 5, 3]].forEach(([c, rx, ry]) => oval(P, 46, 52, rx, ry, c));
-      smoke(P, 40, 44, t, 'rgba(255,255,255,0.55)', 5); smoke(P, 54, 46, t + 7, 'rgba(255,255,255,0.45)', 4);
+      // 雪の山の温泉。湯のふちのオレンジや黄色は、熱に強い微生物がつくる色
+      P.bands(['#8fb4d4', '#a6c4dc', '#bed4e4', '#d6e2ec']);
+      P.tri(150, 34, 24, '#6f7f92', 1.5); P.tri(150, 34, 10, '#f2f6fa', 1.5); P.tri(108, 36, 16, '#7f8fa0', 1.6); P.tri(108, 36, 6, '#f2f6fa', 1.6);
+      for (let k = 0; k < 12; k++) { const x = 4 + k * 16; P.tri(x, 40, 9 + (k % 3) * 2, '#3e5a46', 0.45); P.rect(x - 1, 34 + (k % 2), 1, 1, '#f2f6fa'); }
+      P.ground(40, '#e6dccb');
+      for (let k = 0; k < 22; k++) P.rect((k * 23) % PW, 41 + (k * 7) % 22, 3, 1, '#f6f2ea');      // 雪
+      [['#b85a2a', 38, 11], ['#e08a32', 34, 9], ['#f0c850', 29, 8], ['#a8d8a0', 24, 6], ['#5ab8d8', 18, 5], ['#2f86c0', 11, 3]].forEach(([c, rx, ry]) => oval(P, 48, 53, rx, ry, c));
+      for (let k = 0; k < 6; k++) P.dome(12 + k * 14, 46 + (k % 2), 2, '#8a8478');                  // 湯船の石
+      // 湯につかるサル
+      P.disc(34, 50, 3, '#8a6a4a'); P.rect(33, 50, 3, 2, '#e0a090'); P.rect(33, 50, 1, 1, '#3a2a20'); P.rect(35, 50, 1, 1, '#3a2a20');
+      // 立ちのぼる湯けむり
+      for (let k = 0; k < 9; k++) { const ph = (t * 0.8 + k * 7) % 40, x = 22 + k * 7 + Math.round(Math.sin((t + k * 9) * 0.12) * 3) + Math.floor(ph / 6); P.disc(x, 48 - ph, 2 + Math.floor(ph / 10), `rgba(255,255,255,${Math.max(0, 0.75 - ph / 55)})`); }
+      // ♨ の看板
+      P.rect(170, 40, 2, 16, '#6a4a2a'); P.rect(160, 26, 22, 15, '#7a5a3a'); P.rect(162, 28, 18, 11, '#f4ead0');
+      P.rect(164, 36, 14, 1, '#c0302a'); P.rect(165, 37, 12, 1, '#c0302a'); P.rect(167, 38, 8, 1, '#c0302a');
+      for (let i = 0; i < 3; i++) { const x = 166 + i * 4; P.rect(x, 30, 1, 1, '#c0302a'); P.rect(x + 1, 31, 1, 1, '#c0302a'); P.rect(x, 32, 1, 1, '#c0302a'); P.rect(x + 1, 33, 1, 1, '#c0302a'); P.rect(x, 34, 1, 1, '#c0302a'); }
       return 58;
     },
     stromatolite(P, t) {
@@ -805,7 +898,7 @@
   };
 
   // 化石の地層。layer は絶滅の原因の層（impact 隕石 / eruption 噴火 / ice 氷河 / oxygen 縞状鉄鉱 / anoxic 黒い泥 / coal 石炭 / anthro 人間）
-  function sceneFossil(P, plan, layer, t) {
+  function sceneFossil(P, plan, layer, t, look) {
     P.bands(['#a9cde6', '#c4dcea'], 0, 9);
     P.rect(0, 9, PW, 3, layer === 'ice' ? '#eef3f6' : '#6f9a4a');
     for (let k = 0; k < 30; k++) P.rect((k * 13) % PW, 8, 1, 1, layer === 'ice' ? '#ffffff' : '#5a8a3a');
@@ -848,7 +941,7 @@
     }
     if (plan === 'sponge') { P.rect(92, fy - 7, 8, 16, bone); for (let yy = 0; yy < 16; yy += 3) P.rect(92, fy - 7 + yy, 8, 1, shade); return; }
     if (plan === 'insect') { P.rect(88, fy, 14, 2, bone); P.rect(90, fy - 3, 6, 3, '#d8ccb0'); P.rect(90, fy + 2, 6, 3, '#d8ccb0'); return; }
-    const spec = PLAYER_SPR[plan];
+    const spec = specOf(lookOf(look || plan));
     if (!spec) return;
     const rows = SPR[spec[0]], s = 2;
     const w = rows[0].length * s, h = rows.length * s;
@@ -858,11 +951,12 @@
   }
 
   function drawEnding(P, e, t) {
+    if (e.unborn) { sceneHadean(P, e.ya || 4.3e9, t); return; }
     if (e.alive) {
       const ground = (TODAY[e.scene] || TODAY.meadow)(P, t);
-      if (e.plan !== 'human') drawPlayer(P, e.plan, t, ground);
+      if (e.plan !== 'human') drawPlayer(P, e.look || e.plan, t, ground);
     } else {
-      sceneFossil(P, e.plan, e.layer, t);
+      sceneFossil(P, e.plan, e.layer, t, e.look);
     }
   }
 
@@ -898,7 +992,7 @@
       for (let k = 0; k < 40; k++) P.rect((k * 37 + t * 0.5 * (1 + k % 3)) % PW, (k * 13 + t * (1 + k % 2)) % PH, 1, 1, '#ffffff');
     }
     if (fx === 'oxygen') P.rect(0, 0, PW, PH, `rgba(160,40,30,${0.25 + 0.1 * Math.sin(t * 0.5)})`);
-    if (plan) drawPlayer(P, plan, t, 58);
+    if (plan) drawPlayer(P, opts.look || plan, t, 58);
   }
 
   const FX_CAPTION = {
@@ -952,7 +1046,7 @@
       if (!v.canvas.offsetParent) continue;
       const st = v.getState(now);
       if (!st) continue;
-      const key = `${t}|${st.ya}|${st.fx}|${st.habitat}|${st.plan}|${st.ending ? st.ending.id + st.ending.plan : ''}`;
+      const key = `${t}|${st.ya}|${st.fx}|${st.habitat}|${st.plan}|${st.ending ? st.ending.id + st.ending.plan : ''}|${JSON.stringify(st.look || (st.ending && st.ending.look) || '')}`;
       if (key === v.key) continue;
       v.key = key;
       drawScene(v.ctx, st.ya, t, st);
@@ -961,5 +1055,5 @@
   }
   requestAnimationFrame(loop);
 
-  E.scenes = { PW, PH, drawScene, sceneCaption, sceneView, FX_CAPTION };
+  E.scenes = { PW, PH, drawScene, sceneCaption, sceneView, FX_CAPTION, drawCreatureCard };
 })();

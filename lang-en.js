@@ -265,6 +265,8 @@
     '左右相称動物': 'Bilaterian', '最初の四足動物': 'First four-legged animal', '最初の魚の仲間': 'Early fish', '板皮類': 'Placoderm', '核を持つ細胞': 'Cell with a nucleus',
     '海のは虫類': 'Marine reptile', '竜脚類': 'Sauropod', '羽毛恐竜': 'Feathered dinosaur', '藻類の祖先': 'Ancestor of algae', '陸の節足動物': 'Land arthropod',
     '霊長類': 'Primate', '頑丈型猿人': 'Robust australopith',
+    '熱水の古細菌': 'Hydrothermal archaeon', '酸素を使う細菌': 'Oxygen-breathing bacterium', '微生物を食べる微生物': 'Microbe-eating microbe',
+    'ゾウリムシの仲間': 'Paramecium relative', 'ボルボックスの仲間': 'Volvox-like colony', 'カメの仲間': 'Turtle',
   };
 
   // 分かれ道 { id: [問い, 状況, [[選択肢, 説明, 実際には], ...]] }
@@ -458,6 +460,7 @@
     'd-homo': ['Another kind of human', 'Every human species but sapiens vanished. Yet some of their genes still live in us.'],
     'd-mega': ['Gone with the mammoths', 'Climate change and human hunting wiped out many big mammals.'],
     'd-anthro': ['Lost in the human age', 'Traces of the human age, like plastic and radioactive fallout, are being laid down in the rock.'],
+    'u-unborn': ['Before life began', 'Earth was still hot, and life hadn\'t begun. About 17% of the 4.6 billion years had no life at all.'],
     'd-bg': ['A lineage that faded away', 'Even without a big disaster, a dwindling lineage quietly disappears. Over 99% of all species that ever lived went this way.'],
   };
 
@@ -558,7 +561,7 @@
       'Squeeze 4.6 billion years into 24 hours, and all of human history is the last 5.6 seconds. Everything since the term "artificial intelligence" was coined is the last {a}. Since ChatGPT launched: about {b}.',
     'AIと人が一緒に、まだ誰も見たことのない答えを探しはじめています。': 'Humans and AI have begun searching together for answers no one has seen yet.',
     'AIの台頭': 'The rise of AI', 'ChatGPTの公開から今日まで：<b>約{a}</b>。': 'From the launch of ChatGPT to today: <b>about {a}</b>.',
-    '{a}、「{n}」として生まれた。': '{a}: born as "{n}".', '{a}〜{e}・分かれ道{k}回・{d}': '{a} – {e} · {k} forks · {d}',
+    '「{n}」として生まれた。': 'Born as "{n}".', '{a}〜{e}・分かれ道{k}回・{d}': '{a} – {e} · {k} forks · {d}',
     '{a}に「{f}」として生まれ、{e}、{n}として絶滅した。': 'Born {a} as "{f}", went extinct {e} as {n}.',
     '{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。': 'Born {a} as "{f}", went extinct {e} as {n}{c}.',
     '{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。続いた期間は{y}。': 'Born {a} as "{f}", went extinct {e} as {n}{c}. It lasted {y}.',
@@ -603,6 +606,12 @@
     '絶滅（{a}）': 'extinct ({a})', '続いた期間': 'Lasted', '農耕から、文明と国へ': 'From farming to civilizations and nations',
     '進化ガチャ｜結末 No.{no} / {all}': 'Evolution Gacha | Ending No.{no} / {all}', '（{c}）': ' ({c})',
     '数が減り続け、最後の種が消えた（背景の絶滅）': 'background extinction',
+    '系統のタイムライン': 'Lineage timeline', '進化の系譜': 'Evolution chain', 'つぎへ': 'Next',
+    '{a}は、{b}に進化した！': '{a} evolved into {b}!', '{n}の体が、変わりはじめた…！': 'Something is happening to {n}...!',
+    '→ {p}': '→ {p}', '暮らす場所 → {h}': 'Habitat → {h}', '種の数 ×{x}': 'Species ×{x}',
+    'はじめての結末！「{t}」として図鑑に残りました。': 'New ending! Added to your collection as "{t}".', '「あなたが生きた系統」に記録しました。': 'Saved to "Lineages you lived".',
+    '{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。': 'Tried to be born {a}, but Earth was still a blazing world with no life.',
+    '誕生前': 'Unborn', '生まれる前の地球を引いたのは{n}回。': 'Drew the lifeless early Earth {n} times.', '生命が生まれる前': 'before life', '生まれられなかった': 'Never born',
   };
 
   if (E.LANG !== 'en') return;
@@ -614,7 +623,7 @@
   for (const e of E.ERAS) e.name = ERAS[e.name] || e.name;
   for (const p of E.PERIODS) { p.era = PERIODS[p.era] || p.era; p.name = PERIODS[p.name] || p.name; }
   for (const a of E.AI_STORY) { const x = AI_STORY[a[0]] || (a[0] >= E.NOW_YEAR ? AI_NOW : null); if (x) { a[1] = x[0]; a[2] = x[1]; } }
-  for (const k in PLANS) if (evo.PLANS[k]) { evo.PLANS[k].name = PLANS[k][0]; evo.PLANS[k].today = PLANS[k][1]; }
+  for (const k in PLANS) if (evo.PLANS[k]) { NAMES[evo.PLANS[k].ja] = NAMES[evo.PLANS[k].ja] || PLANS[k][0]; evo.PLANS[k].name = PLANS[k][0]; evo.PLANS[k].today = PLANS[k][1]; }
   Object.assign(evo.HAB_LABEL, HAB);
   Object.assign(evo.TRAIT_LABEL, TRAITS);
   const dict = { ...NAMES, ...CAPTIONS };

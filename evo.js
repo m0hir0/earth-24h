@@ -39,6 +39,7 @@
     hominin:   { name: '人類の祖先', today: 'ホモ・サピエンス以外の人類は、すべて絶滅した', base: [40, 10, 45, 70, 50] },
     human:     { name: 'ホモ・サピエンス', today: '私たち。そしてAIと生きる時代へ', base: [45, 10, 45, 95, 90] },
   };
+  for (const k in PLANS) PLANS[k].ja = PLANS[k].name;              // 保存用の名前（訳しても変わらない）
   const TRAITS = ['size', 'armor', 'speed', 'brain', 'adapt'];
   const TRAIT_LABEL = { size: '大きさ', armor: '守り', speed: '動き', brain: '知恵', adapt: '適応力' };
   const MICRO = new Set(['microbe', 'cyano', 'cell', 'colony']);
@@ -706,10 +707,13 @@
     ['人間による環境の変化', 'anthro', '人の時代に消えた', 'anthro', '地層には、プラスチックや放射性物質など、人間の時代の痕跡が刻まれ始めています。'],
     ['', 'bg', '静かに消えた系統', null, '大きな事件がなくても、数を減らした系統は静かに消えていきます。地球に現れた種の99%以上がそうでした。'],
   ].map(([match, key, title, layer, desc]) => ({ id: `d-${key}`, key, alive: false, title, layer, desc, match }));
-  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS];
+  // 生命が生まれる前の時代を引いたとき
+  const UNBORN = { id: 'u-unborn', key: 'unborn', alive: false, unborn: true, title: '生まれる前の地球', desc: '地球はまだ熱く、生命が生まれる前でした。46億年のうち約17%は、生き物のいない時代です。' };
+  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN];
   ENDINGS.forEach((e, i) => (e.no = i + 1));
   // 記録（a: 生存, p: 体のつくり, h: 暮らす場所, c: 絶滅の原因）から結末を決める
   function endingOf(d) {
+    if (d.u) return UNBORN;
     if (d.a) {
       const key = d.p === 'arthropod' ? (d.h === 'land' ? 'arthropod-land' : 'arthropod-sea') : d.p;
       return ALIVE_ENDINGS.find((e) => e.key === key) || ALIVE_ENDINGS[0];
