@@ -86,7 +86,7 @@
     if (tab === 'evo') evoScreen = name;
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === tab)));
     if (name === 'home') homeInit();
-    if (name === 'now') zoomShow();
+    if (name === 'now' && updateZoomLock()) zoomShow();
     window.scrollTo(0, 0);
   }
   // 「生まれる」タブ：プレイ中ならその続きへ、それ以外はガチャの画面へ
@@ -301,11 +301,6 @@
     },
   };
 
-  let zBannerTimer = 0;
-  function zBanner(text) {
-    const b = $('z-banner'); b.textContent = text; b.classList.add('show');
-    clearTimeout(zBannerTimer); zBannerTimer = setTimeout(() => b.classList.remove('show'), 3200);
-  }
   function zEvent(e, animate) {
     const c = $('z-evt');
     c.classList.toggle('ai', e.kind === 'ai');
@@ -317,7 +312,6 @@
   function zReset() {
     Object.assign(Z, { p: 0, seg: -1, next: 0, ya: ZSEG[0].a, last: 0, ended: false, playing: true });
     $('z-end').hidden = true;
-    $('z-banner').classList.remove('show');
     $('z-play').textContent = T('⏸ 一時停止');
     zEvent(Z_INTRO, false);
     zRender();
@@ -328,7 +322,6 @@
     if (!Z.dragging) $('z-seek').value = Math.round(Z.p * 1000);
     if (i !== Z.seg) {
       [...$('z-seek-labels').children].forEach((sp, k) => sp.classList.toggle('on', k === i));
-      if (Z.seg >= 0 && i > Z.seg && !Z.quiet) zBanner(T('ここから時間を約{x}倍ゆっくり流します\n1秒 = {y}年', { x: Math.round(zRate(Z.seg) / zRate(i)), y: fmtYears(zRate(i)) }));
       Z.seg = i;
       zStrip.build(i);
       $('z-chip').textContent = segLabel(i);
@@ -347,7 +340,7 @@
   }
   function zLoop(ts) {
     requestAnimationFrame(zLoop);
-    if ($('screen-now').hidden || !Z.playing || Z.ended || Z.dragging) { Z.last = 0; return; }
+    if ($('screen-now').hidden || $('z-body').hidden || !Z.playing || Z.ended || Z.dragging) { Z.last = 0; return; }
     if (!Z.last) Z.last = ts;
     const dt = Math.min((ts - Z.last) / 1000, 0.25);
     Z.last = ts;
@@ -387,7 +380,7 @@
     Z.ya = zYa(Z.p);
     Z.next = ZEV.findIndex((e) => e.ya < Z.ya);
     if (Z.next < 0) Z.next = ZEV.length;
-    Z.quiet = true; zRender(); Z.quiet = false;
+    zRender();
     zEvent(ZEV[Z.next - 1] || Z_INTRO, false);
     if (Z.p >= 1) { if (!Z.ended) zFinish(); }
     else if (Z.ended) { Z.ended = false; $('z-end').hidden = true; }
@@ -410,6 +403,23 @@
   strip.addEventListener('pointerup', stripEnd);
   strip.addEventListener('pointercancel', stripEnd);
   $('z-again').addEventListener('click', zReset);
+
+  // 今を拡大は、一度「生まれる」を最後まで遊ぶと見られる
+  const ZOOM_KEY = 'earth24.zoom';
+  function zoomUnlocked() {
+    try { if (localStorage.getItem(ZOOM_KEY)) return true; } catch (e) { /* 保存できない環境 */ }
+    return histLoad().some((d) => !d.u);
+  }
+  function updateZoomLock() {
+    const ok = zoomUnlocked();
+    $('tab-lock').toggleAttribute('hidden', ok); $('z-lock').hidden = ok; $('z-body').hidden = !ok;
+    return ok;
+  }
+  function unlockZoom() {
+    try { localStorage.setItem(ZOOM_KEY, '1'); } catch (e) { /* 履歴があれば解放のまま */ }
+    updateZoomLock();
+  }
+  $('z-go').addEventListener('click', () => show('birth'));
 
   let aiBuilt = false;
   function zoomShow() {
@@ -492,15 +502,22 @@
     if (!box.children.length) {
       for (const k of evo.TRAITS) {
         const row = document.createElement('div'); row.className = 'trait';
-        row.innerHTML = `<span></span><div class="track"><div class="fill"></div></div><b class="num"></b>`;
-        row.children[0].textContent = evo.TRAIT_LABEL[k];
+        row.innerHTML = `<span></span><div class="track"><div class="fill"></div></div><b class="num"></b><em class="dl"></em>`;
+        row.children[0].textContent = (box.classList.contains('compact') ? evo.TRAIT_SHORT : evo.TRAIT_LABEL)[k];
         box.appendChild(row);
       }
     }
     evo.TRAITS.forEach((k, i) => {
       const row = box.children[i];
+      const v = Math.round(L.traits[k]), prev = row.dataset.v;
       row.querySelector('.fill').style.width = `${L.traits[k]}%`;
-      row.querySelector('b').textContent = Math.round(L.traits[k]);
+      row.querySelector('b').textContent = v;
+      if (prev !== undefined && Number(prev) !== v) {
+        const dl = row.querySelector('.dl'), up = v > prev;
+        dl.textContent = `${up ? '▲' : '▼'}${Math.abs(v - prev)}`;
+        dl.className = `dl ${up ? 'up' : 'down'}`; void dl.offsetWidth; dl.classList.add('show');
+      }
+      row.dataset.v = v;
     });
   }
 
@@ -603,8 +620,9 @@
     Object.assign(P, {
       on: true, L: player, rivals, ya0: t, ya: t, T: PLAY_SEC, elapsed: 0, speed: 1, paused: false, skipping: false,
       pending: null, last: 0, fx: null, fxUntil: 0, rnd: evo.rng(Math.floor(Math.random() * 2 ** 31)),
-      done: new Set(), log: [], startedAt: t,
+      done: new Set(), log: [], startedAt: t, lifeT: 0, lifeNext: 4, lifeRecent: [],
     });
+    $('p-life').hidden = true;
     $('p-log').textContent = '';
     player.forms = [{ ya: t, look: lookOfL(player), name: player.name }];
     document.querySelectorAll('#p-controls [data-speed]').forEach((b) => b.classList.toggle('on', b.dataset.speed === '1'));
@@ -623,10 +641,20 @@
     const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = `${fmtClock(e.ya, clockDecFor(e.ya))}${SEP}${fmtAgo(e.ya)}`;
     const tx = document.createElement('span'); tx.textContent = e.text; if (e.kind === 'dead') tx.className = 'dead';
     li.append(tt, tx);
+    if (e.d) {
+      const chips = document.createElement('div'); chips.className = 'chips';
+      for (const k of evo.TRAITS) if (e.d[k]) { const c = document.createElement('i'); c.className = e.d[k] > 0 ? 'up' : 'down'; c.textContent = `${evo.TRAIT_LABEL[k]} ${e.d[k] > 0 ? '▲' : '▼'}${Math.abs(e.d[k])}`; chips.appendChild(c); }
+      if (chips.children.length) li.appendChild(chips);
+    }
     return li;
   }
-  function plog(ya, text, kind = 'info') {
-    const e = { ya, text, kind };
+  const traitDelta = (before, L) => {
+    const d = {};
+    for (const k of evo.TRAITS) { const x = Math.round(L.traits[k]) - Math.round(before[k]); if (x) d[k] = x; }
+    return Object.keys(d).length ? d : null;
+  };
+  function plog(ya, text, kind = 'info', d = null) {
+    const e = { ya, text, kind, d };
     P.log.push(e);
     $('p-log').prepend(logItem(e));
     P.mapDirty = true;
@@ -640,6 +668,7 @@
       if (a <= b) continue;
       el('rect', { x: x(a), y: 18, width: Math.max(1, x(b) - x(a)), height: 14, fill: e.color, opacity: 0.55 }, svg);
     }
+    for (const e of log) if (e.kind === 'life') el('circle', { cx: x(e.ya), cy: 25, r: 3.5, class: 'lm-life' }, svg);
     for (const e of log) {
       const cx = x(e.ya);
       if (e.kind === 'choice') el('circle', { cx, cy: 25, r: 7, class: 'lm-choice' }, svg);
@@ -692,11 +721,11 @@
   const trimNum = (x) => E.trim(x.toFixed(1));
   function choose(node, o) {
     const L = P.L;
-    const before = lookOfL(L), beforeName = nameOf(L);
+    const before = lookOfL(L), beforeName = nameOf(L), beforeTraits = { ...L.traits };
     o.apply(L);
     L.taken.add(node.id);
     L.path.push({ ya: P.ya, label: o.label });
-    plog(P.ya, T('分かれ道：{l}', { l: tr(o.label) }) + (o.real ? ` ${o.real}` : ''), 'choice');
+    plog(P.ya, T('分かれ道：{l}', { l: tr(o.label) }) + (o.real ? ` ${o.real}` : ''), 'choice', traitDelta(beforeTraits, L));
     $('p-choice').hidden = true;
     P.pending = null;
     const after = lookOfL(L);
@@ -745,11 +774,14 @@
       else { st.textContent = T('{b} → {a}種', { b: res.before, a: res.after }); st.className = `st ${R.alive ? 'live' : 'dead'}`; }
       ul.appendChild(li);
     });
-    $('p-event').hidden = false;
-    $('p-event').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
+    $('ev-modal').hidden = false;
+    const box = $('ev-box'); box.scrollTop = 0;
+    box.classList.remove('hit'); void box.offsetWidth; box.classList.add('hit');
+    $('p-ev-ok').focus({ preventScroll: true });
   }
+  sceneView($('ev-scene'), () => ($('ev-modal').hidden || !P.L ? null : { ya: P.ya, plan: P.L.alive ? P.L.plan : null, habitat: P.L.habitat, look: lookOfL(P.L), fx: P.fx }));
   $('p-ev-ok').addEventListener('click', () => {
-    $('p-event').hidden = true;
+    $('ev-modal').hidden = true;
     P.pending = null;
     if (!P.L.alive) { endPlay(); return; }
     checkNode();
@@ -825,6 +857,20 @@
     P.elapsed = pAtYa(P.ya) * P.T;
   }
 
+  // 暮らしの一場面：何を食べ、どう暮らしていたか（実際の時間で十数秒ごと）
+  function lifeTick() {
+    P.lifeT = 0; P.lifeNext = 13 + P.rnd() * 9;
+    const ep = evo.lifeEpisode(P.L, P.rnd, P.lifeRecent);
+    P.lifeRecent = [ep.text, ...P.lifeRecent].slice(0, 5);
+    const before = { ...P.L.traits };
+    if (ep.fx) evo.bump(P.L, ep.fx);
+    plog(P.ya, tr(ep.text), 'life', traitDelta(before, P.L));
+    const box = $('p-life');
+    $('p-life-t').textContent = tr(ep.text);
+    box.hidden = false; box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
+    renderPlay(true);
+  }
+
   function playLoop(ts) {
     if (!P.on) return;
     if ($('screen-play').hidden) { P.last = 0; requestAnimationFrame(playLoop); return; }
@@ -837,6 +883,7 @@
       advance(target <= 1e-6 ? 0 : target);
       if (P.L.alive && P.ya <= 0 && !P.pending) { endPlay(); return; }
       if (!P.L.alive && !P.pending) { endPlay(); return; }
+      if (!P.skipping && !P.pending && P.L.alive && (P.lifeT += dt) >= P.lifeNext) lifeTick();
     }
     renderPlay(false);
     requestAnimationFrame(playLoop);
@@ -886,6 +933,7 @@
     document.querySelectorAll('#p-controls [data-speed]').forEach((x) => x.classList.toggle('on', x === b));
   }));
   $('p-next').addEventListener('click', () => { P.skipping = true; P.paused = false; $('p-pause').textContent = T('⏸ 一時停止'); });
+  $('r-zoom').addEventListener('click', () => show('now'));
   $('p-quit').addEventListener('click', () => { P.on = false; show('birth'); });
 
   /* ============================================================
@@ -961,7 +1009,10 @@
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
     const data = resultData(L, alive, endYa);
+    const firstLife = !zoomUnlocked();
     histAdd(data);
+    $('r-unlock').hidden = !firstLife;
+    if (firstLife) unlockZoom();
     R.share = { text: shareTextFrom(data), url: shareUrlFrom(data), card };
     $('r-x').href = xUrl(R.share);
     $('r-share').hidden = EMBEDDED || !navigator.share;
@@ -1246,6 +1297,7 @@
   liveTick();
   requestAnimationFrame(homeLoop);
   renderHist();
+  updateZoomLock();
   const shared = readShared();
   if (shared) showShared(shared);
   if (location.hash === '#clock') show('home');

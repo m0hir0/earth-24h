@@ -42,6 +42,7 @@
   for (const k in PLANS) PLANS[k].ja = PLANS[k].name;              // 保存用の名前（訳しても変わらない）
   const TRAITS = ['size', 'armor', 'speed', 'brain', 'adapt'];
   const TRAIT_LABEL = { size: '大きさ', armor: '守り', speed: '動き', brain: '知恵', adapt: '適応力' };
+  const TRAIT_SHORT = { ...TRAIT_LABEL };                          // 狭い表で使う短い名前
   const MICRO = new Set(['microbe', 'cyano', 'cell', 'colony']);
   const HAB_LABEL = { shallow: '浅い海', sea: '海', deep: '深海の熱水のそば', land: '陸', air: '空', fresh: '川や沼' };
 
@@ -169,7 +170,7 @@
       ],
     },
     {
-      id: 'o2', from: 2.6e9, to: 2.4e9, when: (L) => MICRO.has(L.plan) && !L.flags.o2,
+      id: 'o2', from: 2.6e9, to: 1.5e9, when: (L) => MICRO.has(L.plan) && !L.flags.o2,
       q: '空気に酸素が増えはじめた。酸素は、多くの微生物にとって毒だ。',
       ctx: 'シアノバクテリアが出す酸素が、海と空気にたまり始めている。',
       opts: [
@@ -662,6 +663,168 @@
     return () => { s = (s + 0x6d2b79f5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   }
 
+  /* ---------------- 暮らしの出来事（タイムラインに出る、その生き物の日々） ----------------
+     [文章, 特徴の小さな変化] */
+  const LIFE = {
+    microbe: [
+      ['ひだまりの浅瀬で、ゆっくり分裂して数を増やした。', null],
+      ['岩のすき間に、仲間とぬるぬるした膜（バイオフィルム）をつくって暮らした。', { armor: 2 }],
+      ['海底からわき出す熱い水のそばで、化学物質を食べて生きた。', null],
+      ['嵐で浅瀬がかき混ぜられ、多くの仲間が流された。', { adapt: 2 }],
+      ['近くの微生物と、遺伝子のかけらを交換した。', { adapt: 3 }],
+      ['紫外線の強い日。泥の中にもぐって身を守った。', null],
+      ['仲間と層になって積み重なり、小さな岩（ストロマトライト）を育てた。', null],
+      ['となりの微生物が出したものを、栄養にして生きた。', null],
+    ],
+    cell: [
+      ['体の中のミトコンドリアが、せっせとエネルギーをつくっている。', null],
+      ['水の中をただよう細菌を、体で包みこんで食べた。', null],
+      ['分裂して、そっくりな仲間が増えた。', null],
+      ['仲間の細胞とくっついて、役割を分けあった。', { size: 2 }],
+      ['冷たい海で、動きをゆるめてじっと耐えた。', { adapt: 2 }],
+      ['太陽の光を浴びて、栄養をたくわえた。', null],
+      ['別の細胞と遺伝子を混ぜ合わせ、新しい組み合わせの子が生まれた。', { adapt: 2 }],
+      ['水の流れにのって、遠くの海へ運ばれた。', null],
+    ],
+    soft: [
+      ['海底の微生物のマットを、少しずつかじって食べた。', null],
+      ['砂の中にもぐって、昼をやり過ごした。', { armor: 1 }],
+      ['流れてくる小さな粒を、体でこして食べた。', null],
+      ['海底をゆっくりはって、新しい場所を見つけた。', { speed: 2 }],
+      ['たくさんの卵を海にまいた。', null],
+      ['捕食者の影が近づき、砂にもぐって息をひそめた。', { armor: 2 }],
+      ['仲間と海底いっぱいに広がって暮らした。', null],
+      ['潮の流れが変わり、すみかを移した。', { adapt: 2 }],
+    ],
+    arthro: [
+      ['海底の泥をかき分けて、えさを探した。', null],
+      ['脱皮して、ひとまわり大きくなった。', { size: 2 }],
+      ['捕食者から、体を丸めて身を守った。', { armor: 2 }],
+      ['浅瀬で、たくさんの仲間といっしょに卵を産んだ。', null],
+      ['複眼で、近づく影をいち早く見つけた。', { speed: 1 }],
+      ['海の泥に、足あとの列を残した。いつか化石になる跡だ。', null],
+      ['殻が割れてしまった仲間を見送った。', null],
+      ['潮だまりに取り残され、次の満ち潮を待った。', { adapt: 2 }],
+    ],
+    bug: [
+      ['落ち葉の下で、くさった葉っぱを食べて暮らした。', null],
+      ['脱皮して、ひとまわり大きくなった。', { size: 2 }],
+      ['植物の汁や胞子を食べて暮らした。', null],
+      ['雨のあと、水たまりのそばに卵を産んだ。', null],
+      ['クモの巣にかかりそうになり、間一髪で逃げた。', { speed: 2 }],
+      ['乾いた季節を、土の中でじっと耐えた。', { adapt: 2 }],
+      ['仲間と群れになって、新しい森へ移った。', null],
+      ['酸素の濃い空気の中で、体を大きく育てた。', { size: 1 }],
+    ],
+    fish: [
+      ['海の小さな生き物を追いかけて食べた。', null],
+      ['群れになって泳ぎ、大きな捕食者の目をくらませた。', { speed: 2 }],
+      ['岩かげに身をひそめ、夜を待った。', null],
+      ['浅い入り江で、たくさんの卵を産んだ。', null],
+      ['酸素の多い流れを探して泳いだ。', { adapt: 1 }],
+      ['大きな捕食者にかみつかれたが、なんとか逃げ切った。', { armor: 2 }],
+      ['季節の流れにのって、遠くの海まで旅をした。', null],
+      ['海底の泥にまぎれて、えさが通るのを待った。', null],
+    ],
+    amphibian: [
+      ['水辺で虫をつかまえて食べた。', null],
+      ['湿った森の中で、皮ふを乾かさないように暮らした。', null],
+      ['池に、ゼリーのような卵を産んだ。', null],
+      ['おたまじゃくしのような子どもたちが、水の中で育った。', null],
+      ['日照りで水たまりが干上がり、急いで別の池へ移った。', { adapt: 2 }],
+      ['シダの根もとで、昼の暑さをやり過ごした。', null],
+      ['大きな魚に食べられそうになり、陸へ逃げた。', { speed: 1 }],
+      ['雨の夜、仲間と鳴きかわした。', null],
+    ],
+    reptile: [
+      ['岩の上で日光浴をして、体を温めた。', null],
+      ['虫や小さな動物をつかまえて食べた。', null],
+      ['砂の中に、殻のある卵を産んで埋めた。', null],
+      ['乾いた季節も、うろこの体で水を逃さずに過ごした。', { adapt: 2 }],
+      ['巣穴の中で、夜の寒さをしのいだ。', { armor: 1 }],
+      ['大きな捕食者の足音を聞き、岩かげに隠れた。', null],
+      ['水辺で、えものが近づくのをじっと待った。', null],
+      ['脱皮して、新しいうろこになった。', null],
+    ],
+    dino: [
+      ['群れで移動しながら、植物や小さな動物を食べた。', null],
+      ['巣に卵を並べ、交代で温めた。', null],
+      ['子どもたちが巣立ち、群れについて歩きはじめた。', null],
+      ['水場に集まり、ほかの恐竜たちと水を飲んだ。', null],
+      ['大型の肉食恐竜に追われ、群れで逃げた。', { speed: 2 }],
+      ['乾季に食べ物が減り、遠くの森まで歩いた。', { adapt: 2 }],
+      ['仲間とけんかをして、群れの順位が決まった。', { size: 1 }],
+      ['火山の噴煙が空を覆い、暗い日が続いた。', null],
+    ],
+    flyer: [
+      ['風にのって、海の上を長く飛んだ。', null],
+      ['水面すれすれを飛び、魚をつかまえた。', null],
+      ['崖の上に巣をつくった。', null],
+      ['卵からかえったひなに、えさを運んだ。', null],
+      ['嵐で翼を痛め、しばらく飛べなかった。', { adapt: 1 }],
+      ['季節が変わり、群れで遠くへ渡った。', { speed: 1 }],
+      ['木の実や虫を探して、森を飛び回った。', null],
+      ['高い木の上から、地上の危険を見張った。', { brain: 1 }],
+    ],
+    seabig: [
+      ['魚の群れに飛びこんで、たらふく食べた。', null],
+      ['海面に出て、大きく息を吸った。', null],
+      ['子どもを産み、そばで泳ぎ方を教えた。', null],
+      ['仲間と鳴き交わしながら、深い海を旅した。', { brain: 1 }],
+      ['大きなサメに狙われたが、群れで追い払った。', { size: 1 }],
+      ['あたたかい海と冷たい海を、季節ごとに行き来した。', { adapt: 1 }],
+      ['浅い海で、日の光を浴びて休んだ。', null],
+      ['貝やイカのような生き物を食べた。', null],
+    ],
+    mammal: [
+      ['夜、虫や木の実を探して歩き回った。', null],
+      ['巣穴の中で、子どもたちに乳を飲ませた。', null],
+      ['毛皮をふくらませて、寒い夜を越した。', { adapt: 1 }],
+      ['においで、天敵が近いことに気づいた。', { brain: 1 }],
+      ['木にのぼって、高いところの実を食べた。', { speed: 1 }],
+      ['群れの仲間と毛づくろいをし合った。', null],
+      ['乾季に、水場をめぐってほかの動物と争った。', { size: 1 }],
+      ['子どもが独り立ちして、新しいなわばりを見つけた。', null],
+    ],
+    human: [
+      ['仲間と協力して、獲物を追いつめた。', null],
+      ['石を割って、よく切れる道具をつくった。', { brain: 2 }],
+      ['たき火を囲んで、夜の寒さをしのいだ。', null],
+      ['木の実や根を集めて、みんなで分けた。', null],
+      ['子どもを、群れの大人みんなで育てた。', null],
+      ['遠くの土地まで歩いて、新しいすみかを見つけた。', { adapt: 1 }],
+      ['病気やけがで、仲間を失った。', null],
+      ['洞窟の壁に、手の形を残した。', null],
+    ],
+    farm: [['麦を刈り取り、冬に備えてたくわえた。', null], ['村の祭りで、収穫を祝った。', null]],
+    industry: [['工場で働き、汽車に乗って町へ出かけた。', null], ['電気の明かりの下で、夜遅くまで本を読んだ。', { brain: 1 }]],
+    ai: [['AIに相談しながら、新しい仕事にとりかかった。', { brain: 1 }], ['スマホで遠くの友だちと話した。', null]],
+  };
+  function lifeGroup(L) {
+    const p = L.plan;
+    if (p === 'microbe' || p === 'cyano') return 'microbe';
+    if (p === 'cell' || p === 'colony') return 'cell';
+    if (['sponge', 'ediacaran', 'soft'].includes(p)) return 'soft';
+    if (p === 'arthropod') return L.habitat === 'land' ? 'bug' : 'arthro';
+    if (p === 'insect') return 'bug';
+    if (['anomalo', 'jawless', 'fish', 'shark', 'armorfish'].includes(p)) return 'fish';
+    if (p === 'amphibian') return 'amphibian';
+    if (p === 'reptile' || p === 'synapsid') return 'reptile';
+    if (['dino_small', 'sauropod', 'theropod'].includes(p)) return 'dino';
+    if (p === 'pterosaur' || p === 'bird') return 'flyer';
+    if (p === 'marine_reptile' || p === 'whale') return 'seabig';
+    if (['mammal', 'mammal_large', 'primate'].includes(p)) return 'mammal';
+    return 'human';
+  }
+  // その系統の、いまの暮らしの一場面（最近出たものはさける）
+  function lifeEpisode(L, rnd, recent = []) {
+    let pool = LIFE[lifeGroup(L)].slice();
+    if (L.plan === 'human') { if (L.flags.farm) pool = pool.concat(LIFE.farm); if (L.flags.industry) pool = pool.concat(LIFE.industry); if (L.flags.ai) pool = pool.concat(LIFE.ai); }
+    const fresh = pool.filter((x) => !recent.includes(x[0]));
+    const pick = (fresh.length ? fresh : pool)[Math.floor(rnd() * (fresh.length ? fresh.length : pool.length))];
+    return { text: pick[0], fx: pick[1] };
+  }
+
   /* ---------------- 結末（図鑑に集める） ----------------
      生き残った結末：最後の体のつくりごと。絶滅した結末：何で消えたかごと */
   const ALIVE_ENDINGS = [
@@ -724,7 +887,7 @@
 
   E.evo = {
     ENDINGS, endingOf,
-    CAP, PLANS, TRAITS, TRAIT_LABEL, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
-    birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die,
+    CAP, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
+    LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die,
   };
 })();

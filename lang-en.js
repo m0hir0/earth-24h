@@ -515,6 +515,119 @@
   };
 
 
+  /* ---------------- 暮らしの出来事 ---------------- */
+  const LIFE = {
+    "ひだまりの浅瀬で、ゆっくり分裂して数を増やした。": "In a sunny shallow, you slowly divided and multiplied.",
+    "岩のすき間に、仲間とぬるぬるした膜（バイオフィルム）をつくって暮らした。": "You lived with others in a slimy film (a biofilm) between the rocks.",
+    "海底からわき出す熱い水のそばで、化学物質を食べて生きた。": "Beside hot water welling up from the seafloor, you lived on chemicals.",
+    "嵐で浅瀬がかき混ぜられ、多くの仲間が流された。": "A storm churned the shallows and swept many of your kind away.",
+    "近くの微生物と、遺伝子のかけらを交換した。": "You swapped bits of genes with a nearby microbe.",
+    "紫外線の強い日。泥の中にもぐって身を守った。": "A day of harsh ultraviolet light. You hid in the mud.",
+    "仲間と層になって積み重なり、小さな岩（ストロマトライト）を育てた。": "Layer upon layer with others, you built a small rock (a stromatolite).",
+    "となりの微生物が出したものを、栄養にして生きた。": "You lived on what the microbe next door gave off.",
+    "体の中のミトコンドリアが、せっせとエネルギーをつくっている。": "The mitochondria inside you are busy making energy.",
+    "水の中をただよう細菌を、体で包みこんで食べた。": "You wrapped up and ate a bacterium drifting by.",
+    "分裂して、そっくりな仲間が増えた。": "You divided, and copies of you multiplied.",
+    "仲間の細胞とくっついて、役割を分けあった。": "You stuck together with other cells and shared the work.",
+    "冷たい海で、動きをゆるめてじっと耐えた。": "In the cold sea, you slowed down and waited it out.",
+    "太陽の光を浴びて、栄養をたくわえた。": "You soaked up sunlight and stored food.",
+    "別の細胞と遺伝子を混ぜ合わせ、新しい組み合わせの子が生まれた。": "You mixed genes with another cell, and offspring with a new mix were born.",
+    "水の流れにのって、遠くの海へ運ばれた。": "The current carried you to a distant sea.",
+    "海底の微生物のマットを、少しずつかじって食べた。": "You nibbled at the microbial mats on the seafloor.",
+    "砂の中にもぐって、昼をやり過ごした。": "You burrowed into the sand to wait out the day.",
+    "流れてくる小さな粒を、体でこして食べた。": "You filtered tiny drifting particles to eat.",
+    "海底をゆっくりはって、新しい場所を見つけた。": "Creeping slowly over the seafloor, you found a new spot.",
+    "たくさんの卵を海にまいた。": "You scattered many eggs into the sea.",
+    "捕食者の影が近づき、砂にもぐって息をひそめた。": "A predator's shadow came near. You hid in the sand and kept still.",
+    "仲間と海底いっぱいに広がって暮らした。": "You and your kind spread across the seafloor.",
+    "潮の流れが変わり、すみかを移した。": "The currents shifted, and you moved house.",
+    "海底の泥をかき分けて、えさを探した。": "You dug through the seafloor mud for food.",
+    "脱皮して、ひとまわり大きくなった。": "You molted and grew a size bigger.",
+    "捕食者から、体を丸めて身を守った。": "You rolled up to protect yourself from a predator.",
+    "浅瀬で、たくさんの仲間といっしょに卵を産んだ。": "In the shallows, you laid eggs alongside many others.",
+    "複眼で、近づく影をいち早く見つけた。": "Your compound eyes spotted an approaching shadow early.",
+    "海の泥に、足あとの列を残した。いつか化石になる跡だ。": "You left a line of tracks in the mud. Someday they will be fossils.",
+    "殻が割れてしまった仲間を見送った。": "You said goodbye to a companion whose shell had cracked.",
+    "潮だまりに取り残され、次の満ち潮を待った。": "Stranded in a tide pool, you waited for the next high tide.",
+    "落ち葉の下で、くさった葉っぱを食べて暮らした。": "Under fallen leaves, you lived on rotting plants.",
+    "植物の汁や胞子を食べて暮らした。": "You lived on plant sap and spores.",
+    "雨のあと、水たまりのそばに卵を産んだ。": "After the rain, you laid eggs beside a puddle.",
+    "クモの巣にかかりそうになり、間一髪で逃げた。": "You nearly got caught in a spider's web, and escaped just in time.",
+    "乾いた季節を、土の中でじっと耐えた。": "You waited out the dry season underground.",
+    "仲間と群れになって、新しい森へ移った。": "You swarmed with others to a new forest.",
+    "酸素の濃い空気の中で、体を大きく育てた。": "In the oxygen-rich air, you grew large.",
+    "海の小さな生き物を追いかけて食べた。": "You chased down and ate small sea creatures.",
+    "群れになって泳ぎ、大きな捕食者の目をくらませた。": "Swimming in a school, you confused a big predator.",
+    "岩かげに身をひそめ、夜を待った。": "You hid behind a rock and waited for night.",
+    "浅い入り江で、たくさんの卵を産んだ。": "You laid many eggs in a shallow cove.",
+    "酸素の多い流れを探して泳いだ。": "You swam in search of oxygen-rich water.",
+    "大きな捕食者にかみつかれたが、なんとか逃げ切った。": "A big predator bit you, but you got away.",
+    "季節の流れにのって、遠くの海まで旅をした。": "Riding the seasonal currents, you traveled to faraway seas.",
+    "海底の泥にまぎれて、えさが通るのを待った。": "Hidden in the seafloor mud, you waited for prey to pass.",
+    "水辺で虫をつかまえて食べた。": "You caught and ate bugs at the water's edge.",
+    "湿った森の中で、皮ふを乾かさないように暮らした。": "In the damp forest, you kept your skin from drying out.",
+    "池に、ゼリーのような卵を産んだ。": "You laid jelly-like eggs in a pond.",
+    "おたまじゃくしのような子どもたちが、水の中で育った。": "Your tadpole-like young grew up in the water.",
+    "日照りで水たまりが干上がり、急いで別の池へ移った。": "A drought dried up your pool, so you hurried to another pond.",
+    "シダの根もとで、昼の暑さをやり過ごした。": "You waited out the midday heat at the foot of a fern.",
+    "大きな魚に食べられそうになり、陸へ逃げた。": "Nearly eaten by a big fish, you escaped onto land.",
+    "雨の夜、仲間と鳴きかわした。": "On a rainy night, you called back and forth with others.",
+    "岩の上で日光浴をして、体を温めた。": "You basked on a rock to warm up.",
+    "虫や小さな動物をつかまえて食べた。": "You caught and ate bugs and small animals.",
+    "砂の中に、殻のある卵を産んで埋めた。": "You laid shelled eggs and buried them in the sand.",
+    "乾いた季節も、うろこの体で水を逃さずに過ごした。": "Your scaly skin held in water through the dry season.",
+    "巣穴の中で、夜の寒さをしのいだ。": "You sheltered from the cold night in a burrow.",
+    "大きな捕食者の足音を聞き、岩かげに隠れた。": "Hearing a big predator's footsteps, you hid behind a rock.",
+    "水辺で、えものが近づくのをじっと待った。": "At the water's edge, you waited still for prey to come close.",
+    "脱皮して、新しいうろこになった。": "You shed your skin and got fresh scales.",
+    "群れで移動しながら、植物や小さな動物を食べた。": "Moving with the herd, you ate plants and small animals.",
+    "巣に卵を並べ、交代で温めた。": "You laid eggs in a nest and took turns keeping them warm.",
+    "子どもたちが巣立ち、群れについて歩きはじめた。": "Your young left the nest and began following the herd.",
+    "水場に集まり、ほかの恐竜たちと水を飲んだ。": "You gathered at a watering hole and drank with other dinosaurs.",
+    "大型の肉食恐竜に追われ、群れで逃げた。": "Chased by a big meat-eater, you fled with the herd.",
+    "乾季に食べ物が減り、遠くの森まで歩いた。": "Food grew scarce in the dry season, so you walked to a faraway forest.",
+    "仲間とけんかをして、群れの順位が決まった。": "You fought a rival and settled your rank in the herd.",
+    "火山の噴煙が空を覆い、暗い日が続いた。": "Volcanic smoke covered the sky, and dark days went on.",
+    "風にのって、海の上を長く飛んだ。": "Riding the wind, you flew a long way over the sea.",
+    "水面すれすれを飛び、魚をつかまえた。": "Skimming the water, you snatched a fish.",
+    "崖の上に巣をつくった。": "You built a nest on a cliff.",
+    "卵からかえったひなに、えさを運んだ。": "You brought food to your newly hatched chicks.",
+    "嵐で翼を痛め、しばらく飛べなかった。": "A storm hurt your wing, and you could not fly for a while.",
+    "季節が変わり、群れで遠くへ渡った。": "As the seasons changed, you migrated far with the flock.",
+    "木の実や虫を探して、森を飛び回った。": "You flew around the forest looking for seeds and bugs.",
+    "高い木の上から、地上の危険を見張った。": "From a tall tree, you kept watch for danger below.",
+    "魚の群れに飛びこんで、たらふく食べた。": "You plunged into a school of fish and ate your fill.",
+    "海面に出て、大きく息を吸った。": "You rose to the surface and took a deep breath.",
+    "子どもを産み、そばで泳ぎ方を教えた。": "You gave birth and taught your young to swim.",
+    "仲間と鳴き交わしながら、深い海を旅した。": "Calling to one another, you traveled the deep sea together.",
+    "大きなサメに狙われたが、群れで追い払った。": "A big shark came for you, but the group drove it off.",
+    "あたたかい海と冷たい海を、季節ごとに行き来した。": "You moved between warm and cold seas with the seasons.",
+    "浅い海で、日の光を浴びて休んだ。": "You rested in sunlit shallow water.",
+    "貝やイカのような生き物を食べた。": "You ate shellfish and squid-like creatures.",
+    "夜、虫や木の実を探して歩き回った。": "At night, you wandered in search of bugs and seeds.",
+    "巣穴の中で、子どもたちに乳を飲ませた。": "In your burrow, you nursed your young.",
+    "毛皮をふくらませて、寒い夜を越した。": "You fluffed up your fur to get through a cold night.",
+    "においで、天敵が近いことに気づいた。": "You smelled that a predator was near.",
+    "木にのぼって、高いところの実を食べた。": "You climbed a tree to eat fruit up high.",
+    "群れの仲間と毛づくろいをし合った。": "You groomed each other with your group.",
+    "乾季に、水場をめぐってほかの動物と争った。": "In the dry season, you fought other animals over a watering hole.",
+    "子どもが独り立ちして、新しいなわばりを見つけた。": "Your young struck out on their own and found new territory.",
+    "仲間と協力して、獲物を追いつめた。": "Working together, you cornered your prey.",
+    "石を割って、よく切れる道具をつくった。": "You chipped stone into a sharp tool.",
+    "たき火を囲んで、夜の寒さをしのいだ。": "You gathered around a fire against the night's cold.",
+    "木の実や根を集めて、みんなで分けた。": "You gathered nuts and roots and shared them with everyone.",
+    "子どもを、群れの大人みんなで育てた。": "All the adults in the group raised the children together.",
+    "遠くの土地まで歩いて、新しいすみかを見つけた。": "You walked to a faraway land and found a new home.",
+    "病気やけがで、仲間を失った。": "You lost a companion to sickness or injury.",
+    "洞窟の壁に、手の形を残した。": "You left a handprint on a cave wall.",
+    "麦を刈り取り、冬に備えてたくわえた。": "You harvested wheat and stored it for winter.",
+    "村の祭りで、収穫を祝った。": "You celebrated the harvest at the village festival.",
+    "工場で働き、汽車に乗って町へ出かけた。": "You worked in a factory and took the train into town.",
+    "電気の明かりの下で、夜遅くまで本を読んだ。": "You read late into the night under an electric light.",
+    "AIに相談しながら、新しい仕事にとりかかった。": "You started a new project, talking it over with an AI.",
+    "スマホで遠くの友だちと話した。": "You chatted with a faraway friend on your phone.",
+  };
+
   /* ---------------- 画面の文言 ---------------- */
   const UI = {
     // HTML
@@ -586,7 +699,6 @@
     'あなたの系統：{b}種 → {a}種。なんとか生き延びた。': 'Your lineage: {b} → {a} species. You made it through.',
     'あなたは': 'You were', 'いちばん多いときの種の数': 'Most species at once', 'いまの地球時計の時代（{a}）に生まれる': 'Be born in the era on Earth\'s clock now ({a})',
     'いまの地球時計の風景（{a}）：{c}': 'Earth\'s clock right now ({a}): {c}',
-    'ここから時間を約{x}倍ゆっくり流します\n1秒 = {y}年': 'Slowing time down about {x}× from here\n1 s = {y} years',
     'これまで{n}回生まれ、{a}回は今日まで生き残りました（生存率{p}%）。いちばん長く続いたのは「{f}」からの系統（{y}）。':
       'Born {n} times, survived to today {a} times (survival rate {p}%). Longest-lasting lineage: the one that began as "{f}" ({y}).',
     'すでに絶滅': 'Already extinct', 'たった今': 'just now', 'ほぼ0%': 'nearly 0%', 'もう一度押すと、すべての記録を消します': 'Press again to delete all records',
@@ -611,6 +723,10 @@
     '→ {p}': '→ {p}', '暮らす場所 → {h}': 'Habitat → {h}', '種の数 ×{x}': 'Species ×{x}',
     'はじめての結末！「{t}」として図鑑に残りました。': 'New ending! Added to your collection as "{t}".', '「あなたが生きた系統」に記録しました。': 'Saved to "Lineages you lived".',
     '{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。': 'Tried to be born {a}, but Earth was still a blazing world with no life.',
+    '暮らし': 'Life', '「今を拡大」は、まだ見られません': '"Zoom into now" is still locked',
+    '一度「生まれる」で生まれて、結末まで生きると見られるようになります。46億年を生き抜いたあとで、最後の3分間をのぞいてみてください。':
+      'Play "Be born" once, all the way to an ending, to unlock it. After living through 4.6 billion years, take a look at the last three minutes.',
+    '「今を拡大」が見られるようになりました': '"Zoom into now" is now unlocked', '今を拡大を見る': 'Open Zoom into now',
     '誕生前': 'Unborn', '生まれる前の地球を引いたのは{n}回。': 'Drew the lifeless early Earth {n} times.', '生命が生まれる前': 'before life', '生まれられなかった': 'Never born',
   };
 
@@ -626,6 +742,7 @@
   for (const k in PLANS) if (evo.PLANS[k]) { NAMES[evo.PLANS[k].ja] = NAMES[evo.PLANS[k].ja] || PLANS[k][0]; evo.PLANS[k].name = PLANS[k][0]; evo.PLANS[k].today = PLANS[k][1]; }
   Object.assign(evo.HAB_LABEL, HAB);
   Object.assign(evo.TRAIT_LABEL, TRAITS);
+  Object.assign(evo.TRAIT_SHORT, TRAITS, { armor: 'Armor', adapt: 'Adapt' });
   const dict = { ...NAMES, ...CAPTIONS };
   for (const n of evo.NODES) {
     const x = NODES[n.id];
@@ -642,5 +759,6 @@
   for (const ev of evo.EXTINCTIONS) { const x = EXTINCTIONS[ev.name]; if (x) { dict[ev.name] = x[0]; ev.fact = x[1]; } }
   for (const e of evo.ENDINGS) { const x = ENDINGS[e.id]; if (x) { e.title = x[0]; e.desc = x[1]; } }
   E.addDict(UI);
+  E.addDict(LIFE);
   E.addDict(dict);
 })();

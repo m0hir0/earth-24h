@@ -14,7 +14,7 @@
 2. `data.js` — 定数（S=46億年, DAY）、書式（fmtYears/fmtAgo/fmtSec/fmtClock/fmtProb…、英語版あり）、ERAS・PERIODS（地質年代）・EVENTS（約170件、`key` は日本語名で不変）・status（酸素/1日の長さ/太陽）・AI_STORY
 3. `scenes.js` — ドット絵（192×64 を拡大）。`drawScene(ctx, ya, t, opts)`、opts は `{fx, habitat, plan, look, ending}`。`sceneView(canvas, getState)` が 8コマ/秒で描き直す。生き物の姿は `drawForm(P, look, …)`（微生物は `drawMicro` で変種ごとに描き分け）、`drawCreatureCard`（64×48、白い影も描ける）。結末用 `TODAY`（今日の暮らし）と `sceneFossil`（化石の地層）もここ
 4. `globe.js` — 「いまの地球」ダイヤル中央の回る地球（時代で姿が変わる）
-5. `evo.js` — 進化ガチャの中身：PLANS（体のつくり、base 特徴値）、birthOptions（時代ごとの生まれる生き物）、NODES（分かれ道、最後に地質年代ごとの汎用 age0〜11）、EXTINCTIONS（淘汰）、種の数の増減 `step`、`applyExtinction`、ENDINGS（39種類）と `endingOf(d)`
+5. `evo.js` — 進化ガチャの中身：PLANS（体のつくり、base 特徴値）、birthOptions（時代ごとの生まれる生き物）、NODES（分かれ道、最後に地質年代ごとの汎用 age0〜11）、EXTINCTIONS（淘汰）、種の数の増減 `step`、`applyExtinction`、ENDINGS（40種類、No.40は誕生前）、LIFE（暮らしの出来事）と `endingOf(d)`
 6. `lang-en.js` — 英語の文章。英語のときだけ内容を置きかえ、UI 辞書を `E.addDict` する
 7. `app.js` — 画面と動き（タブ、いまの地球、今を拡大、ガチャ、プレイ、結末、シェア、履歴、図鑑）
 
@@ -50,4 +50,8 @@
 - 現実にないもの（二足歩行ロボットなど）は今の街の場面に描かない。
 - 分かれ道の選択肢に、特徴の増減（大きさ▲15 など）、体のつくりの変化（→〇〇）、暮らす場所の変化を表示（`previewOption()` が写しで試算）。
 - プレイ画面：時計の左に小さな24時間の円時計、「系統のタイムライン」（横長の地図＋縦のタイムライン、印は誕生・分かれ道・進化・淘汰・絶滅）。結末画面にも「進化の系譜」とタイムライン。
+- 今を拡大：区間が変わるたびの「ここから時間を約○倍ゆっくり…」の帯は見づらいので廃止。一度「生まれる」を結末まで遊ぶ（`histLoad()` に生まれた記録がある、または localStorage `earth24.zoom`）まで鍵がかかる（タブに鍵の印、`#z-lock` カード）。はじめて解放した結末画面に `#r-unlock`。
+- 暮らしの出来事：`evo.LIFE`（体のつくりのグループごとに約8つ、`lifeEpisode()`）。プレイ中に実際の時間で13〜22秒ごと（「次の分かれ道へ」で飛ばしている間は出ない）に1つ、場面の下 `#p-life` とタイムライン（kind `life`、緑の小さな点）に出る。小さく特徴が増えることがある。英訳は lang-en.js の `LIFE`。
+- 淘汰は進化と同じポップアップ（`#ev-modal`、その場面の絵つき）。特徴の表（`.traits.compact`、5列、変わると ▲▼ が浮かぶ）とタイムラインは1枚の系統カードに統合。タイムラインの分かれ道・暮らしには特徴の増減チップ（`plog(ya, text, kind, d)`）。
+- 微生物から昆虫への道：酸素の分かれ道（o2）の時期を26億〜15億年前に広げ、24億年前より後に生まれた微生物も 酸素→取り込み→多細胞→体→殻とあし→陸→空 と進める。
 - 広告（AdSense）は保留中。やるなら独自ドメイン必須、Cloudflare Pages への移行、プライバシーポリシー等が必要（ユーザーに説明済み）。
