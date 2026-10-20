@@ -549,7 +549,7 @@
 
   $('b-start').addEventListener('click', () => {
     if (!G.birth) return;
-    const T = Number(document.querySelector('input[name="len"]:checked').value);
+    const T = 600;                                                 // ×1でおよそ10分（分かれ道で止まる時間は含まない）
     const { t, player, rivals } = G.birth;
     Object.assign(P, {
       on: true, L: player, rivals, ya0: t, ya: t, T, elapsed: 0, speed: 1, paused: false, skipping: false,
@@ -746,20 +746,20 @@
   /* ============================================================
      進化ガチャ：結末
      ============================================================ */
-  const R = { ya: 0, plan: null, habitat: null, share: null };
-  sceneView($('r-scene'), () => (R.plan === undefined ? null : { ya: R.ya, plan: R.plan, habitat: R.habitat, fx: R.fx }));
+  const R = { ya: 0, ending: null, share: null };
+  sceneView($('r-scene'), () => (R.ending ? { ya: R.ya, ending: R.ending } : null));
   const AI_END = {
     together: 'AIと人が一緒に、まだ誰も見たことのない答えを探しはじめています。',
     delegate: '多くをAIに任せた世界。その先がどうなるかは、まだ誰にもわかりません。',
     careful: 'ルールをつくりながら、AIとの付き合い方を探しています。',
   };
-  // 結末の場面：絶滅したときは、その直前の風景と原因の演出
-  const FX_BY_CAUSE = [['白亜紀末', 'impact'], ['ペルム紀末', 'eruption'], ['三畳紀末', 'eruption'], ['全球凍結', 'ice'], ['オルドビス紀末', 'ice'], ['大酸化', 'oxygen']];
+  // 結末の場面：生き残れば今日の子孫の暮らし、絶滅すればその化石が眠る地層
   function endScene(alive, endYa, plan, habitat, cause) {
-    if (alive) return { ya: 0.3, plan, habitat };
-    const fx = (FX_BY_CAUSE.find(([k]) => (cause || '').includes(k)) || [])[1] || null;
-    return { ya: endYa * 1.002 + 1, plan: null, habitat, fx };
+    const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause });
+    return { ya: alive ? 0.3 : Math.max(endYa, 1), ending: { ...e, plan } };
   }
+  const endingLabel = (e) => `結末 No.${String(e.no).padStart(2, '0')}「${e.title}」`;
+  const foundEndings = () => new Set(histLoad().map((h) => evo.endingOf(h).id));
   function rivalStatus(Rv) {
     return Rv.alive ? `今も生きている（${Rv.N >= evo.CAP ? evo.CAP + '+' : Math.round(Rv.N)}種）` : `${fmtAgo(Rv.deathYa)}に絶滅`;
   }
@@ -768,6 +768,9 @@
     const L = P.L, alive = L.alive;
     const endYa = alive ? 0 : L.deathYa;
     Object.assign(R, endScene(alive, endYa, L.plan, L.habitat, L.deathCause));
+    const isNew = !foundEndings().has(R.ending.id);
+    $('r-ending').textContent = endingLabel(R.ending);
+    $('r-new').hidden = !isNew;
     $('r-kick').textContent = alive ? '24:00 — 今' : `${fmtAgo(endYa)}・地球時計 ${fmtClock(endYa, clockDecFor(endYa))}`;
     const big = $('r-big');
     big.textContent = alive ? '今も生きている' : '絶滅';
@@ -780,7 +783,7 @@
       lead = `「${L.firstName}」から始まったあなたの系統は、${L.deathCause.includes('背景') ? '数を減らし続けて' : `「${L.deathCause}」で`}姿を消しました。`;
     }
     $('r-lead').textContent = lead;
-    $('r-cap').textContent = sceneCaption(R.ya, { habitat: L.habitat, fx: R.fx });
+    $('r-cap').textContent = R.ending.desc;
     const span = L.bornYa - endYa;
     const rows = [
       ['生まれた', `${fmtAgo(L.bornYa)}（地球時計 ${fmtClock(L.bornYa)}）`],
@@ -837,21 +840,23 @@
       while (ctx.measureText(text).width > maxW && size > min) { size -= 1; ctx.font = `${weight} ${size}px ${FONT}`; }
     };
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-    ctx.fillStyle = '#9fb0c8'; fit(`進化ガチャ｜${fmtAgo(L.bornYa)}に「${L.firstName}」として生まれた`, 700, 26, 18, 1150);
-    ctx.fillText(`進化ガチャ｜${fmtAgo(L.bornYa)}に「${L.firstName}」として生まれた`, 28, 452);
+    ctx.fillStyle = '#9fb0c8'; ctx.font = `800 24px ${FONT}`;
+    ctx.fillText(`進化ガチャ｜結末 No.${String(es.ending.no).padStart(2, '0')} / ${evo.ENDINGS.length}`, 28, 450);
     const label = alive ? '今も生きている' : '絶滅';
     ctx.font = `900 22px ${FONT}`;
     const bw = ctx.measureText(label).width + 24;
     ctx.fillStyle = alive ? '#2f8a5a' : '#c8402f'; roundRect(ctx, 28, 474, bw, 36, 8); ctx.fill();
     ctx.fillStyle = '#ffffff'; ctx.fillText(label, 40, 500);
-    const main = alive ? `${L.name}として、今日まで` : `${fmtAgo(endYa)}、${L.name}として`;
-    fit(main, 900, 46, 28, 1150 - bw - 20);
-    ctx.fillText(main, 28 + bw + 16, 510);
-    const sub = `続いた期間 ${fmtYears(L.bornYa - endYa)}年・選んだ分かれ道 ${L.path.length}回`;
+    const main = `「${es.ending.title}」`;
+    fit(main, 900, 48, 28, 1150 - bw - 20);
+    ctx.fillText(main, 28 + bw + 10, 511);
+    const sub = alive
+      ? `${fmtAgo(L.bornYa)}に「${L.firstName}」として生まれ、${L.name}として今日まで`
+      : `${fmtAgo(L.bornYa)}に「${L.firstName}」として生まれ、${fmtAgo(endYa)}に${L.name}として絶滅`;
     ctx.fillStyle = '#ffb48f'; fit(sub, 800, 26, 18, 1150);
     ctx.fillText(sub, 28, 560);
     ctx.fillStyle = '#7f8ea6'; ctx.font = `700 20px ${FONT}`;
-    ctx.fillText('地球の24時間  #地球の24時間', 28, 604);
+    ctx.fillText('地球の24時間  #地球の24時間 #進化ガチャ', 28, 604);
     return cv;
   }
   // 1回の人生（系統）の記録。シェアのリンクにも、履歴にも同じ形で使う
@@ -864,9 +869,11 @@
     return { v: 1, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)) };
   }
   function shareTextFrom(d) {
-    return d.a
-      ? `${fmtAgo(d.b)}に「${d.f}」として生まれ、${d.k.length}回の分かれ道を選んで、${d.n}として今日まで生き残った。\n#地球の24時間 #進化ガチャ`
-      : `${fmtAgo(d.b)}に「${d.f}」として生まれ、${fmtAgo(d.e)}、${d.n}として絶滅した。\n#地球の24時間 #進化ガチャ`;
+    const e = evo.endingOf(d);
+    const body = d.a
+      ? `${fmtAgo(d.b)}に「${d.f}」として生まれ、${d.k.length}回の分かれ道を選んで、${d.n}として今日まで生き残った。`
+      : `${fmtAgo(d.b)}に「${d.f}」として生まれ、${fmtAgo(d.e)}、${d.n}として絶滅した。`;
+    return `${body}\n${endingLabel(e)}\n#地球の24時間 #進化ガチャ`;
   }
   // 結果をリンクに埋め込む（#r=...）。開いた人には、この結果と「あなたも生まれてみる」が出る
   const b64 = (str) => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -934,6 +941,7 @@
     const ul = $('hist-list'); ul.textContent = '';
     $('hist-empty').hidden = list.length > 0;
     $('hist-clear').hidden = list.length === 0;
+    renderZukan();
     if (!list.length) { $('hist-sum').textContent = ''; return; }
     const alive = list.filter((d) => d.a).length;
     const longest = list.reduce((m, d) => (d.b - d.e > m.b - m.e ? d : m), list[0]);
@@ -945,16 +953,46 @@
       const tag = b.querySelector('.tag');
       tag.textContent = d.a ? '生存' : '絶滅';
       tag.classList.add(d.a ? 'alive' : 'dead');
-      b.querySelector('.hm').textContent = d.f === d.n ? d.n : `${d.f} → ${d.n}`;
+      b.querySelector('.hm').textContent = `「${evo.endingOf(d).title}」 ${d.f === d.n ? d.n : `${d.f} → ${d.n}`}`;
       b.querySelector('.hs').textContent = `${fmtAgo(d.b)}〜${d.a ? '今' : fmtAgo(d.e)}・分かれ道${d.k.length}回・${fmtDate(d.t)}`;
       b.addEventListener('click', () => openHist(d));
       li.appendChild(b);
       ul.appendChild(li);
     });
   }
+  // 結末の図鑑：見つけた結末は風景つき、まだの結末は「？」
+  function renderZukan() {
+    const found = foundEndings();
+    const box = $('zukan'); box.textContent = '';
+    $('zukan-n').textContent = `${found.size} / ${evo.ENDINGS.length}`;
+    const list = histLoad();
+    evo.ENDINGS.forEach((e) => {
+      const b = document.createElement('button');
+      b.className = 'zk';
+      const has = found.has(e.id);
+      if (has) {
+        const cv = document.createElement('canvas'); cv.width = PW; cv.height = PH;
+        const last = list.find((h) => evo.endingOf(h).id === e.id);
+        const st = endScene(!!last.a, last.e, last.p, last.h, last.c);
+        drawScene(cv.getContext('2d'), st.ya, 3, st);
+        b.appendChild(cv);
+        b.addEventListener('click', () => openHist(last));
+      } else {
+        const ph = document.createElement('div'); ph.className = 'zk-lock'; ph.textContent = '？';
+        b.appendChild(ph);
+        b.disabled = true;
+      }
+      const cap = document.createElement('span');
+      cap.textContent = has ? `${String(e.no).padStart(2, '0')} ${e.title}` : `${String(e.no).padStart(2, '0')} ${e.alive ? (e.alt ? 'もしもの生存' : '生き残る') : '絶滅'}`;
+      if (e.alt) b.classList.add('alt');
+      b.appendChild(cap);
+      box.appendChild(b);
+    });
+  }
   function openHist(d) {
     HD.d = d;
     HD.st = endScene(d.a, d.e, d.p, d.h, d.c);
+    $('hd-ending').textContent = `${endingLabel(HD.st.ending)}：${HD.st.ending.desc}`;
     const t = $('hd-ttl');
     t.textContent = d.a ? '今も生きている' : '絶滅';
     t.className = `ttl ${d.a ? 'alive' : 'dead'}`;
@@ -989,6 +1027,7 @@
   sceneView($('s-scene'), () => SH.st);
   function showShared(d) {
     SH.st = endScene(d.a, d.e, d.p, d.h, d.c);
+    $('s-ending').textContent = `${endingLabel(SH.st.ending)}：${SH.st.ending.desc}`;
     const t = $('s-ttl');
     t.textContent = d.a ? '今も生きている' : '絶滅';
     t.className = `ttl ${d.a ? 'live' : 'dead'}`;

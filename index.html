@@ -194,6 +194,8 @@
   .cert { border: 1.5px solid var(--text); border-radius: 14px; overflow: hidden; background: var(--surface); margin-bottom: 12px; }
   .cert-head { display: flex; justify-content: space-between; align-items: center; background: var(--text); color: var(--bg); padding: 8px 14px; font-weight: 800; font-size: 13px; }
   .cert-body { padding: 14px; }
+  .start-box { border-top: 1px dashed var(--line); margin-top: 14px; padding-top: 14px; text-align: center; }
+  .start-box p { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
   .cert .who { font-size: 24px; font-weight: 900; line-height: 1.3; margin: 2px 0 6px; }
   .cert .line { font-size: 14px; color: var(--text-2); }
   .cert dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin: 12px 0 0; }
@@ -358,6 +360,19 @@
 
   /* 生きた系統の履歴 */
   #hist { scroll-margin-top: 110px; }
+  .ending-badge { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 10px; margin-top: 8px; font-weight: 900; font-size: 17px; }
+  .ending-badge .new { font-size: 12px; font-weight: 900; color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 3px 10px; animation: badge .5s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes badge { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
+  .end-desc { font-size: 13px !important; color: var(--text-2); font-weight: 700; }
+  .zukan { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px 6px; margin-bottom: 4px; }
+  .zk { display: flex; flex-direction: column; gap: 3px; padding: 0; border: none; background: none; text-align: left; font: inherit; color: var(--text); cursor: pointer; min-width: 0; }
+  .zk:disabled { cursor: default; }
+  .zk canvas, .zk-lock { width: 100%; aspect-ratio: 3 / 1; border-radius: 6px; border: 1px solid var(--line); image-rendering: crisp-edges; image-rendering: pixelated; display: block; }
+  .zk-lock { display: flex; align-items: center; justify-content: center; background: var(--surface-2); color: var(--muted); font-weight: 900; }
+  .zk span { font-size: 10.5px; line-height: 1.35; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .zk:disabled span { color: var(--muted); }
+  .zk.alt canvas, .zk.alt .zk-lock { border-color: #7a5ae0; }
+  .zk:not(:disabled):hover span { color: var(--accent); }
   .hist-sum { font-size: 13px; color: var(--text-2); margin: -4px 0 10px; }
   .hist-list { list-style: none; margin: 0; padding: 0; }
   .hist-list button {
@@ -511,6 +526,7 @@
       <div class="kick">シェアされた進化の記録</div>
       <canvas class="scene" id="s-scene" aria-hidden="true"></canvas>
       <div class="ttl" id="s-ttl"></div>
+      <p class="end-desc" id="s-ending"></p>
       <p id="s-text"></p>
       <ol id="s-path"></ol>
       <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="s-play">あなたも生まれてみる</button></div>
@@ -555,29 +571,26 @@
             <div><dt>今日まで</dt><dd id="b-left" class="num"></dd></div>
           </dl>
           <div class="traits" id="b-traits"></div>
+          <div class="start-box">
+            <button class="btn btn-primary" id="b-start">この生き物で進化を始める</button>
+            <p>×1でおよそ10分。分かれ道や大量絶滅では時間が止まり、あなたの番を待ちます。始めてから×4・×16や「次の分かれ道へ」で速められます。</p>
+          </div>
         </div>
       </div>
       <div class="card">
         <h3>同じ瞬間に生まれた4つの系統</h3>
         <ul class="rivals" id="b-rivals"></ul>
       </div>
-      <div class="card">
-        <h3>体験の長さ</h3>
-        <div class="lengths" role="radiogroup" aria-label="体験の長さ">
-          <label class="len"><input type="radio" name="len" value="300" checked><b>5分</b><span>ざっと</span></label>
-          <label class="len"><input type="radio" name="len" value="900"><b>15分</b><span>じっくり</span></label>
-          <label class="len"><input type="radio" name="len" value="1800"><b>30分</b><span>たっぷり</span></label>
-        </div>
-        <p class="small muted" style="margin:0 0 12px">分かれ道や大量絶滅では時間が止まり、あなたの番を待ちます。今に近づくほど、時間はゆっくり流れます。</p>
-        <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="b-start">進化を始める</button></div>
-      </div>
     </div>
     <div class="card" id="hist">
-      <h3>あなたが生きた系統</h3>
+      <h3>結末の図鑑 <span class="num muted" id="zukan-n"></span></h3>
+      <div class="zukan" id="zukan"></div>
+      <h3 style="margin-top:16px">あなたが生きた系統</h3>
       <p class="hist-sum num" id="hist-sum"></p>
       <div class="hist-detail" id="hist-detail" hidden>
         <canvas class="scene" id="hd-scene" aria-hidden="true"></canvas>
         <div class="ttl" id="hd-ttl"></div>
+        <p class="end-desc" id="hd-ending"></p>
         <p id="hd-text"></p>
         <ol id="hd-path"></ol>
         <div class="share-row">
@@ -587,7 +600,7 @@
         </div>
         <p class="copy-ok" id="hd-copy-ok" aria-live="polite"></p>
       </div>
-      <p class="muted small" id="hist-empty">まだ記録はありません。生まれて結末を迎えると、ここに残ります。記録はこの端末のブラウザにだけ保存されます。</p>
+      <p class="muted small" id="hist-empty">まだ記録はありません。生まれて結末を迎えると、ここと図鑑に残ります。記録はこの端末のブラウザにだけ保存されます。</p>
       <ul class="hist-list" id="hist-list"></ul>
       <div class="hist-foot"><button class="btn-link" id="hist-clear" hidden>記録をすべて消す</button></div>
     </div>
@@ -660,6 +673,7 @@
     <div class="res-hero">
       <div class="kick" id="r-kick"></div>
       <div class="big" id="r-big"></div>
+      <div class="ending-badge"><span id="r-ending"></span><span class="new" id="r-new" hidden>はじめての結末！</span></div>
       <p id="r-lead"></p>
     </div>
     <canvas class="scene" id="r-scene" aria-hidden="true"></canvas>

@@ -467,29 +467,19 @@
     if (typed > 12) P.rect(137, 24, Math.round((typed - 12) * 1.2), 1, '#c96a3e');
     if (typed > 22) P.rect(137, 26, Math.round((typed - 22) * 1.8), 1, '#c96a3e');
     P.rect(144, 34, 2, 10, '#141826');
-    // ドローン
-    const dx = wrapX(t * 0.9, PW, 30), dy = 12 + Math.round(Math.sin(t * 0.3) * 2);
-    P.rect(dx, dy, 6, 1, '#d8dce8'); P.rect(dx - 1, dy - 1, 2, 1, t % 2 ? '#ffffff' : '#9098b0'); P.rect(dx + 5, dy - 1, 2, 1, t % 2 ? '#9098b0' : '#ffffff'); P.rect(dx + 2, dy + 1, 2, 2, '#ffb347');
     // 道路と自動運転車
     P.ground(44, '#5a5c66');
     P.rect(0, 47, PW, 8, '#363842'); for (let x = 0; x < PW; x += 12) P.rect(x + (t % 12), 51, 6, 1, '#cfd2dc');
     const cx = wrapX(t * 1.3, PW, 30);
-    P.sprite(SPR.car, { a: '#eef1f6', b: '#8fd8ff', c: '#111' }, cx, 46);
-    P.rect(cx + 5, 45, 2, 1, (t % 4 < 2) ? '#5ee0ff' : '#2a6a80');    // センサー
+    P.sprite(SPR.car, { a: '#eef1f6', b: '#cfe6f2', c: '#111' }, cx, 46);
     P.sprite(SPR.car, { a: '#c9433a', b: '#cfe6f2', c: '#111' }, wrapX(PW - t * 1.0, PW, 30), 50, true);
-    // 歩道：人とロボット
+    // 歩道：スマホでAIと話す人たち
     P.rect(0, 56, PW, 8, '#8a8c96');
-    for (let k = 0; k < 4; k++) {
-      const x = wrapX(k * 47 + t * (k % 2 ? 0.25 : -0.25), PW);
-      person(P, x, 64, ['#d0603a', '#3a8a7a', '#c9a23a', '#6a5aa0'][k], true);
+    for (let k = 0; k < 6; k++) {
+      const x = wrapX(k * 33 + t * (k % 2 ? 0.25 : -0.25), PW);
+      person(P, x, 64, ['#d0603a', '#3a8a7a', '#c9a23a', '#6a5aa0', '#4a6a9a', '#9a5a6a'][k], true);
       if ((t + k * 5) % 16 < 9) { P.rect(x + 2, 52, 6, 3, '#ffffff'); P.rect(x + 3, 53, 4, 1, '#c96a3e'); P.rect(x + 3, 55, 1, 1, '#ffffff'); }   // AIとの会話の吹き出し
     }
-    const rx = wrapX(70 + t * 0.35, PW, 30);                              // 二足歩行ロボット
-    P.rect(rx, 50, 4, 3, '#e6e9f0'); P.rect(rx + 1, 51, 2, 1, '#5ee0ff');
-    P.rect(rx - 1, 53, 6, 5, '#d0d4de'); P.rect(rx + 1, 54, 2, 1, '#ffb347');
-    P.rect(rx, 58, 1, 6 - (t % 2), '#9aa0ae'); P.rect(rx + 3, 58, 1, 5 + (t % 2), '#9aa0ae');
-    const bx = wrapX(PW - 40 - t * 0.5, PW, 30);                          // 配達ロボット
-    P.rect(bx, 59, 7, 4, '#f2f2f2'); P.rect(bx + 1, 60, 5, 1, '#ffb347'); P.rect(bx, 63, 2, 1, '#222'); P.rect(bx + 5, 63, 2, 1, '#222');
   }
 
   // 海の中（古生代〜新生代）。系統が海で暮らしているとき
@@ -608,9 +598,278 @@
     marker(P, xx + Math.round(w / 2), y - 1, t);
   }
 
+
+  /* ============================================================
+     結末の場面：今日の子孫の暮らし／化石が眠る地層
+     ============================================================ */
+  function oval(P, cx, cy, rx, ry, c) {
+    for (let dy = -ry; dy <= ry; dy++) { const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2))); P.rect(cx - w, cy + dy, 2 * w + 1, 1, c); }
+  }
+  function flowers(P, y0, y1, t, n, seed) {
+    const cols = ['#f06a8a', '#ffd84a', '#ffffff', '#b07ae0', '#ff9a3a'];
+    for (let k = 0; k < n; k++) {
+      const x = (k * 37 + seed * 11) % PW, y = y0 + ((k * 13 + seed) % (y1 - y0));
+      P.rect(x, y + 1, 1, 2, '#3f7a32');
+      P.rect(x - 1, y, 3, 1, cols[k % cols.length]); P.rect(x, y - 1, 1, 1, cols[k % cols.length]);
+    }
+  }
+  function fish(P, x, y, c, flip) { P.sprite(SPR.fish, { a: c }, x, y, flip); }
+
+  const TODAY = {
+    hotspring(P, t) {
+      P.bands(['#9cc8e6', '#b3d5ea', '#cbe2ec', '#e0ecee']);
+      P.ridge(34, 9, 1.1, '#8f9a7e', 0.05);
+      for (let k = 0; k < 6; k++) { P.rect(150 + k * 7, 22 + (k % 3) * 2, 2, 14, '#5e7a4a'); P.tri(151 + k * 7, 24 + (k % 3) * 2, 6, '#4a6a3a', 0.6); }
+      P.ground(40, '#c9b48e');
+      [['#c8642e', 30, 16], ['#e0a03a', 25, 13], ['#e8d06a', 20, 10], ['#7fbf8a', 15, 8], ['#3f9fc0', 10, 5], ['#2f6fa8', 5, 3]].forEach(([c, rx, ry]) => oval(P, 46, 52, rx, ry, c));
+      smoke(P, 40, 44, t, 'rgba(255,255,255,0.55)', 5); smoke(P, 54, 46, t + 7, 'rgba(255,255,255,0.45)', 4);
+      return 58;
+    },
+    stromatolite(P, t) {
+      P.bands(['#7fbbe8', '#98c9ec', '#b4d8ee', '#d0e6ee']);
+      P.disc(30, 12, 6, '#fff3cf');
+      P.clouds(t, '#ffffff', 2, 5, 0.1);
+      P.ground(36, '#e8d8a8', 140, PW);
+      P.water(36, '#5aa6c8', '#8fcbe0', t, 0, 140);
+      for (let k = 0; k < 8; k++) { const x = 10 + k * 17, y = 46 + (k % 3) * 5; P.dome(x, y, 4 + (k % 3), '#6a5a48'); P.rect(x - 3, y - 1, 7, 1, '#7d6a54'); }
+      return 58;
+    },
+    pond(P, t) {
+      P.bands(['#8ec5e6', '#a6d1ea', '#bfdcec', '#d6e8ec']);
+      for (let k = 0; k < 7; k++) roundTree(P, 6 + k * 28, 38, 18 + (k % 3) * 4, '#4e8a44');
+      P.ground(36, '#6e9e4e');
+      oval(P, 96, 50, 80, 12, '#4a8aa8');
+      for (let k = 0; k < 9; k++) { const x = 30 + k * 16, y = 46 + (k % 3) * 4; oval(P, x, y, 4, 2, '#4f9a4a'); if (k % 4 === 0) P.rect(x + 1, y - 1, 2, 1, '#f0a0c0'); }
+      for (let k = 0; k < 8; k++) P.rect(8 + k * 3, 38 + (k % 2), 1, 10, '#7a9a4a');
+      return 58;
+    },
+    kelp(P, t) {
+      P.bands(['#3f9ab0', '#358aa2', '#2c7a92', '#256a82', '#1f5a72', '#194c62']);
+      for (let k = 0; k < 5; k++) for (let y = 0; y < 50; y++) P.rect(12 + k * 40 + y * 0.3, y, 2, 1, 'rgba(255,255,255,0.06)');
+      P.ground(60, '#8a7a5a');
+      for (let k = 0; k < 14; k++) {
+        const x = 4 + k * 14, h = 34 + (k % 4) * 6;
+        for (let y = 0; y < h; y++) { const sw = Math.round(Math.sin(y * 0.18 + t * 0.2 + k) * 2); P.rect(x + sw, 60 - y, 2, 1, k % 2 ? '#7a6a2a' : '#8a7a32'); if (y % 6 === 3) P.rect(x + sw + 2, 60 - y, 3, 1, '#9a8a3a'); }
+      }
+      for (let k = 0; k < 6; k++) fish(P, wrapX(40 + k * 9 + t * 0.6, PW, 30), 18 + (k % 3) * 3, '#c8d8e8');
+      return 58;
+    },
+    reef(P, t) {
+      P.bands(['#3fb0d0', '#36a2c4', '#2e92b6', '#2682a6', '#1f7296']);
+      for (let k = 0; k < 6; k++) for (let y = 0; y < 44; y++) P.rect(8 + k * 34 + y * 0.35, y, 2, 1, 'rgba(255,255,255,0.07)');
+      P.ground(58, '#e8d8a8');
+      const coral = ['#f07a8a', '#ff9a5a', '#b07ae0', '#ffd25a', '#5ac8a0'];
+      for (let k = 0; k < 12; k++) {
+        const x = 6 + k * 16, c = coral[k % coral.length];
+        if (k % 3 === 0) P.dome(x, 58, 6, c);
+        else if (k % 3 === 1) { P.rect(x, 46, 2, 12, c); P.rect(x - 3, 49, 2, 6, c); P.rect(x + 3, 47, 2, 8, c); }
+        else for (let i = 0; i < 6; i++) P.rect(x - i, 52 - i, 1 + i * 2, 1, c);
+      }
+      for (let k = 0; k < 10; k++) fish(P, wrapX(k * 21 + t * (k % 2 ? 0.7 : -0.5), PW, 30), 14 + (k % 4) * 6, ['#ffd84a', '#ff8a3a', '#5ac8ff', '#ffffff'][k % 4], k % 2 === 0);
+      return 58;
+    },
+    beach(P, t) {
+      P.bands(['#1a2448', '#24305a', '#2e3c6c', '#3a4a7c']);
+      P.disc(150, 12, 7, '#f4f0d8');
+      for (let k = 0; k < 12; k++) P.rect((k * 47) % PW, 3 + (k * 7) % 16, 1, 1, '#d8dcf0');
+      P.water(34, '#2a3a6a', '#5a6aa0', t, 0, PW);
+      for (let k = 0; k < 4; k++) P.rect(140 + k * 3, 36 + k * 2, 14 - k * 3, 1, 'rgba(244,240,216,0.5)');
+      P.ground(48, '#c9b48a');
+      P.rect(0, 47, PW, 1, 'rgba(255,255,255,0.4)');
+      for (let k = 0; k < 4; k++) P.sprite(SPR.trilo, { a: '#7a6a4a', b: '#4a3e2a' }, 20 + k * 40, 54 + (k % 2) * 3, k % 2 === 0, 2);
+      return 60;
+    },
+    forestfloor(P, t) {
+      P.bands(['#3a5a3a', '#44663e', '#4e7244']);
+      for (let k = 0; k < 6; k++) { P.rect(8 + k * 34, 0, 8, 44, '#4a3a2a'); P.rect(10 + k * 34, 0, 2, 44, '#5a4a36'); }
+      P.ground(44, '#6a4e32');
+      for (let k = 0; k < 40; k++) P.rect((k * 23) % PW, 46 + (k * 7) % 16, 3, 1, ['#c87a3a', '#a85a2a', '#d8a04a'][k % 3]);
+      for (let k = 0; k < 5; k++) { const x = 20 + k * 37; P.rect(x, 50, 1, 4, '#f0e6d0'); P.dome(x, 50, 3, ['#d8402f', '#c8a07a'][k % 2]); }
+      for (let k = 0; k < 8; k++) { const ph = (t + k * 5) % 24; P.rect((k * 29 + 10) % PW, 10 + ph, 1, 1, 'rgba(255,255,200,0.6)'); }
+      return 60;
+    },
+    meadow(P, t) {
+      P.bands(['#7fbde8', '#98cbec', '#b4daf0', '#d0e8f0']);
+      P.clouds(t, '#ffffff', 3, 4, 0.12);
+      P.ridge(36, 8, 2.1, '#7ab06a', 0.05);
+      P.ground(40, '#6eaa4e');
+      flowers(P, 42, 63, t, 46, 3);
+      for (let k = 0; k < 3; k++) { const x = wrapX(30 + k * 60 + t * 0.6, PW), y = 26 + Math.round(Math.sin(t * 0.3 + k) * 3); P.rect(x, y, 2, 2, ['#ffd84a', '#ff8a3a', '#ffffff'][k]); P.rect(x + 2, y - (t % 2), 2, 2, ['#ffd84a', '#ff8a3a', '#ffffff'][k]); }
+      return 60;
+    },
+    river(P, t) {
+      P.bands(['#8ec5e6', '#a6d1ea', '#c0dcea', '#d6e6e6']);
+      for (let k = 0; k < 6; k++) roundTree(P, 10 + k * 34, 34, 16 + (k % 2) * 4, '#4a7a3e');
+      P.ground(32, '#7a9a52');
+      P.water(40, '#5a8a8a', '#8abcb8', t, 0, PW);
+      P.rect(110, 44, 40, 4, '#6a4a30'); P.rect(112, 43, 36, 1, '#7a5a3a');
+      for (let k = 0; k < 2; k++) { P.dome(118 + k * 14, 43, 4, '#4a6a3a'); P.rect(122 + k * 14, 41, 2, 2, '#4a6a3a'); }
+      for (let k = 0; k < 10; k++) P.rect(4 + k * 4, 36 + (k % 3), 1, 10, '#6a8a3a');
+      return 60;
+    },
+    ocean(P, t) {
+      P.bands(['#2a7ab0', '#2368a0', '#1d5890', '#174a7e', '#123c6c', '#0e305a']);
+      for (let k = 0; k < 6; k++) for (let y = 0; y < 40; y++) P.rect(10 + k * 34 + y * 0.4, y, 2, 1, 'rgba(255,255,255,0.06)');
+      for (let k = 0; k < 7; k++) fish(P, wrapX(120 + k * 11 - t * 0.8, PW, 60), 46 + (k % 3) * 5, '#7f9fb4', true);
+      for (let k = 0; k < 8; k++) { const ph = (t + k * 7) % 50; P.rect(20 + k * 23, 60 - ph, 1, 1, 'rgba(220,240,255,0.6)'); }
+      return 58;
+    },
+    paddy(P, t) {
+      P.bands(['#5a5a9a', '#9a6a9a', '#e08a7a', '#f0b07a', '#f8d08a']);
+      P.ridge(30, 10, 1.4, '#4a4a6a', 0.04);
+      P.ridge(34, 6, 3.3, '#3e5a4a', 0.07);
+      // 家と電柱
+      P.rect(150, 24, 18, 10, '#6a5040'); P.tri(159, 24, 7, '#3a3030', 1.6); P.rect(156, 28, 3, 3, '#ffd88a');
+      P.rect(40, 14, 1, 22, '#3a3a3a'); P.rect(37, 16, 7, 1, '#3a3a3a'); P.rect(0, 17, PW, 1, 'rgba(40,40,40,0.5)');
+      P.ground(34, '#6a8a4a');
+      // 田んぼ（水に空が映る）
+      for (let r = 0; r < 4; r++) {
+        const y = 37 + r * 7;
+        P.rect(0, y, PW, 5, ['#e8a07a', '#d8907a', '#c88a8a', '#b88a9a'][r]);
+        for (let x = (r * 3) % 6; x < PW; x += 6) { P.rect(x, y, 1, 3, '#4f8a3a'); P.rect(x + 1, y - 1, 1, 3, '#5f9a44'); }
+        P.rect(0, y + 5, PW, 2, '#7a6a4a');
+      }
+      for (let k = 0; k < 6; k++) { const ph = (t + k * 4) % 30; if (ph < 15) P.rect((k * 31 + 7) % PW, 30 + (k * 5) % 20, 1, 1, '#fff8b0'); }  // ホタル
+      return 63;
+    },
+    sky(P, t) {
+      P.bands(['#5aa8e8', '#78b8ec', '#98c8f0', '#b8d8f2', '#d4e6f2']);
+      P.disc(160, 10, 6, '#fff6d8');
+      P.clouds(t, '#ffffff', 4, 6, 0.15);
+      P.ridge(54, 8, 1.7, '#5a8a4a', 0.06);
+      P.ground(58, '#4e7a3e');
+      for (let k = 0; k < 9; k++) { const x = wrapX(40 + (k % 5) * 8 + Math.floor(k / 5) * 4 + t * 0.7, PW, 60), y = 30 + Math.abs((k % 5) - 2) * 3 + Math.floor(k / 5) * 5; P.rect(x, y, 3, 1, '#3a3a4a'); P.rect(x + 1, y - (t % 2), 1, 1, '#3a3a4a'); }
+      return 58;
+    },
+    forestnight(P, t) {
+      P.bands(['#0e1630', '#162040', '#1e2a50', '#26345c']);
+      P.disc(150, 12, 6, '#f4f0d8'); P.disc(152, 11, 6, '#162040');
+      for (let k = 0; k < 18; k++) P.rect((k * 53) % PW, 2 + (k * 11) % 22, 1, 1, t % 10 === k % 10 ? '#ffffff' : '#c8cce8');
+      for (let k = 0; k < 8; k++) { const x = 4 + k * 26, h = 30 + (k % 3) * 6; P.tri(x, 52, h, '#0c1a14', 0.35); P.rect(x - 1, 52 - 4, 2, 4, '#0a1410'); }
+      P.ground(52, '#14241a');
+      for (let k = 0; k < 7; k++) { const ph = (t + k * 3) % 16; if (ph < 10) P.rect((k * 29 + 12) % PW, 36 + (k * 7) % 14, 1, 1, '#d8ff8a'); }
+      return 60;
+    },
+    grassland(P, t) {
+      P.bands(['#8cc4ec', '#a4d0ee', '#bfdcee', '#dce8e8']);
+      P.clouds(t, '#ffffff', 3, 5, 0.1);
+      P.ridge(36, 6, 0.6, '#9aa8b8', 0.04);
+      P.ground(40, '#c8b05a');
+      for (let k = 0; k < 40; k++) P.rect((k * 19) % PW, 42 + (k * 7) % 20, 1, 2, '#a8903a');
+      for (let k = 0; k < 4; k++) P.sprite(SPR.horse, { a: '#3a2a20', b: '#2a1a14' }, wrapX(120 + k * 14 + t * 0.2, PW, 60), 36, false, 1);
+      acacia(P, 30, 42, 14, '#5a7a3a');
+      return 60;
+    },
+    whale(P, t) {
+      P.bands(['#8cc8f0', '#a4d4f2', '#c0e0f2']);
+      P.clouds(t, '#ffffff', 2, 3, 0.1);
+      P.water(24, '#2a6aa8', '#6aa0d0', t, 0, PW);
+      P.bands(['#2a6aa8', '#22609a', '#1a548a', '#144878', '#0e3c66'], 26, PH);
+      const ph = t % 30;
+      if (ph < 12) for (let i = 0; i < 6; i++) P.rect(96 + Math.round(Math.sin(i + t) * 2), 22 - i * 2 - Math.floor(ph / 2), 2, 2, 'rgba(255,255,255,0.8)');   // 潮吹き
+      for (let k = 0; k < 6; k++) fish(P, wrapX(20 + k * 13 - t * 0.6, PW, 50), 52 + (k % 3) * 3, '#6f8fa6', true);
+      return 58;
+    },
+    jungle(P, t) {
+      P.bands(['#6aa070', '#5a9064', '#4a8058']);
+      for (let k = 0; k < 9; k++) { P.rect(6 + k * 22, 10, 4, 50, '#4a3a26'); P.disc(8 + k * 22, 10 + (k % 3) * 4, 10, k % 2 ? '#2f6a3a' : '#3a7a42'); }
+      for (let k = 0; k < 12; k++) for (let y = 0; y < 20 + (k % 4) * 6; y++) P.rect(10 + k * 16 + Math.round(Math.sin(y * 0.3 + t * 0.1) * 1), y, 1, 1, '#4f8a3a');
+      P.ground(56, '#3a5a2a');
+      for (let k = 0; k < 6; k++) P.rect(14 + k * 31, 52 + (k % 2) * 3, 3, 2, ['#f06a8a', '#ffd84a'][k % 2]);
+      return 58;
+    },
+    room(P, t) {
+      P.bands(['#e8dcc8', '#e0d2bc']);
+      // 窓：夜の街
+      P.rect(16, 6, 64, 34, '#4a3a2a'); P.rect(18, 8, 60, 30, '#1c2440');
+      for (let k = 0; k < 7; k++) building(P, 18 + k * 9, 38, 8, 8 + (k * 5) % 14, '#2a3456', '#3a4670', '#ffe08a', k + 2);
+      P.rect(47, 8, 2, 30, '#4a3a2a');
+      // 棚と植物
+      P.rect(130, 20, 46, 3, '#8a6a4a'); P.rect(134, 12, 5, 8, '#c86a3a'); P.rect(140, 14, 4, 6, '#3a6a9a'); P.rect(146, 11, 6, 9, '#e8c06a');
+      P.rect(162, 16, 6, 4, '#a85a3a'); P.disc(165, 13, 4, '#4f8a3a');
+      // 机とパソコン
+      P.rect(70, 44, 110, 4, '#9a7250'); P.rect(76, 48, 3, 16, '#7a5a3a'); P.rect(172, 48, 3, 16, '#7a5a3a');
+      P.rect(108, 26, 40, 18, '#2a2a30'); P.rect(110, 28, 36, 14, '#f4f6fb');
+      P.rect(112, 30, 18, 3, '#dfe3f2'); P.rect(113, 31, 14, 1, '#8890b0');
+      const typed = (t % 40);
+      P.rect(122, 35, 22, 6, '#ffe7d6'); P.rect(124, 37, Math.min(18, typed), 1, '#c96a3e'); if (typed > 18) P.rect(124, 39, Math.min(14, typed - 18), 1, '#c96a3e');
+      P.rect(118, 44, 20, 1, '#5a5a62');
+      P.rect(156, 40, 5, 4, '#f0f0f0'); smoke(P, 158, 38, t, 'rgba(255,255,255,0.6)', 3);   // マグカップ
+      // 机に向かう人（後ろ姿）
+      P.rect(86, 46, 18, 3, '#4a4a52'); P.rect(88, 49, 2, 15, '#3a3a42'); P.rect(100, 49, 2, 15, '#3a3a42');
+      P.rect(89, 30, 12, 14, '#3a6a9a'); P.rect(91, 22, 8, 8, '#3a2a22'); P.rect(100, 34, 8, 3, '#3a6a9a'); P.rect(107, 35, 2, 2, '#e0b090');
+      // 床
+      P.rect(0, 62, PW, 2, '#b89a78');
+      return 64;
+    },
+  };
+
+  // 化石の地層。layer は絶滅の原因の層（impact 隕石 / eruption 噴火 / ice 氷河 / oxygen 縞状鉄鉱 / anoxic 黒い泥 / coal 石炭 / anthro 人間）
+  function sceneFossil(P, plan, layer, t) {
+    P.bands(['#a9cde6', '#c4dcea'], 0, 9);
+    P.rect(0, 9, PW, 3, layer === 'ice' ? '#eef3f6' : '#6f9a4a');
+    for (let k = 0; k < 30; k++) P.rect((k * 13) % PW, 8, 1, 1, layer === 'ice' ? '#ffffff' : '#5a8a3a');
+    if (layer === 'impact') { oval(P, 40, 10, 14, 3, '#8a6a4a'); oval(P, 40, 10, 10, 2, '#6a5040'); P.rect(70, 2, 2, 2, '#fff1c2'); P.rect(66, 0, 4, 1, 'rgba(255,180,90,0.7)'); }
+    if (layer === 'eruption') { P.tri(40, 8, 7, '#6a5a5a', 1.4); P.rect(39, 1, 3, 1, '#ff7a1a'); smoke(P, 40, 0, t, 'rgba(80,70,70,0.6)', 3); }
+    if (layer === 'anthro') for (let k = 0; k < 6; k++) P.rect(10 + k * 9, 9 - (3 + (k * 3) % 5), 6, 3 + (k * 3) % 5, ['#8a96a6', '#a0a8b2'][k % 2]);
+    if (layer === 'coal') { P.rect(30, 2, 2, 7, '#3a3a3a'); P.rect(26, 2, 10, 1, '#3a3a3a'); }
+    if (layer === 'oxygen') for (let k = 0; k < 5; k++) P.dome(20 + k * 14, 9, 2, '#a8503a');
+    // 化石を掘る人
+    const dig = t % 8 < 4;
+    P.rect(150, 2, 2, 2, '#e0b090'); P.rect(149, 4, 4, 4, '#d8603a'); P.rect(150, 8, 1, 2, '#3a3a44'); P.rect(152, 8, 1, 2, '#3a3a44');
+    P.rect(dig ? 154 : 153, dig ? 5 : 3, 1, 4, '#8a6a4a'); P.rect(dig ? 153 : 152, dig ? 9 : 3, 3, 1, '#9aa0aa');
+    // 地層
+    const cols = ['#c9a77a', '#b98f62', '#d4b98c', '#a87e58', '#c2a070', '#9a7454', '#b38a62', '#cfae80'];
+    let y = 12, i = 0;
+    while (y < PH) {
+      const h = 5 + (i * 3) % 5;
+      for (let x = 0; x < PW; x++) { const yy = y + Math.round(Math.sin(x * 0.05 + i) * 1.2); P.rect(x, yy, 1, h + 2, cols[i % cols.length]); }
+      y += h; i++;
+    }
+    const fy = 46;                                                       // 化石のある層
+    const lay = (yy, h, c) => { for (let x = 0; x < PW; x++) P.rect(x, yy + Math.round(Math.sin(x * 0.05 + 3) * 1.2), 1, h, c); };
+    if (layer === 'impact') { lay(fy - 11, 1, '#1e1a1a'); lay(fy - 10, 1, '#8a4a3a'); }
+    if (layer === 'eruption') { lay(fy - 13, 4, '#4a4448'); lay(fy - 9, 1, '#2e2a2e'); }
+    if (layer === 'ice') { lay(fy - 12, 3, '#dfe8ee'); for (let k = 0; k < 14; k++) P.rect((k * 17) % PW, fy - 12 + (k % 3), 2, 1, '#8a8a90'); }
+    if (layer === 'oxygen') for (let r = 0; r < 6; r++) lay(fy - 14 + r * 2, 1, r % 2 ? '#a8402f' : '#6a6a72');
+    if (layer === 'anoxic') lay(fy - 12, 4, '#2a2622');
+    if (layer === 'coal') { lay(fy - 13, 3, '#18161a'); lay(fy - 10, 1, '#3a3438'); }
+    if (layer === 'anthro') { lay(13, 2, '#7a7a82'); for (let k = 0; k < 10; k++) P.rect((k * 23) % PW, 14, 2, 1, ['#e0503a', '#3a8ae0', '#f0e04a'][k % 3]); }
+    // 化石
+    P.rect(60, fy - 8, 72, 18, 'rgba(0,0,0,0.10)');
+    const bone = '#efe5cc', shade = '#7a6248';
+    if (['microbe', 'cyano', 'cell', 'colony'].includes(plan)) {
+      for (let k = 0; k < 5; k++) for (let r = 0; r < 4; r++) { const x = 72 + k * 12; P.dome(x, fy + 6 - r * 2, 5 - r, r % 2 ? '#8a6e55' : bone); }
+      return;
+    }
+    if (plan === 'ediacaran' || plan === 'soft') {
+      for (let yy = 0; yy < 14; yy++) { P.rect(95, fy - 6 + yy, 2, 1, shade); P.rect(89 + (yy % 2), fy - 6 + yy, 5, 1, bone); P.rect(98, fy - 6 + yy, 5 - (yy % 2), 1, bone); }
+      return;
+    }
+    if (plan === 'sponge') { P.rect(92, fy - 7, 8, 16, bone); for (let yy = 0; yy < 16; yy += 3) P.rect(92, fy - 7 + yy, 8, 1, shade); return; }
+    if (plan === 'insect') { P.rect(88, fy, 14, 2, bone); P.rect(90, fy - 3, 6, 3, '#d8ccb0'); P.rect(90, fy + 2, 6, 3, '#d8ccb0'); return; }
+    const spec = PLAYER_SPR[plan];
+    if (!spec) return;
+    const rows = SPR[spec[0]], s = 2;
+    const w = rows[0].length * s, h = rows.length * s;
+    const x0 = 96 - Math.round(w / 2), y0 = fy + 2 - Math.round(h / 2);
+    P.sprite(rows, Object.fromEntries(Object.keys(spec[1]).map((k) => [k, shade])), x0 + 1, y0 + 1, true, s);
+    P.sprite(rows, Object.fromEntries(Object.keys(spec[1]).map((k) => [k, bone])), x0, y0, true, s);
+  }
+
+  function drawEnding(P, e, t) {
+    if (e.alive) {
+      const ground = (TODAY[e.scene] || TODAY.meadow)(P, t);
+      if (e.plan !== 'human') drawPlayer(P, e.plan, t, ground);
+    } else {
+      sceneFossil(P, e.plan, e.layer, t);
+    }
+  }
+
   function drawScene(ctx, ya, t, opts = {}) {
     const P = painter(ctx);
     ctx.clearRect(0, 0, PW, PH);
+    if (opts.ending) { drawEnding(P, opts.ending, t); return; }
     const { fx, habitat, plan } = opts;
     const micro = plan === 'microbe' || plan === 'cyano' || plan === 'cell' || plan === 'colony';
     if (fx === 'impact') sceneImpact(P, t);
@@ -676,7 +935,7 @@
     if (Y < 1950) return 'れんがの街と自動車・空に複葉機';
     if (Y < 2000) return 'ビルの街と道路・ロケットが宇宙へ';
     if (Y < 2022) return '高層ビルとスマートフォン';
-    return 'データセンターとAI・人とロボットが同じ道を歩く';
+    return 'データセンターの灯り・スマホでAIと話す人たち';
   }
 
   // 表示中のキャンバスを 8コマ/秒 で描き直す
@@ -692,7 +951,7 @@
       if (!v.canvas.offsetParent) continue;
       const st = v.getState(now);
       if (!st) continue;
-      const key = `${t}|${st.ya}|${st.fx}|${st.habitat}|${st.plan}`;
+      const key = `${t}|${st.ya}|${st.fx}|${st.habitat}|${st.plan}|${st.ending ? st.ending.id + st.ending.plan : ''}`;
       if (key === v.key) continue;
       v.key = key;
       drawScene(v.ctx, st.ya, t, st);
