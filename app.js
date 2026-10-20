@@ -2,11 +2,13 @@
 (function () {
   'use strict';
   const E = window.E24;
+  const { T, tr } = E;
   const {
     S, DAY, ago, fmtYears, fmtAgo, fmtSec, fmtCountdown, fmtClock, clockDecFor, fmtOneIn, fmtProb,
-    fracOf, jstSec, yaOfJst, ERAS, eraOf, periodLabel, EVENTS, status, AI_STORY,
+    fracOf, ERAS, eraOf, periodLabel, EVENTS, status, AI_STORY,
   } = E;
   const { sceneView, sceneCaption, drawScene, PW, PH } = E.scenes;
+  const { yaOfSec, fmtSpan } = E;
   const evo = E.evo;
   const $ = (id) => document.getElementById(id);
   const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
@@ -91,7 +93,7 @@
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => show(t.dataset.tab === 'evo' ? (evoScreen === 'play' && P.on ? 'play' : 'birth') : t.dataset.tab)));
 
   /* ============================================================
-     いまの地球（日本時間と同期）
+     いまの地球（現地時間と同期）
      ============================================================ */
   const hDial = buildDial($('h-dial'), { reveal: true });
   const GL = { ctx: null, last: 0 };
@@ -114,7 +116,7 @@
     if (animate) { const c = $('h-evt'); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
   }
   function homeInit() {
-    const ya = yaOfJst(jstSec());
+    const ya = yaOfSec(E.clockSec());
     $('h-log').textContent = ''; home.logN = 0; home.next = 0;
     while (home.next < EVENTS.length && EVENTS[home.next].ya >= ya) homeLog(EVENTS[home.next++]);
     homeEvt(EVENTS[Math.max(0, home.next - 1)], false);
@@ -128,10 +130,10 @@
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${ss}`;
   }
   function homeTick() {
-    const sec = jstSec();
+    const sec = E.clockSec();
     if (sec < home.lastSec - 1) homeInit();                 // 日付が変わった＝地球がまた生まれた
     home.lastSec = sec;
-    const ya = yaOfJst(sec);
+    const ya = yaOfSec(sec);
     home.ya = ya;
     const left = DAY - sec;
     const dec = left < 1 ? 3 : left < 60 ? 2 : 0;
@@ -142,7 +144,7 @@
       fired = EVENTS[home.next++];
       homeLog(fired);
       const since = (fired.ya - ya) / S * DAY;                // 何秒前の出来事か
-      if (FX_BY_EVENT[fired.name] && since < 30) { home.fx = FX_BY_EVENT[fired.name]; home.fxUntil = performance.now() + (30 - since) * 1000; }
+      if (FX_BY_EVENT[fired.key] && since < 30) { home.fx = FX_BY_EVENT[fired.key]; home.fxUntil = performance.now() + (30 - since) * 1000; }
     }
     if (fired) homeEvt(fired, true);
 
@@ -153,7 +155,7 @@
     if (nowMs - GL.last > 100) { GL.last = nowMs; E.globe.draw(GL.ctx, ya, REDUCE ? 0.6 : nowMs * 0.00028); }
     setClock($('h-clock'), fmtClock(ya, clockDecFor(ya)));
     $('h-era').textContent = eraOf(ya).name;
-    $('h-left').textContent = `24:00まで ${left < 60 ? fmtSec(left) : fmtCountdown(left)}`;
+    $('h-left').textContent = T('24:00まで {t}', { t: left < 60 ? fmtSec(left) : fmtCountdown(left) });
     const cap = sceneCaption(ya, { fx: performance.now() < home.fxUntil ? home.fx : null });
     if (cap !== home.cap) { home.cap = cap; $('h-cap').textContent = cap; }
 
@@ -162,21 +164,21 @@
     if (whole === home.secShown) return;
     home.secShown = whole;
     $('h-period').textContent = periodLabel(ya);
-    $('h-globe-cap').textContent = `地球のすがた：${E.globe.label(ya)}`;
+    $('h-globe-cap').textContent = T('地球のすがた：{x}', { x: E.globe.label(ya) });
     const o2 = status.oxygen(ya), day = status.dayLength(ya), sun = status.sun(ya);
-    $('h-o2').textContent = o2 < 0.01 ? 'ほぼ0%' : `約${o2 < 1 ? o2.toFixed(1) : Math.round(o2)}%`;
+    $('h-o2').textContent = o2 < 0.01 ? T('ほぼ0%') : T('約{v}%', { v: o2 < 1 ? o2.toFixed(1) : Math.round(o2) });
     $('h-o2-f').style.width = `${Math.min(100, (o2 / 35) * 100)}%`;
-    $('h-day').textContent = `約${day.toFixed(1)}時間`;
+    $('h-day').textContent = T('約{v}時間', { v: day.toFixed(1) });
     $('h-day-f').style.width = `${(day / 24) * 100}%`;
     $('h-sun').textContent = `${Math.round(sun)}`;
     $('h-sun-f').style.width = `${sun}%`;
     if (home.last) {
       const ago2 = (home.last.ya - ya) / S * DAY;
-      $('h-evt-t').textContent = `${fmtClock(home.last.ya, clockDecFor(home.last.ya))}・${fmtAgo(home.last.ya)}・${ago2 < 1 ? 'たった今' : `${fmtCountdown(ago2)}前`}`;
+      $('h-evt-t').textContent = `${fmtClock(home.last.ya, clockDecFor(home.last.ya))} · ${fmtAgo(home.last.ya)} · ${ago2 < 1 ? T('たった今') : T('{t}前', { t: fmtCountdown(ago2) })}`;
     }
     $('h-human').innerHTML = ya > 3e5
-      ? `ホモ・サピエンスの誕生（毎晩 <b>${fmtClock(3e5)}</b>）まで、あと <b>${fmtCountdown((ya - 3e5) / S * DAY)}</b>`
-      : `人類の時代です。24:00まで、あと <b>${fmtSec(left)}</b>`;
+      ? T('ホモ・サピエンスの誕生（毎晩 <b>{c}</b>）まで、あと <b>{t}</b>', { c: fmtClock(3e5), t: fmtCountdown((ya - 3e5) / S * DAY) })
+      : T('人類の時代です。24:00まで、あと <b>{t}</b>', { t: fmtSec(left) });
     // これから起きること
     const ul = $('h-next'); ul.textContent = '';
     for (let i = home.next; i < Math.min(EVENTS.length, home.next + 6); i++) {
@@ -188,7 +190,7 @@
       const sm = document.createElement('small'); sm.textContent = fmtAgo(e.ya); nm.appendChild(sm);
       const cd = document.createElement('span'); cd.className = 'cd';
       const s = (ya - e.ya) / S * DAY;
-      cd.textContent = s < 60 ? `あと${fmtSec(s)}` : `あと${fmtCountdown(s)}`;
+      cd.textContent = T('あと{t}', { t: s < 60 ? fmtSec(s) : fmtCountdown(s) });
       li.append(tt, nm, cd);
       ul.appendChild(li);
     }
@@ -196,17 +198,17 @@
   // 上部の「いまの地球」：どの画面にいても、裏で24時間時計が動き続ける
   let liveShown = '';
   function liveTick() {
-    const sec = jstSec(), ya = yaOfJst(sec);
+    const sec = E.clockSec(), ya = yaOfSec(sec);
     const t = jstText(sec, 0);
     if (t === liveShown) return;
     liveShown = t;
     $('live-jst').textContent = t;
     $('live-ago').textContent = fmtAgo(ya);
-    $('live-era').textContent = `・${periodLabel(ya)}`;
-    if (!G.spinning) $('b-now').textContent = `いまの地球時計の時代（${fmtAgo(ya)}）に生まれる`;
+    $('live-era').textContent = `${E.LANG === 'en' ? '· ' : '・'}${periodLabel(ya)}`;
+    if (!G.spinning) $('b-now').textContent = T('いまの地球時計の時代（{a}）に生まれる', { a: fmtAgo(ya) });
     if (!G.touched) {                                              // まだ回していなければ、いまの地球の風景を見せる
       G.viewYa = ya;
-      $('b-cap').textContent = `いまの地球時計の風景（${fmtAgo(ya)}）：${sceneCaption(ya)}`;
+      $('b-cap').textContent = T('いまの地球時計の風景（{a}）：{c}', { a: fmtAgo(ya), c: sceneCaption(ya) });
     }
   }
   let lastHomeTick = 0;
@@ -227,16 +229,16 @@
      今を拡大：23:57からの最後の3分間を、時間をゆるめながら再生する
      ============================================================ */
   const ZSEG = [
-    { a: S * 3 / 1440, b: 3e5, f: 0.12, sub: '人類の祖先から、ホモ・サピエンスへ' },
-    { a: 3e5, b: 1.2e4, f: 0.14, sub: 'サピエンスが世界へ広がる' },
-    { a: 1.2e4, b: ago(1769), f: 0.16, sub: '農耕から、文明と国へ' },
-    { a: ago(1769), b: ago(1956.6), f: 0.16, sub: '産業革命から、AIという言葉が生まれるまで' },
-    { a: ago(1956.6), b: ago(2012.8), f: 0.16, sub: 'コンピュータとAIの研究' },
-    { a: ago(2012.8), b: 0, f: 0.26, sub: 'AIの台頭' },
+    { a: S * 3 / 1440, b: 3e5, f: 0.12, sub: T('人類の祖先から、ホモ・サピエンスへ') },
+    { a: 3e5, b: 1.2e4, f: 0.14, sub: T('サピエンスが世界へ広がる') },
+    { a: 1.2e4, b: ago(1769), f: 0.16, sub: T('農耕から、文明と国へ') },
+    { a: ago(1769), b: ago(1956.6), f: 0.16, sub: T('産業革命から、AIという言葉が生まれるまで') },
+    { a: ago(1956.6), b: ago(2012.8), f: 0.16, sub: T('コンピュータとAIの研究') },
+    { a: ago(2012.8), b: 0, f: 0.26, sub: T('AIの台頭') },
   ];
   const ZDEC = [0, 2, 4, 6, 7, 8];
   const Z_T = 180;                                                  // ×1で約3分
-  const segLabel = (i) => `最後の${fmtSec(ZSEG[i].a / S * DAY)}`;
+  const segLabel = (i) => T('最後の{t}', { t: fmtSec(ZSEG[i].a / S * DAY) });
   // 出来事：EVENTS に、AIの歩みの詳しい説明を合わせる
   const AI_BY_YEAR = new Map(AI_STORY.map(([y, t, d]) => [y, { t, d }]));
   const ZEV = EVENTS.filter((e) => e.ya <= ZSEG[0].a && e.ya > 0).map((e) => {
@@ -251,6 +253,7 @@
   }
   ZEV.sort((x, y) => y.ya - x.ya);
 
+  const Z_INTRO = { ya: ZSEG[0].a, name: T('最後の3分間へ'), note: T('人類の祖先が現れる直前から、今日までを再生します。'), kind: '' };
   const Z = { p: 0, speed: 1, playing: false, seg: -1, next: 0, ya: ZSEG[0].a, last: 0, ended: false, cap: '' };
   sceneView($('z-scene'), () => ({ ya: Math.max(Z.ya, 0.3) }));
   function zYa(p) {
@@ -281,8 +284,8 @@
       this.label = el('text', { x: 24, y: 22, class: 'strip-label' }, svg);
       this.cursor = el('path', { d: 'M0,0', class: 'strip-cursor' }, svg);
       el('text', { x: 24, y: 70, class: 'strip-end' }, svg).textContent = fmtAgo(g.a);
-      el('text', { x: 616, y: 70, class: 'strip-end', 'text-anchor': 'end' }, svg).textContent = g.b > 0 ? fmtAgo(g.b) : '今';
-      $('z-strip-cap').textContent = `${segLabel(i)}を拡大中：${g.sub}`;
+      el('text', { x: 616, y: 70, class: 'strip-end', 'text-anchor': 'end' }, svg).textContent = g.b > 0 ? fmtAgo(g.b) : T('今');
+      $('z-strip-cap').textContent = T('{s}を拡大中：{sub}', { s: mid(segLabel(i)), sub: g.sub });
     },
     update(ya) {
       const x = this.x(ya);
@@ -306,7 +309,7 @@
   function zEvent(e, animate) {
     const c = $('z-evt');
     c.classList.toggle('ai', e.kind === 'ai');
-    $('z-evt-t').textContent = `${fmtClock(e.ya, ZDEC[zSegOf(e.ya)])}・${fmtAgo(e.ya)}`;
+    $('z-evt-t').textContent = `${fmtClock(e.ya, ZDEC[zSegOf(e.ya)])}${SEP}${fmtAgo(e.ya)}`;
     $('z-evt-n').textContent = e.name;
     $('z-evt-s').textContent = e.note || '';
     if (animate) { c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop'); }
@@ -315,8 +318,8 @@
     Object.assign(Z, { p: 0, seg: -1, next: 0, ya: ZSEG[0].a, last: 0, ended: false, playing: true });
     $('z-end').hidden = true;
     $('z-banner').classList.remove('show');
-    $('z-play').textContent = '⏸ 一時停止';
-    zEvent({ ya: ZSEG[0].a, name: '最後の3分間へ', note: '人類の祖先が現れる直前から、今日までを再生します。', kind: '' }, false);
+    $('z-play').textContent = T('⏸ 一時停止');
+    zEvent(Z_INTRO, false);
     zRender();
     $('z-seek').value = 0;
   }
@@ -325,16 +328,16 @@
     if (!Z.dragging) $('z-seek').value = Math.round(Z.p * 1000);
     if (i !== Z.seg) {
       [...$('z-seek-labels').children].forEach((sp, k) => sp.classList.toggle('on', k === i));
-      if (Z.seg >= 0 && i > Z.seg && !Z.quiet) zBanner(`ここから時間を約${Math.round(zRate(Z.seg) / zRate(i))}倍ゆっくり流します\n1秒 = ${fmtYears(zRate(i))}年`);
+      if (Z.seg >= 0 && i > Z.seg && !Z.quiet) zBanner(T('ここから時間を約{x}倍ゆっくり流します\n1秒 = {y}年', { x: Math.round(zRate(Z.seg) / zRate(i)), y: fmtYears(zRate(i)) }));
       Z.seg = i;
       zStrip.build(i);
       $('z-chip').textContent = segLabel(i);
     }
     const clock = fmtClock(ya, ZDEC[i]);
-    $('z-clock').textContent = `地球時計 ${clock}`;
+    $('z-clock').textContent = T('地球時計 {c}', { c: clock });
     $('z-ago').textContent = fmtAgo(ya);
-    $('z-rate').textContent = `1秒 = ${fmtYears(Math.max(zRate(i), 0.1))}年`;
-    $('z-remain').innerHTML = ya > 0 ? `24:00まで、地球時計で あと <b>${fmtSec(ya / S * DAY)}</b>` : '<b>24:00 — 今</b>';
+    $('z-rate').textContent = T('1秒 = {y}年', { y: fmtYears(Math.max(zRate(i), 0.1)) });
+    $('z-remain').innerHTML = ya > 0 ? T('24:00まで、地球時計で あと <b>{t}</b>', { t: fmtSec(ya / S * DAY) }) : `<b>${T('24:00 — 今')}</b>`;
     const cap = sceneCaption(Math.max(ya, 0.3));
     if (cap !== Z.cap) { Z.cap = cap; $('z-cap').textContent = cap; }
     zStrip.update(ya);
@@ -355,28 +358,28 @@
   }
   function zFinish() {
     Z.ended = true; Z.playing = false;
-    $('z-play').textContent = '▶ 再生';
-    $('z-end-t').textContent = `46億年を24時間にすると、人類の歴史は最後の5.6秒。「人工知能」という言葉が生まれてからは、最後の約${fmtSec(ago(1956.6) / S * DAY)}。ChatGPTの公開からは、約${fmtSec(ago(2022.91) / S * DAY)}です。`;
+    $('z-play').textContent = T('▶ 再生');
+    $('z-end-t').textContent = T('46億年を24時間にすると、人類の歴史は最後の5.6秒。「人工知能」という言葉が生まれてからは、最後の約{a}。ChatGPTの公開からは、約{b}です。', { a: fmtSec(ago(1956.6) / S * DAY), b: fmtSec(ago(2022.91) / S * DAY) });
     $('z-end').hidden = false;
   }
   $('z-play').addEventListener('click', () => {
     if (Z.ended) { zReset(); return; }
     Z.playing = !Z.playing;
-    $('z-play').textContent = Z.playing ? '⏸ 一時停止' : '▶ 再生';
+    $('z-play').textContent = Z.playing ? T('⏸ 一時停止') : T('▶ 再生');
   });
   document.querySelectorAll('[data-zspeed]').forEach((b) => b.addEventListener('click', () => {
     Z.speed = Number(b.dataset.zspeed);
     document.querySelectorAll('[data-zspeed]').forEach((x) => x.classList.toggle('on', x === b));
-    if (Z.seg >= 0) $('z-rate').textContent = `1秒 = ${fmtYears(Math.max(zRate(Z.seg), 0.1))}年`;
+    if (Z.seg >= 0) $('z-rate').textContent = T('1秒 = {y}年', { y: fmtYears(Math.max(zRate(Z.seg), 0.1)) });
   }));
   $('z-restart').addEventListener('click', zReset);
 
   // ゲージをドラッグして、進めたり戻したりする
-  const Z_INTRO = { ya: ZSEG[0].a, name: '最後の3分間へ', note: '人類の祖先が現れる直前から、今日までを再生します。', kind: '' };
+  
   {
     const box = $('z-seek-labels');
     box.style.gridTemplateColumns = ZSEG.map((g) => `${g.f}fr`).join(' ');
-    ZSEG.forEach((g, i) => { const sp = document.createElement('span'); sp.textContent = i === ZSEG.length - 1 ? 'AIの台頭' : segLabel(i).replace('最後の', ''); box.appendChild(sp); });
+    ZSEG.forEach((g, i) => { const sp = document.createElement('span'); sp.textContent = i === ZSEG.length - 1 ? T('AIの台頭') : fmtSec(ZSEG[i].a / S * DAY); box.appendChild(sp); });
   }
   const zCum = (i) => ZSEG.slice(0, i).reduce((a, g) => a + g.f, 0);
   function zSeek(p) {
@@ -415,18 +418,18 @@
     aiBuilt = true;
     const aiSec = ago(1956.6) / S * DAY, gptSec = ago(2022.91) / S * DAY;
     $('n-ai-head').innerHTML =
-      `<div class="ai-stat">「人工知能」という言葉が生まれてから今日まで：地球時計で <b>約${fmtSec(aiSec)}</b>。まばたき1回（約0.1秒）の、さらに約${Math.round(0.1 / aiSec)}分の1。</div>` +
-      `<div class="ai-stat">ChatGPTの公開から今日まで：<b>約${fmtSec(gptSec)}</b>。</div>`;
+      `<div class="ai-stat">${T('「人工知能」という言葉が生まれてから今日まで：地球時計で <b>約{a}</b>。まばたき1回（約0.1秒）の、さらに約{n}分の1。', { a: fmtSec(aiSec), n: Math.round(0.1 / aiSec) })}</div>` +
+      `<div class="ai-stat">${T('ChatGPTの公開から今日まで：<b>約{a}</b>。', { a: fmtSec(gptSec) })}</div>`;
     const list = $('n-ai-list');
     AI_STORY.forEach(([year, ttl, dsc], i) => {
       const li = document.createElement('li');
       const last = i === AI_STORY.length - 1;
       if (last) li.className = 'now';
       li.innerHTML = '<div class="yr num"></div><div class="ttl"></div><div class="dsc"></div><div class="clk"></div>';
-      li.children[0].textContent = last ? `${year}年（今）` : `${year}年`;
+      li.children[0].textContent = last ? T('{y}年（今）', { y: year }) : T('{y}年', { y: year });
       li.children[1].textContent = ttl;
       li.children[2].textContent = dsc;
-      li.children[3].textContent = last ? '24:00 — 今' : `24:00の約${fmtSec(ago(year + 0.5) / S * DAY)}前`;
+      li.children[3].textContent = last ? T('24:00 — 今') : T('24:00の約{t}前', { t: fmtSec(ago(year + 0.5) / S * DAY) });
       list.appendChild(li);
     });
   }
@@ -440,9 +443,14 @@
   const G = { angle: 0, spinning: false, viewYa: null, birth: null };
   sceneView($('b-scene'), () => (G.viewYa == null ? null : { ya: G.viewYa, plan: G.birth ? G.birth.player.plan : null, habitat: G.birth ? G.birth.player.habitat : null }));
 
+  const DUP = ['', '', '②', '③', '④', '⑤'];
+  const nameOf = (L) => tr(L.name) + (L.dup ? ` ${DUP[L.dup] || ''}` : '');
+  const SEP = E.LANG === 'en' ? ' · ' : '・';
+  const mid = (s) => (E.LANG === 'en' ? s.replace(/^The /, 'the ') : s);      // 文の途中に入れるとき
+  const causeNote = (c) => (c && !c.includes('背景') ? T('（{c}）', { c: tr(c) }) : '');
   function dedupeNames(list) {
     const seen = {};
-    list.forEach((L) => { seen[L.name] = (seen[L.name] || 0) + 1; if (seen[L.name] > 1) L.name = `${L.name}（別の系統）`; });
+    list.forEach((L) => { seen[L.name] = (seen[L.name] || 0) + 1; if (seen[L.name] > 1) L.dup = seen[L.name]; });
   }
   function traitBars(box, L) {
     if (!box.children.length) {
@@ -461,7 +469,7 @@
   }
 
   $('b-spin').addEventListener('click', () => spinTo(Math.random() * S));
-  $('b-now').addEventListener('click', () => spinTo(yaOfJst(jstSec())));
+  $('b-now').addEventListener('click', () => spinTo(yaOfSec(E.clockSec())));
   function spinTo(t) {
     if (G.spinning) return;
     G.spinning = true;
@@ -490,7 +498,7 @@
       G.spinning = false;
       $('b-spin').disabled = false;
       $('b-now').disabled = false;
-      $('b-spin').textContent = 'もう一度生まれる';
+      $('b-spin').textContent = T('もう一度生まれる');
       onBorn(t);
       $('b-cert-wrap').hidden || $('b-cert-wrap').scrollIntoView({ block: 'start', behavior: REDUCE ? 'auto' : 'smooth' });
     };
@@ -506,7 +514,7 @@
     const options = evo.birthOptions(t);
     if (!options.length) {
       $('b-none').hidden = false;
-      $('b-none-t').textContent = `${fmtAgo(t)}（地球時計 ${fmtClock(t)}）。地球はまだ熱く、生命が生まれる前でした。この時代を引く確率は${fmtProb((S - 3.8e9) / S)}。生命が生まれるのは、地球時計の4:10ごろです。`;
+      $('b-none-t').textContent = T('{a}（地球時計 {c}）。地球はまだ熱く、生命が生まれる前でした。この時代を引く確率は{p}。生命が生まれるのは、地球時計の4:10ごろです。', { a: fmtAgo(t), c: fmtClock(t), p: fmtProb((S - 3.8e9) / S) });
       return;
     }
     const pick = () => options[Math.floor(Math.random() * options.length)];
@@ -518,20 +526,20 @@
     G.birth = { t, player, rivals };
     const era = eraOf(t);
     $('b-no').textContent = `No. ${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
-    $('b-line1').textContent = 'あなたは';
-    $('b-who').textContent = `${player.name}として生まれました`;
-    $('b-line2').textContent = `${fmtAgo(t)}・地球時計 ${fmtClock(t)}・${periodLabel(t)}`;
+    $('b-line1').textContent = T('あなたは');
+    $('b-who').textContent = T('{n}として生まれました', { n: nameOf(player) });
+    $('b-line2').textContent = `${fmtAgo(t)} · ${T('地球時計 {c}', { c: fmtClock(t) })} · ${periodLabel(t)}`;
     $('b-plan').textContent = evo.PLANS[player.plan].name;
     $('b-hab').textContent = evo.HAB_LABEL[player.habitat] || '';
     $('b-prob').textContent = fmtProb((era.from - era.to) / S);
-    $('b-left').textContent = `${fmtYears(t)}年（地球時計で${fmtSec(t / S * DAY)}）`;
+    $('b-left').textContent = T('{y}（地球時計で{t}）', { y: fmtSpan(t), t: fmtSec(t / S * DAY) });
     $('b-traits').textContent = '';
     traitBars($('b-traits'), player);
     const ul = $('b-rivals'); ul.textContent = '';
     rivals.forEach((r) => {
       const li = document.createElement('li');
       li.innerHTML = '<span></span><span class="st muted"></span>';
-      li.children[0].textContent = r.name;
+      li.children[0].textContent = nameOf(r);
       li.children[1].textContent = evo.PLANS[r.plan].name;
       ul.appendChild(li);
     });
@@ -549,18 +557,18 @@
 
   $('b-start').addEventListener('click', () => {
     if (!G.birth) return;
-    const T = 600;                                                 // ×1でおよそ10分（分かれ道で止まる時間は含まない）
+    const PLAY_SEC = 600;                                          // ×1でおよそ10分（分かれ道で止まる時間は含まない）
     const { t, player, rivals } = G.birth;
     Object.assign(P, {
-      on: true, L: player, rivals, ya0: t, ya: t, T, elapsed: 0, speed: 1, paused: false, skipping: false,
+      on: true, L: player, rivals, ya0: t, ya: t, T: PLAY_SEC, elapsed: 0, speed: 1, paused: false, skipping: false,
       pending: null, last: 0, fx: null, fxUntil: 0, rnd: evo.rng(Math.floor(Math.random() * 2 ** 31)),
       done: new Set(), log: [], startedAt: t,
     });
     $('p-log').textContent = '';
     document.querySelectorAll('#p-controls [data-speed]').forEach((b) => b.classList.toggle('on', b.dataset.speed === '1'));
-    $('p-pause').textContent = '⏸ 一時停止';
+    $('p-pause').textContent = T('⏸ 一時停止');
     $('p-traits').textContent = '';
-    plog(t, `${fmtAgo(t)}、「${player.name}」として生まれた。`);
+    plog(t, T('{a}、「{n}」として生まれた。', { a: fmtAgo(t), n: nameOf(player) }));
     show('play');
     checkNode();
     renderPlay(true);
@@ -569,7 +577,7 @@
 
   function plog(ya, text, cls) {
     const li = document.createElement('li');
-    const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = `${fmtClock(ya, clockDecFor(ya))}・${fmtAgo(ya)}`;
+    const tt = document.createElement('span'); tt.className = 'tt'; tt.textContent = `${fmtClock(ya, clockDecFor(ya))}${SEP}${fmtAgo(ya)}`;
     const tx = document.createElement('span'); tx.textContent = text; if (cls) tx.className = cls;
     li.append(tt, tx);
     $('p-log').prepend(li);
@@ -588,7 +596,7 @@
     node.opts.forEach((o) => {
       const b = document.createElement('button'); b.className = 'opt';
       b.innerHTML = '<b></b><span></span>';
-      b.children[0].textContent = o.label; b.children[1].textContent = o.desc;
+      b.children[0].textContent = tr(o.label); b.children[1].textContent = o.desc;
       b.addEventListener('click', () => choose(node, o));
       box.appendChild(b);
     });
@@ -601,7 +609,7 @@
     o.apply(L);
     L.taken.add(node.id);
     L.path.push({ ya: P.ya, label: o.label });
-    plog(P.ya, `分かれ道：${o.label}${o.real ? `。${o.real}` : ''}`);
+    plog(P.ya, T('分かれ道：{l}', { l: tr(o.label) }) + (o.real ? ` ${o.real}` : ''));
     $('p-choice').hidden = true;
     P.pending = null;
     renderPlay(true);
@@ -615,31 +623,31 @@
     const others = P.rivals.map((R) => ({ R, res: evo.applyExtinction(R, ev, P.rnd) }));
     if (!me) return;
     const dead = !P.L.alive;
-    plog(ev.ya, `${ev.name}：${me.before}種 → ${me.after}種${dead ? '。系統が絶滅した' : ''}`, dead ? 'dead' : '');
-    others.forEach(({ R, res }) => { if (res && !R.alive) plog(ev.ya, `${R.name}の系統が、${ev.name}で絶滅した`); });
+    plog(ev.ya, T('{e}：{b}種 → {a}種', { e: tr(ev.name), b: me.before, a: me.after }) + (dead ? T('。系統が絶滅した') : ''), dead ? 'dead' : '');
+    others.forEach(({ R, res }) => { if (res && !R.alive) plog(ev.ya, T('{n}の系統が、{e}で絶滅した', { n: nameOf(R), e: mid(tr(ev.name)) })); });
     if (me.p < 0.05 && !dead) return;                              // ほとんど影響のない出来事は記録だけ
     P.pending = { type: 'event', ev };
     P.skipping = false;
-    $('p-ev-t').textContent = ev.name;
+    $('p-ev-t').textContent = tr(ev.name);
     $('p-ev-f').textContent = ev.fact;
     const you = $('p-ev-you');
     you.className = `you ${dead ? 'dead' : 'live'}`;
     you.textContent = dead
-      ? `あなたの系統：${me.before}種 → 0種。ここで絶滅しました。`
-      : `あなたの系統：${me.before}種 → ${me.after}種。なんとか生き延びた。`;
+      ? T('あなたの系統：{b}種 → 0種。ここで絶滅しました。', { b: me.before })
+      : T('あなたの系統：{b}種 → {a}種。なんとか生き延びた。', { b: me.before, a: me.after });
     const real = $('p-ev-real');
     real.hidden = me.p < 1;
     real.textContent = P.L.flags.admix && ev.ya === 4e4
-      ? '系統は途絶えました。でも、あなたたちの遺伝子の一部は、ホモ・サピエンスの中で今も生きています。'
-      : '実際の歴史でも、この仲間はここですべて姿を消しました。';
+      ? T('系統は途絶えました。でも、あなたたちの遺伝子の一部は、ホモ・サピエンスの中で今も生きています。')
+      : T('実際の歴史でも、この仲間はここですべて姿を消しました。');
     const ul = $('p-ev-rivals'); ul.textContent = '';
     others.forEach(({ R, res }) => {
       const li = document.createElement('li');
       li.innerHTML = '<span></span><span class="st"></span>';
-      li.children[0].textContent = R.name;
+      li.children[0].textContent = nameOf(R);
       const st = li.children[1];
-      if (!res) { st.textContent = 'すでに絶滅'; st.className = 'st muted'; }
-      else { st.textContent = `${res.before} → ${res.after}種`; st.className = `st ${R.alive ? 'live' : 'dead'}`; }
+      if (!res) { st.textContent = T('すでに絶滅'); st.className = 'st muted'; }
+      else { st.textContent = T('{b} → {a}種', { b: res.before, a: res.after }); st.className = `st ${R.alive ? 'live' : 'dead'}`; }
       ul.appendChild(li);
     });
     $('p-event').hidden = false;
@@ -670,7 +678,7 @@
         for (const L of all) {
           const was = L.alive;
           evo.step(L, yy, dt, P.rnd, L.isPlayer && grace);
-          if (was && !L.alive) plog(L.deathYa, `${L.isPlayer ? 'あなた' : L.name}の系統が、数を減らし続けて絶滅した`, L.isPlayer ? 'dead' : '');
+          if (was && !L.alive) plog(L.deathYa, L.isPlayer ? T('あなたの系統が、数を減らし続けて絶滅した') : T('{n}の系統が、数を減らし続けて絶滅した', { n: nameOf(L) }), L.isPlayer ? 'dead' : '');
         }
         if (!P.L.alive) break;
       }
@@ -702,18 +710,18 @@
   let lastSlow = 0;
   function renderPlay(force) {
     const ya = P.ya, L = P.L;
-    setClock($('p-clock'), `地球時計 ${fmtClock(ya, clockDecFor(ya))}`);
+    setClock($('p-clock'), T('地球時計 {c}', { c: fmtClock(ya, clockDecFor(ya)) }));
     $('p-ago').textContent = fmtAgo(ya);
     $('p-period').textContent = periodLabel(ya);
     const p = pAtYa(ya);
     const rate = (2 * P.ya0 * (1 - p) / P.T) * (P.skipping ? 80 : P.speed);
-    $('p-rate').textContent = `1秒 = ${fmtYears(Math.max(rate, 0.1))}年`;
+    $('p-rate').textContent = T('1秒 = {y}年', { y: fmtYears(Math.max(rate, 0.1)) });
     $('p-cap').textContent = sceneCaption(ya, { fx: performance.now() < P.fxUntil ? P.fx : null, habitat: L.habitat });
     const now = performance.now();
     if (!force && now - lastSlow < 250) return;
     lastSlow = now;
-    $('p-name').textContent = L.name;
-    $('p-sub').textContent = `${evo.PLANS[L.plan].name}・${evo.HAB_LABEL[L.habitat] || ''}`;
+    $('p-name').textContent = nameOf(L);
+    $('p-sub').textContent = `${evo.PLANS[L.plan].name}${SEP}${evo.HAB_LABEL[L.habitat] || ''}`;
     $('p-n').textContent = L.alive ? (L.N >= evo.CAP ? `${evo.CAP}+` : Math.round(L.N)) : 0;
     const { lam, mu } = evo.rates(L, ya);
     const r = L.plan === 'human' ? 0 : Math.min(1, (mu / lam) / 1.4);
@@ -723,24 +731,24 @@
     P.rivals.forEach((R) => {
       const li = document.createElement('li');
       li.innerHTML = '<span><span class="rn"></span><small></small></span><span class="st"></span>';
-      li.querySelector('.rn').textContent = R.name;
+      li.querySelector('.rn').textContent = nameOf(R);
       li.querySelector('small').textContent = evo.PLANS[R.plan].name;
       const st = li.querySelector('.st');
-      if (R.alive) { st.textContent = `${R.N >= evo.CAP ? evo.CAP + '+' : Math.round(R.N)}種`; st.classList.add('live'); }
-      else { st.textContent = `絶滅（${fmtAgo(R.deathYa)}）`; st.classList.add('dead'); }
+      if (R.alive) { st.textContent = T('{n}種', { n: R.N >= evo.CAP ? evo.CAP + '+' : Math.round(R.N) }); st.classList.add('live'); }
+      else { st.textContent = T('絶滅（{a}）', { a: fmtAgo(R.deathYa) }); st.classList.add('dead'); }
       ul.appendChild(li);
     });
   }
 
   $('p-pause').addEventListener('click', () => {
     P.paused = !P.paused;
-    $('p-pause').textContent = P.paused ? '▶ 再開' : '⏸ 一時停止';
+    $('p-pause').textContent = P.paused ? T('▶ 再開') : T('⏸ 一時停止');
   });
   document.querySelectorAll('#p-controls [data-speed]').forEach((b) => b.addEventListener('click', () => {
     P.speed = Number(b.dataset.speed); P.skipping = false;
     document.querySelectorAll('#p-controls [data-speed]').forEach((x) => x.classList.toggle('on', x === b));
   }));
-  $('p-next').addEventListener('click', () => { P.skipping = true; P.paused = false; $('p-pause').textContent = '⏸ 一時停止'; });
+  $('p-next').addEventListener('click', () => { P.skipping = true; P.paused = false; $('p-pause').textContent = T('⏸ 一時停止'); });
   $('p-quit').addEventListener('click', () => { P.on = false; show('birth'); });
 
   /* ============================================================
@@ -749,19 +757,19 @@
   const R = { ya: 0, ending: null, share: null };
   sceneView($('r-scene'), () => (R.ending ? { ya: R.ya, ending: R.ending } : null));
   const AI_END = {
-    together: 'AIと人が一緒に、まだ誰も見たことのない答えを探しはじめています。',
-    delegate: '多くをAIに任せた世界。その先がどうなるかは、まだ誰にもわかりません。',
-    careful: 'ルールをつくりながら、AIとの付き合い方を探しています。',
+    together: T('AIと人が一緒に、まだ誰も見たことのない答えを探しはじめています。'),
+    delegate: T('多くをAIに任せた世界。その先がどうなるかは、まだ誰にもわかりません。'),
+    careful: T('ルールをつくりながら、AIとの付き合い方を探しています。'),
   };
   // 結末の場面：生き残れば今日の子孫の暮らし、絶滅すればその化石が眠る地層
   function endScene(alive, endYa, plan, habitat, cause) {
     const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause });
     return { ya: alive ? 0.3 : Math.max(endYa, 1), ending: { ...e, plan } };
   }
-  const endingLabel = (e) => `結末 No.${String(e.no).padStart(2, '0')}「${e.title}」`;
+  const endingLabel = (e) => T('結末 No.{no}「{t}」', { no: String(e.no).padStart(2, '0'), t: e.title });
   const foundEndings = () => new Set(histLoad().map((h) => evo.endingOf(h).id));
   function rivalStatus(Rv) {
-    return Rv.alive ? `今も生きている（${Rv.N >= evo.CAP ? evo.CAP + '+' : Math.round(Rv.N)}種）` : `${fmtAgo(Rv.deathYa)}に絶滅`;
+    return Rv.alive ? T('今も生きている（{n}種）', { n: Rv.N >= evo.CAP ? evo.CAP + '+' : Math.round(Rv.N) }) : T('{a}に絶滅', { a: fmtAgo(Rv.deathYa) });
   }
   function endPlay() {
     P.on = false;
@@ -771,37 +779,37 @@
     const isNew = !foundEndings().has(R.ending.id);
     $('r-ending').textContent = endingLabel(R.ending);
     $('r-new').hidden = !isNew;
-    $('r-kick').textContent = alive ? '24:00 — 今' : `${fmtAgo(endYa)}・地球時計 ${fmtClock(endYa, clockDecFor(endYa))}`;
+    $('r-kick').textContent = alive ? T('24:00 — 今') : `${fmtAgo(endYa)} · ${T('地球時計 {c}', { c: fmtClock(endYa, clockDecFor(endYa)) })}`;
     const big = $('r-big');
-    big.textContent = alive ? '今も生きている' : '絶滅';
+    big.textContent = alive ? T('今も生きている') : T('絶滅');
     big.className = `big ${alive ? 'live' : 'dead'}`;
     let lead;
     if (alive) {
-      lead = `「${L.firstName}」から始まったあなたの系統は、今日まで生き残りました。今の子孫：${evo.PLANS[L.plan].today}。`;
+      lead = T('「{f}」から始まったあなたの系統は、今日まで生き残りました。今の子孫：{d}。', { f: tr(L.firstName), d: evo.PLANS[L.plan].today });
       if (L.plan === 'human' && L.flags.ai) lead += ` ${AI_END[L.flags.ai]}`;
     } else {
-      lead = `「${L.firstName}」から始まったあなたの系統は、${L.deathCause.includes('背景') ? '数を減らし続けて' : `「${L.deathCause}」で`}姿を消しました。`;
+      lead = L.deathCause.includes('背景') ? T('「{f}」から始まったあなたの系統は、数を減らし続けて姿を消しました。', { f: tr(L.firstName) }) : T('「{f}」から始まったあなたの系統は、「{c}」で姿を消しました。', { f: tr(L.firstName), c: mid(tr(L.deathCause)) });
     }
     $('r-lead').textContent = lead;
     $('r-cap').textContent = R.ending.desc;
     const span = L.bornYa - endYa;
     const rows = [
-      ['生まれた', `${fmtAgo(L.bornYa)}（地球時計 ${fmtClock(L.bornYa)}）`],
-      [alive ? '今' : '絶滅した', alive ? '24:00' : `${fmtAgo(endYa)}（地球時計 ${fmtClock(endYa, clockDecFor(endYa))}）`],
-      ['続いた期間', `${fmtYears(span)}年（地球時計で${fmtSec(span / S * DAY)}）`],
-      ['いちばん多いときの種の数', L.maxN >= evo.CAP ? `${evo.CAP}種以上` : `${Math.round(L.maxN)}種`],
-      ['最後の姿', L.name === evo.PLANS[L.plan].name ? L.name : `${L.name}（${evo.PLANS[L.plan].name}）`],
+      [T('生まれた'), T('{a}（地球時計 {c}）', { a: fmtAgo(L.bornYa), c: fmtClock(L.bornYa) })],
+      [alive ? T('今') : T('絶滅した'), alive ? '24:00' : T('{a}（地球時計 {c}）', { a: fmtAgo(endYa), c: fmtClock(endYa, clockDecFor(endYa)) })],
+      [T('続いた期間'), T('{y}（地球時計で{t}）', { y: fmtSpan(span), t: fmtSec(span / S * DAY) })],
+      [T('いちばん多いときの種の数'), L.maxN >= evo.CAP ? T('{n}種以上', { n: evo.CAP }) : T('{n}種', { n: Math.round(L.maxN) })],
+      [T('最後の姿'), nameOf(L) === evo.PLANS[L.plan].name ? nameOf(L) : T('{n}（{p}）', { n: nameOf(L), p: evo.PLANS[L.plan].name })],
     ];
     const st = $('r-stats'); st.textContent = '';
     rows.forEach(([k, v]) => { const li = document.createElement('li'); li.innerHTML = '<span></span><span class="val"></span>'; li.children[0].textContent = k; li.children[1].textContent = v; st.appendChild(li); });
     const path = $('r-path'); path.textContent = '';
-    if (!L.path.length) { const li = document.createElement('li'); li.textContent = '分かれ道に出会う前に、物語が終わった'; path.appendChild(li); }
-    L.path.forEach((s) => { const li = document.createElement('li'); li.textContent = `${fmtAgo(s.ya)}：${s.label}`; path.appendChild(li); });
+    if (!L.path.length) { const li = document.createElement('li'); li.textContent = T('分かれ道に出会う前に、物語が終わった'); path.appendChild(li); }
+    L.path.forEach((s) => { const li = document.createElement('li'); li.textContent = `${fmtAgo(s.ya)}: ${tr(s.label)}`; path.appendChild(li); });
     const rv = $('r-rivals'); rv.textContent = '';
     P.rivals.forEach((Rv) => {
       const li = document.createElement('li');
       li.innerHTML = '<span></span><span class="st"></span>';
-      li.children[0].textContent = Rv.firstName === Rv.name ? Rv.name : `${Rv.firstName} → ${Rv.name}`;
+      li.children[0].textContent = Rv.firstName === Rv.name ? nameOf(Rv) : `${tr(Rv.firstName)} → ${nameOf(Rv)}`;
       li.children[1].textContent = rivalStatus(Rv);
       li.children[1].className = `st ${Rv.alive ? 'live' : 'dead'}`;
       rv.appendChild(li);
@@ -841,8 +849,8 @@
     };
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     ctx.fillStyle = '#9fb0c8'; ctx.font = `800 24px ${FONT}`;
-    ctx.fillText(`進化ガチャ｜結末 No.${String(es.ending.no).padStart(2, '0')} / ${evo.ENDINGS.length}`, 28, 450);
-    const label = alive ? '今も生きている' : '絶滅';
+    ctx.fillText(T('進化ガチャ｜結末 No.{no} / {all}', { no: String(es.ending.no).padStart(2, '0'), all: evo.ENDINGS.length }), 28, 450);
+    const label = alive ? T('今も生きている') : T('絶滅');
     ctx.font = `900 22px ${FONT}`;
     const bw = ctx.measureText(label).width + 24;
     ctx.fillStyle = alive ? '#2f8a5a' : '#c8402f'; roundRect(ctx, 28, 474, bw, 36, 8); ctx.fill();
@@ -851,12 +859,12 @@
     fit(main, 900, 48, 28, 1150 - bw - 20);
     ctx.fillText(main, 28 + bw + 10, 511);
     const sub = alive
-      ? `${fmtAgo(L.bornYa)}に「${L.firstName}」として生まれ、${L.name}として今日まで`
-      : `${fmtAgo(L.bornYa)}に「${L.firstName}」として生まれ、${fmtAgo(endYa)}に${L.name}として絶滅`;
+      ? T('{a}に「{f}」として生まれ、{n}として今日まで', { a: fmtAgo(L.bornYa), f: tr(L.firstName), n: tr(L.name) })
+      : T('{a}に「{f}」として生まれ、{e}に{n}として絶滅', { a: fmtAgo(L.bornYa), f: tr(L.firstName), e: fmtAgo(endYa), n: tr(L.name) });
     ctx.fillStyle = '#ffb48f'; fit(sub, 800, 26, 18, 1150);
     ctx.fillText(sub, 28, 560);
     ctx.fillStyle = '#7f8ea6'; ctx.font = `700 20px ${FONT}`;
-    ctx.fillText('地球の24時間  #地球の24時間 #進化ガチャ', 28, 604);
+    ctx.fillText(T('地球の24時間  #地球の24時間 #進化ガチャ'), 28, 604);
     return cv;
   }
   // 1回の人生（系統）の記録。シェアのリンクにも、履歴にも同じ形で使う
@@ -871,9 +879,9 @@
   function shareTextFrom(d) {
     const e = evo.endingOf(d);
     const body = d.a
-      ? `${fmtAgo(d.b)}に「${d.f}」として生まれ、${d.k.length}回の分かれ道を選んで、${d.n}として今日まで生き残った。`
-      : `${fmtAgo(d.b)}に「${d.f}」として生まれ、${fmtAgo(d.e)}、${d.n}として絶滅した。`;
-    return `${body}\n${endingLabel(e)}\n#地球の24時間 #進化ガチャ`;
+      ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残った。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
+      : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅した。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n) });
+    return `${body}\n${endingLabel(e)}\n${T('#地球の24時間 #進化ガチャ')}`;
   }
   // 結果をリンクに埋め込む（#r=...）。開いた人には、この結果と「あなたも生まれてみる」が出る
   const b64 = (str) => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -898,7 +906,7 @@
     const a = document.createElement('a'); a.href = $('r-img').src; a.download = 'earth-24h-evolution.png'; a.click();
   });
   $('r-copy').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(R.share.url); $('r-copy-ok').textContent = 'リンクをコピーしました'; }
+    try { await navigator.clipboard.writeText(R.share.url); $('r-copy-ok').textContent = T('リンクをコピーしました'); }
     catch (e) { $('r-copy-ok').textContent = R.share.url; }
   });
   $('r-share').addEventListener('click', () => {
@@ -945,16 +953,16 @@
     if (!list.length) { $('hist-sum').textContent = ''; return; }
     const alive = list.filter((d) => d.a).length;
     const longest = list.reduce((m, d) => (d.b - d.e > m.b - m.e ? d : m), list[0]);
-    $('hist-sum').textContent = `これまで${list.length}回生まれ、${alive}回は今日まで生き残りました（生存率${Math.round(alive / list.length * 100)}%）。いちばん長く続いたのは「${longest.f}」からの系統（${fmtYears(longest.b - longest.e)}年）。`;
+    $('hist-sum').textContent = T('これまで{n}回生まれ、{a}回は今日まで生き残りました（生存率{p}%）。いちばん長く続いたのは「{f}」からの系統（{y}）。', { n: list.length, a: alive, p: Math.round(alive / list.length * 100), f: tr(longest.f), y: fmtSpan(longest.b - longest.e) });
     list.forEach((d) => {
       const li = document.createElement('li');
       const b = document.createElement('button');
       b.innerHTML = '<span class="tag"></span><span class="hn"><span class="hm"></span><span class="hs"></span></span>';
       const tag = b.querySelector('.tag');
-      tag.textContent = d.a ? '生存' : '絶滅';
+      tag.textContent = d.a ? T('生存') : T('絶滅');
       tag.classList.add(d.a ? 'alive' : 'dead');
-      b.querySelector('.hm').textContent = `「${evo.endingOf(d).title}」 ${d.f === d.n ? d.n : `${d.f} → ${d.n}`}`;
-      b.querySelector('.hs').textContent = `${fmtAgo(d.b)}〜${d.a ? '今' : fmtAgo(d.e)}・分かれ道${d.k.length}回・${fmtDate(d.t)}`;
+      b.querySelector('.hm').textContent = `「${evo.endingOf(d).title}」 ${d.f === d.n ? tr(d.n) : `${tr(d.f)} → ${tr(d.n)}`}`;
+      b.querySelector('.hs').textContent = T('{a}〜{e}・分かれ道{k}回・{d}', { a: fmtAgo(d.b), e: d.a ? T('今') : fmtAgo(d.e), k: d.k.length, d: fmtDate(d.t) });
       b.addEventListener('click', () => openHist(d));
       li.appendChild(b);
       ul.appendChild(li);
@@ -983,7 +991,7 @@
         b.disabled = true;
       }
       const cap = document.createElement('span');
-      cap.textContent = has ? `${String(e.no).padStart(2, '0')} ${e.title}` : `${String(e.no).padStart(2, '0')} ${e.alive ? (e.alt ? 'もしもの生存' : '生き残る') : '絶滅'}`;
+      cap.textContent = has ? `${String(e.no).padStart(2, '0')} ${e.title}` : `${String(e.no).padStart(2, '0')} ${e.alive ? (e.alt ? T('もしもの生存') : T('生き残る')) : T('絶滅')}`;
       if (e.alt) b.classList.add('alt');
       b.appendChild(cap);
       box.appendChild(b);
@@ -994,13 +1002,13 @@
     HD.st = endScene(d.a, d.e, d.p, d.h, d.c);
     $('hd-ending').textContent = `${endingLabel(HD.st.ending)}：${HD.st.ending.desc}`;
     const t = $('hd-ttl');
-    t.textContent = d.a ? '今も生きている' : '絶滅';
+    t.textContent = d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.a ? 'alive' : 'dead'}`;
     $('hd-text').textContent = d.a
-      ? `${fmtAgo(d.b)}に「${d.f}」として生まれ、${d.k.length}回の分かれ道を選んで、${d.n}として今日まで生き残りました。今の子孫：${evo.PLANS[d.p].today}。`
-      : `${fmtAgo(d.b)}に「${d.f}」として生まれ、${fmtAgo(d.e)}、${d.n}として絶滅しました${d.c && !d.c.includes('背景') ? `（${d.c}）` : ''}。続いた期間は${fmtYears(d.b - d.e)}年。`;
+      ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。今の子孫：{d}。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n), d: evo.PLANS[d.p].today })
+      : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。続いた期間は{y}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c), y: fmtSpan(d.b - d.e) });
     const ol = $('hd-path'); ol.textContent = '';
-    d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = x; ol.appendChild(li); });
+    d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     const url = shareUrlFrom(d);
     $('hd-x').href = xUrl({ text: shareTextFrom(d), url });
     $('hd-copy').hidden = !url;
@@ -1011,13 +1019,13 @@
   $('hd-close').addEventListener('click', () => { $('hist-detail').hidden = true; HD.st = null; });
   $('hd-copy').addEventListener('click', async () => {
     const url = shareUrlFrom(HD.d);
-    try { await navigator.clipboard.writeText(url); $('hd-copy-ok').textContent = 'リンクをコピーしました'; }
+    try { await navigator.clipboard.writeText(url); $('hd-copy-ok').textContent = T('リンクをコピーしました'); }
     catch (e) { $('hd-copy-ok').textContent = url; }
   });
   let clearArmed = 0;
   $('hist-clear').addEventListener('click', () => {
-    if (Date.now() - clearArmed > 4000) { clearArmed = Date.now(); $('hist-clear').textContent = 'もう一度押すと、すべての記録を消します'; return; }
-    histSave([]); clearArmed = 0; $('hist-clear').textContent = '記録をすべて消す';
+    if (Date.now() - clearArmed > 4000) { clearArmed = Date.now(); $('hist-clear').textContent = T('もう一度押すと、すべての記録を消します'); return; }
+    histSave([]); clearArmed = 0; $('hist-clear').textContent = T('記録をすべて消す');
     $('hist-detail').hidden = true; HD.st = null;
     renderHist();
   });
@@ -1029,13 +1037,13 @@
     SH.st = endScene(d.a, d.e, d.p, d.h, d.c);
     $('s-ending').textContent = `${endingLabel(SH.st.ending)}：${SH.st.ending.desc}`;
     const t = $('s-ttl');
-    t.textContent = d.a ? '今も生きている' : '絶滅';
+    t.textContent = d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.a ? 'live' : 'dead'}`;
     $('s-text').textContent = d.a
-      ? `${fmtAgo(d.b)}に「${d.f}」として生まれ、${d.k.length}回の分かれ道を選んで、${d.n}として今日まで生き残りました。`
-      : `${fmtAgo(d.b)}に「${d.f}」として生まれ、${fmtAgo(d.e)}、${d.n}として絶滅しました${d.c && !d.c.includes('背景') ? `（${d.c}）` : ''}。`;
+      ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
+      : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c) });
     const ol = $('s-path'); ol.textContent = '';
-    d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = x; ol.appendChild(li); });
+    d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     $('shared').hidden = false;
   }
   $('s-play').addEventListener('click', () => {
@@ -1068,6 +1076,16 @@
       },
     };
   }
+
+  // 言語の切り替え
+  {
+    const lb = $('lang-toggle'), other = E.LANG === 'ja' ? 'en' : 'ja';
+    lb.textContent = other === 'en' ? 'English' : '日本語';
+    lb.setAttribute('lang', other);
+    lb.addEventListener('click', () => E.setLang(other));
+  }
+  E.applyStatic();
+  if (E.LANG === 'en') document.title = T('地球の24時間');
 
   /* ---------- 起動 ---------- */
   homeInit();

@@ -178,5 +178,5 @@
     snowball: '全球凍結。地球全体が氷に覆われる', 'paleo-bare': 'いくつもの大陸。陸はまだ岩だけ', 'paleo-green': '陸に植物が広がる',
     pangaea: '超大陸パンゲア', breakup: 'パンゲアが南北に分かれる', cenozoic: '今に近い大陸の形', 'antarctic-ice': '南極に氷床ができる', modern: '今の地球',
   };
-  E.globe = { N, draw, stageOf, label: (ya) => LABEL[stageOf(ya)] };
+  E.globe = { N, draw, stageOf, label: (ya) => E.tr(LABEL[stageOf(ya)]) };
 })();

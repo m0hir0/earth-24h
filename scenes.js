@@ -907,7 +907,8 @@
     ice: '氷河が広がる・海が冷え込む',
     oxygen: '酸素が増える・酸素は多くの微生物にとって毒',
   };
-  function sceneCaption(ya, opts = {}) {
+  const sceneCaption = (ya, opts) => E.tr(captionJa(ya, opts));
+  function captionJa(ya, opts = {}) {
     const { fx, habitat } = opts;
     if (fx && FX_CAPTION[fx]) return FX_CAPTION[fx];
     if (habitat === 'deep') return '深海の熱水噴出孔・酸素の届かない場所';

@@ -5,7 +5,6 @@
 
   const S = 4.6e9;                 // 地球の年齢（年）
   const DAY = 86400;               // 24時間（秒）
-  const JST = 9 * 3600;            // 日本時間（UTC+9、夏時間なし）
 
   // 現在を小数の年で（AIの出来事は月単位で効いてくる）
   const nowD = new Date();
@@ -18,21 +17,41 @@
   const trim = (s) => s.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
   const sig2 = (v) => (v >= 10 ? String(Math.round(v)) : trim(v.toFixed(1)));
 
+  const EN = E.LANG === 'en';
+  const enNum = (v) => (v >= 100 ? Math.round(v) : v >= 10 ? trim(v.toFixed(1)) : trim(v.toFixed(2)));
   function fmtYears(y) {
+    if (EN) {
+      if (y >= 1e9) return `${enNum(y / 1e9)} billion`;
+      if (y >= 1e6) return `${enNum(y / 1e6)} million`;
+      if (y >= 10) return Math.round(y).toLocaleString('en-US');
+      return trim(y.toFixed(1));
+    }
     if (y >= 1e8) { const v = y / 1e8; return `${v >= 10 ? Math.round(v) : trim(v.toFixed(v >= 1 ? 2 : 1))}億`; }
     if (y >= 1e4) { const v = y / 1e4; return `${v >= 10 ? Math.round(v) : trim(v.toFixed(1))}万`; }
     if (y >= 10) return Math.round(y).toLocaleString('ja-JP');
     return trim(y.toFixed(1));
   }
   function fmtAgo(ya) {
-    if (ya <= 0.05) return '現在';
+    if (ya <= 0.05) return EN ? 'now' : '現在';
     if (ya < 5100) {
       const yr = Math.floor(NOW - ya);
+      if (EN) return yr > 0 ? (yr >= 1000 ? `${yr}` : `AD ${yr}`) : `${-yr} BC`;
       return yr > 0 ? `西暦${yr}年` : `紀元前${-yr}年`;
     }
-    return `${fmtYears(ya)}年前`;
+    return EN ? `${fmtYears(ya)} years ago` : `${fmtYears(ya)}年前`;
   }
+  // 期間（〜年）
+  const fmtSpan = (y) => (EN ? `${fmtYears(y)} years` : `${fmtYears(y)}年`);
   function fmtSec(s) {
+    if (EN) {
+      if (s >= 3600) { const h = Math.floor(s / 3600), m = Math.floor((s - h * 3600) / 60); return m ? `${h} h ${m} min` : `${h} h`; }
+      if (s >= 60) { const m = Math.floor(s / 60), r = Math.floor(s - m * 60); return r ? `${m} min ${r} s` : `${m} min`; }
+      if (s >= 1) return `${trim(s.toFixed(1))} s`;
+      if (s >= 0.1) return `${trim(s.toFixed(2))} s`;
+      if (s >= 1e-3) return `${sig2(s * 1e3)} ms`;
+      if (s >= 1e-6) return `${sig2(s * 1e6)} µs`;
+      return `${sig2(s * 1e9)} ns`;
+    }
     if (s >= 3600) { const h = Math.floor(s / 3600), m = Math.floor((s - h * 3600) / 60); return m ? `${h}時間${m}分` : `${h}時間`; }
     if (s >= 60) { const m = Math.floor(s / 60), r = Math.floor(s - m * 60); return r ? `${m}分${r}秒` : `${m}分`; }
     if (s >= 1) return `${trim(s.toFixed(1))}秒`;
@@ -44,6 +63,7 @@
   function fmtCountdown(s) {
     s = Math.max(0, Math.ceil(s));
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    if (EN) return h ? `${h}h ${m}m` : m ? `${m}m ${r}s` : `${r}s`;
     return h ? `${h}時間${m}分` : m ? `${m}分${r}秒` : `${r}秒`;
   }
   // 地球時計の時刻（ya: 何年前）
@@ -65,22 +85,20 @@
   }
   function fmtOneIn(n) {
     if (n < 10) return trim(n.toFixed(1));
-    if (n < 1e4) return Math.round(n).toLocaleString('ja-JP');
+    if (n < 1e4 || (EN && n < 1e6)) return Math.round(n).toLocaleString(EN ? 'en-US' : 'ja-JP');
     return fmtYears(n);
   }
   function fmtProb(p) {
     const pct = p * 100;
     const s = pct >= 1 ? trim(pct.toFixed(1)) : pct.toPrecision(2);
-    return `${s}%（約${fmtOneIn(1 / p)}分の1）`;
+    return EN ? `${s}% (about 1 in ${fmtOneIn(1 / p)})` : `${s}%（約${fmtOneIn(1 / p)}分の1）`;
   }
   const fracOf = (ya) => 1 - ya / S;
   const clockSecOf = (ya) => (1 - ya / S) * DAY;
 
-  // 日本時間の「今日の何秒目」
-  function jstSec(ms = Date.now()) {
-    return (((ms / 1000 + JST) % DAY) + DAY) % DAY;
-  }
-  const yaOfJst = (sec) => Math.max(0, (1 - sec / DAY) * S);
+  // 時計の「今日の何秒目」
+  // 時計の秒（今日の何秒目）→ 何年前。時計は開いた端末の現地時間（E.clockSec）
+  const yaOfSec = (sec) => Math.max(0, (1 - sec / DAY) * S);
 
   /* ---------------- 時代（ダイヤルの色・ガチャの時代） ---------------- */
   const ERAS = [
@@ -123,7 +141,7 @@
     [0.0117, 0, '新生代', '第四紀・完新世'],
   ].map(([a, b, era, name]) => ({ from: a * 1e6, to: b * 1e6, era, name }));
   const periodOf = (ya) => PERIODS.find((p) => ya <= p.from && ya > p.to) || PERIODS[PERIODS.length - 1];
-  const periodLabel = (ya) => { const p = periodOf(ya); return p.name ? `${p.era}・${p.name}` : p.era; };
+  const periodLabel = (ya) => { const p = periodOf(ya); return p.name ? `${p.era}${EN ? ' · ' : '・'}${p.name}` : p.era; };
 
   /* ---------------- 出来事 ----------------
      [何年前, 名前, 補足, 種類]
@@ -300,7 +318,7 @@
     [ago(2025.4), 'AIエージェント', '考えて、道具を使い、仕事を進めるAIが広がる', 'ai'],
     [0, '現在', 'あなたが、今いるところ', 'ai'],
   ];
-  const EVENTS = EV.map(([ya, name, note, kind]) => ({ ya, name, note, kind }))
+  const EVENTS = EV.map(([ya, name, note, kind]) => ({ ya, name, note, kind, key: name }))   // key：訳しても変わらない名前
     .filter((e) => e.ya <= S)
     .sort((a, b) => b.ya - a.ya);
 
@@ -346,9 +364,9 @@
   ];
 
   Object.assign(E, {
-    S, DAY, JST, NOW, NOW_YEAR, ago,
+    S, DAY, NOW, NOW_YEAR, ago,
     trim, fmtYears, fmtAgo, fmtSec, fmtCountdown, fmtClock, clockDecFor, fmtOneIn, fmtProb,
-    fracOf, clockSecOf, jstSec, yaOfJst,
+    fracOf, clockSecOf, yaOfSec, fmtSpan,
     ERAS, eraOf, PERIODS, periodOf, periodLabel, EVENTS, status, AI_STORY,
   });
 })();

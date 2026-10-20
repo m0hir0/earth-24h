@@ -73,6 +73,10 @@
     font: inherit; font-size: 12.5px; cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden;
   }
   .livebar:hover { border-color: var(--accent); }
+  .liverow { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+  .liverow .livebar { margin-top: 0; flex: 1; min-width: 0; }
+  .langbtn { flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .langbtn:hover { border-color: var(--accent); color: var(--accent); }
   .livebar .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; animation: blink 2s ease-in-out infinite; }
   .livebar b { color: var(--text); font-variant-numeric: tabular-nums; }
   .livebar .ago { color: var(--accent); font-weight: 800; }
@@ -80,6 +84,9 @@
   @keyframes blink { 50% { opacity: .3; } }
   .tabs .brand { font-weight: 900; font-size: 15px; margin-right: auto; align-self: center; letter-spacing: .02em; white-space: nowrap; }
   @media (max-width: 420px) { .tabs .brand { font-size: 13px; } .tab { font-size: 12.5px; padding: 6px 8px; } }
+  html[lang="en"] .eqs { font-size: 0; }
+  html[lang="en"] .eqs::after { content: "="; font-size: 12.5px; }
+  @media (max-width: 480px) { html[lang="en"] .tabs .brand { display: none; } html[lang="en"] .tabs { justify-content: space-between; } }
   .tab {
     border: none; background: none; color: var(--text-2); font: inherit; font-size: 13.5px; font-weight: 700;
     padding: 6px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
@@ -404,24 +411,27 @@
 <body>
 <div class="app">
   <header class="topbar">
-    <nav class="tabs" role="tablist" aria-label="画面">
-      <span class="brand">地球の24時間</span>
-      <button class="tab" role="tab" data-tab="evo" aria-selected="true">生まれる</button>
-      <button class="tab" role="tab" data-tab="home" aria-selected="false">いまの地球</button>
-      <button class="tab" role="tab" data-tab="now" aria-selected="false">今を拡大</button>
+    <nav class="tabs" role="tablist" aria-label="画面" data-i18n-label="画面">
+      <span class="brand" data-i18n>地球の24時間</span>
+      <button class="tab" role="tab" data-tab="evo" aria-selected="true" data-i18n>生まれる</button>
+      <button class="tab" role="tab" data-tab="home" aria-selected="false" data-i18n>いまの地球</button>
+      <button class="tab" role="tab" data-tab="now" aria-selected="false" data-i18n>今を拡大</button>
     </nav>
-    <button class="livebar" id="live" aria-label="いまの地球を見る">
+    <div class="liverow">
+    <button class="livebar" id="live" aria-label="いまの地球を見る" data-i18n-label="いまの地球を見る">
       <span class="dot" aria-hidden="true"></span>
-      <span>日本時間</span><b id="live-jst">--:--:--</b><span>＝</span><b class="ago" id="live-ago">—</b><span class="era" id="live-era"></span>
+      <span data-tz>日本時間</span><b id="live-jst">--:--:--</b><span class="eqs">＝</span><b class="ago" id="live-ago">—</b><span class="era" id="live-era"></span>
     </button>
+    <button class="langbtn" id="lang-toggle" lang="en">English</button>
+    </div>
   </header>
 
   <!-- ================= いまの地球（日本時間と同期） ================= -->
   <section id="screen-home" hidden>
     <div class="jst">
-      <span class="lbl">日本時間の0:00に地球が生まれ、24:00が今。</span>
+      <span class="lbl" data-i18n="lbl.clock"><span data-tz>日本時間</span>の0:00に地球が生まれ、24:00が今。</span>
       <span class="big num" id="h-jst">--:--:--</span>
-      <span class="eq">＝</span>
+      <span class="eq eqs">＝</span>
       <span class="ago num" id="h-ago">—</span>
     </div>
     <span class="chip" id="h-period">—</span>
@@ -449,33 +459,33 @@
         </div>
       </div>
       <div class="card" style="margin:0">
-        <h3>このときの地球</h3>
+        <h3 data-i18n>このときの地球</h3>
         <div class="bars">
-          <div class="bar"><div class="row"><span>大気中の酸素</span><b id="h-o2"></b></div><div class="track"><div class="fill" id="h-o2-f"></div></div><div class="note">今は21%</div></div>
-          <div class="bar"><div class="row"><span>1日の長さ</span><b id="h-day"></b></div><div class="track"><div class="fill" id="h-day-f"></div></div><div class="note">月の引力で、地球の自転は少しずつ遅くなってきた（目安）</div></div>
-          <div class="bar"><div class="row"><span>太陽の明るさ</span><b id="h-sun"></b></div><div class="track"><div class="fill" id="h-sun-f"></div></div><div class="note">今を100とした値</div></div>
+          <div class="bar"><div class="row"><span data-i18n>大気中の酸素</span><b id="h-o2"></b></div><div class="track"><div class="fill" id="h-o2-f"></div></div><div class="note" data-i18n>今は21%</div></div>
+          <div class="bar"><div class="row"><span data-i18n>1日の長さ</span><b id="h-day"></b></div><div class="track"><div class="fill" id="h-day-f"></div></div><div class="note" data-i18n>月の引力で、地球の自転は少しずつ遅くなってきた（目安）</div></div>
+          <div class="bar"><div class="row"><span data-i18n>太陽の明るさ</span><b id="h-sun"></b></div><div class="track"><div class="fill" id="h-sun-f"></div></div><div class="note" data-i18n>今を100とした値</div></div>
         </div>
-        <p class="small muted" style="margin:10px 0 0">この時計の1秒は、約5.3万年。</p>
+        <p class="small muted" style="margin:10px 0 0" data-i18n>この時計の1秒は、約5.3万年。</p>
       </div>
     </div>
 
     <p class="human-cd num" id="h-human"></p>
 
     <div class="card">
-      <h3>これから起きること</h3>
+      <h3 data-i18n>これから起きること</h3>
       <ol class="next-list" id="h-next"></ol>
     </div>
 
     <details class="log">
-      <summary>今日これまでに起きたこと（<span id="h-log-n">0</span>）</summary>
+      <summary><span data-i18n>今日これまでに起きたこと</span>（<span id="h-log-n">0</span>）</summary>
       <ol id="h-log"></ol>
     </details>
   </section>
 
   <!-- ================= 今を拡大 ================= -->
   <section id="screen-now" hidden>
-    <h2 style="margin:0 0 6px">24:00の直前を拡大する</h2>
-    <p class="lead">23:57からの最後の3分間を、時間をゆるめながら再生します。人類の歴史は最後の5.6秒。最後の区間は、AIが台頭したこの十数年です。</p>
+    <h2 style="margin:0 0 6px" data-i18n>24:00の直前を拡大する</h2>
+    <p class="lead" data-i18n>23:57からの最後の3分間を、時間をゆるめながら再生します。人類の歴史は最後の5.6秒。最後の区間は、AIが台頭したこの十数年です。</p>
     <div class="z-top">
       <span class="chip" id="z-chip"></span>
       <span class="z-rate num" id="z-rate"></span>
@@ -493,7 +503,7 @@
       <div class="banner" id="z-banner"></div>
     </div>
     <div class="seek">
-      <input type="range" id="z-seek" min="0" max="1000" step="1" value="0" aria-label="再生位置（ドラッグで進める・戻す）">
+      <input type="range" id="z-seek" min="0" max="1000" step="1" value="0" aria-label="再生位置（ドラッグで進める・戻す）" data-i18n-label="再生位置（ドラッグで進める・戻す）">
       <div class="seek-labels" id="z-seek-labels" aria-hidden="true"></div>
     </div>
     <div class="evt-card" id="z-evt" aria-live="polite">
@@ -502,19 +512,19 @@
       <div class="s" id="z-evt-s"></div>
     </div>
     <div class="card z-end" id="z-end" hidden>
-      <div class="big num">24:00 — 今</div>
+      <div class="big num" data-i18n>24:00 — 今</div>
       <p id="z-end-t"></p>
-      <button class="btn btn-primary" id="z-again">もう一度再生する</button>
+      <button class="btn btn-primary" id="z-again" data-i18n>もう一度再生する</button>
     </div>
     <div class="z-controls">
-      <button class="btn" id="z-play">⏸ 一時停止</button>
+      <button class="btn" id="z-play" data-i18n>⏸ 一時停止</button>
       <button class="btn on" data-zspeed="1">×1</button>
       <button class="btn" data-zspeed="4">×4</button>
       <button class="btn" data-zspeed="16">×16</button>
-      <button class="btn" id="z-restart">最初から</button>
+      <button class="btn" id="z-restart" data-i18n>最初から</button>
     </div>
     <details class="card" id="n-ai">
-      <summary>AIの歩みを一覧で読む</summary>
+      <summary data-i18n>AIの歩みを一覧で読む</summary>
       <div class="ai-head" id="n-ai-head" style="margin-top:12px"></div>
       <ol class="ai-list" id="n-ai-list"></ol>
     </details>
@@ -523,25 +533,25 @@
   <!-- ================= 進化ガチャ：誕生 ================= -->
   <section id="screen-birth">
     <div class="card shared" id="shared" hidden>
-      <div class="kick">シェアされた進化の記録</div>
+      <div class="kick" data-i18n>シェアされた進化の記録</div>
       <canvas class="scene" id="s-scene" aria-hidden="true"></canvas>
       <div class="ttl" id="s-ttl"></div>
       <p class="end-desc" id="s-ending"></p>
       <p id="s-text"></p>
       <ol id="s-path"></ol>
-      <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="s-play">あなたも生まれてみる</button></div>
+      <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="s-play" data-i18n>あなたも生まれてみる</button></div>
     </div>
     <div class="hero">
-      <div class="kicker">進化ガチャ</div>
-      <h1>46億年のどこかに、<br>生まれる。</h1>
-      <p>どの時代に、何として生まれるかは選べません。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
+      <div class="kicker" data-i18n>進化ガチャ</div>
+      <h1 data-i18n="hero.h1">46億年のどこかに、<br>生まれる。</h1>
+      <p data-i18n>どの時代に、何として生まれるかは選べません。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
     </div>
     <canvas class="scene" id="b-scene" aria-hidden="true"></canvas>
     <p class="scene-cap" id="b-cap"></p>
     <div class="birth-actions">
-      <button class="btn btn-primary" id="b-spin">生まれる</button>
-      <button class="btn" id="b-now">いまの地球時計の時代に生まれる</button>
-      <div class="sub">生まれる時代は46億年のうちから均等に選ばれます。地球に現れた種の99%以上は、すでに絶滅しています。</div>
+      <button class="btn btn-primary" id="b-spin" data-i18n>生まれる</button>
+      <button class="btn" id="b-now" data-i18n>いまの地球時計の時代に生まれる</button>
+      <div class="sub" data-i18n>生まれる時代は46億年のうちから均等に選ばれます。地球に現れた種の99%以上は、すでに絶滅しています。</div>
     </div>
     <div class="dial-wrap">
       <svg id="b-dial" aria-hidden="true"></svg>
@@ -553,39 +563,39 @@
     </div>
 
     <div class="card none-box" id="b-none" hidden>
-      <div class="big">生まれることができませんでした</div>
+      <div class="big" data-i18n>生まれることができませんでした</div>
       <p class="muted" id="b-none-t"></p>
     </div>
 
     <div id="b-cert-wrap" hidden>
       <div class="cert">
-        <div class="cert-head"><span>誕生の記録</span><span class="num" id="b-no"></span></div>
+        <div class="cert-head"><span data-i18n>誕生の記録</span><span class="num" id="b-no"></span></div>
         <div class="cert-body">
           <div class="line" id="b-line1"></div>
           <div class="who" id="b-who"></div>
           <div class="line" id="b-line2"></div>
           <dl>
-            <div><dt>体のつくり</dt><dd id="b-plan"></dd></div>
-            <div><dt>暮らす場所</dt><dd id="b-hab"></dd></div>
-            <div><dt>この時代を引く確率</dt><dd id="b-prob" class="num"></dd></div>
-            <div><dt>今日まで</dt><dd id="b-left" class="num"></dd></div>
+            <div><dt data-i18n>体のつくり</dt><dd id="b-plan"></dd></div>
+            <div><dt data-i18n>暮らす場所</dt><dd id="b-hab"></dd></div>
+            <div><dt data-i18n>この時代を引く確率</dt><dd id="b-prob" class="num"></dd></div>
+            <div><dt data-i18n>今日まで</dt><dd id="b-left" class="num"></dd></div>
           </dl>
           <div class="traits" id="b-traits"></div>
           <div class="start-box">
-            <button class="btn btn-primary" id="b-start">この生き物で進化を始める</button>
-            <p>×1でおよそ10分。分かれ道や大量絶滅では時間が止まり、あなたの番を待ちます。始めてから×4・×16や「次の分かれ道へ」で速められます。</p>
+            <button class="btn btn-primary" id="b-start" data-i18n>この生き物で進化を始める</button>
+            <p data-i18n>×1でおよそ10分。分かれ道や大量絶滅では時間が止まり、あなたの番を待ちます。始めてから×4・×16や「次の分かれ道へ」で速められます。</p>
           </div>
         </div>
       </div>
       <div class="card">
-        <h3>同じ瞬間に生まれた4つの系統</h3>
+        <h3 data-i18n>同じ瞬間に生まれた4つの系統</h3>
         <ul class="rivals" id="b-rivals"></ul>
       </div>
     </div>
     <div class="card" id="hist">
-      <h3>結末の図鑑 <span class="num muted" id="zukan-n"></span></h3>
+      <h3><span data-i18n>結末の図鑑</span> <span class="num muted" id="zukan-n"></span></h3>
       <div class="zukan" id="zukan"></div>
-      <h3 style="margin-top:16px">あなたが生きた系統</h3>
+      <h3 style="margin-top:16px" data-i18n>あなたが生きた系統</h3>
       <p class="hist-sum num" id="hist-sum"></p>
       <div class="hist-detail" id="hist-detail" hidden>
         <canvas class="scene" id="hd-scene" aria-hidden="true"></canvas>
@@ -594,15 +604,15 @@
         <p id="hd-text"></p>
         <ol id="hd-path"></ol>
         <div class="share-row">
-          <a class="btn btn-primary" id="hd-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">Xでシェア</a>
-          <button class="btn" id="hd-copy">リンクをコピー</button>
-          <button class="btn" id="hd-close">閉じる</button>
+          <a class="btn btn-primary" id="hd-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener" data-i18n>Xでシェア</a>
+          <button class="btn" id="hd-copy" data-i18n>リンクをコピー</button>
+          <button class="btn" id="hd-close" data-i18n>閉じる</button>
         </div>
         <p class="copy-ok" id="hd-copy-ok" aria-live="polite"></p>
       </div>
-      <p class="muted small" id="hist-empty">まだ記録はありません。生まれて結末を迎えると、ここと図鑑に残ります。記録はこの端末のブラウザにだけ保存されます。</p>
+      <p class="muted small" id="hist-empty" data-i18n>まだ記録はありません。生まれて結末を迎えると、ここと図鑑に残ります。記録はこの端末のブラウザにだけ保存されます。</p>
       <ul class="hist-list" id="hist-list"></ul>
-      <div class="hist-foot"><button class="btn-link" id="hist-clear" hidden>記録をすべて消す</button></div>
+      <div class="hist-foot"><button class="btn-link" id="hist-clear" hidden data-i18n>記録をすべて消す</button></div>
     </div>
   </section>
 
@@ -620,52 +630,52 @@
     <p class="scene-cap" id="p-cap"></p>
 
     <div class="choice" id="p-choice" hidden aria-live="polite">
-      <div class="kick">分かれ道</div>
+      <div class="kick" data-i18n>分かれ道</div>
       <div class="q" id="p-q"></div>
       <p class="ctx" id="p-ctx"></p>
       <div class="opts" id="p-opts"></div>
     </div>
 
     <div class="event" id="p-event" hidden aria-live="polite">
-      <div class="kick">淘汰</div>
+      <div class="kick" data-i18n>淘汰</div>
       <div class="ttl" id="p-ev-t"></div>
       <p class="fact" id="p-ev-f"></p>
       <div class="you" id="p-ev-you"></div>
       <p class="real" id="p-ev-real" hidden></p>
       <ul class="rivals" id="p-ev-rivals"></ul>
-      <div style="display:flex;justify-content:center;margin-top:10px"><button class="btn btn-primary" id="p-ev-ok">先へ進む</button></div>
+      <div style="display:flex;justify-content:center;margin-top:10px"><button class="btn btn-primary" id="p-ev-ok" data-i18n>先へ進む</button></div>
     </div>
 
     <div class="controls" id="p-controls">
-      <button class="btn" id="p-pause">⏸ 一時停止</button>
+      <button class="btn" id="p-pause" data-i18n>⏸ 一時停止</button>
       <button class="btn on" data-speed="1">×1</button>
       <button class="btn" data-speed="4">×4</button>
       <button class="btn" data-speed="16">×16</button>
-      <button class="btn" id="p-next">次の分かれ道へ »</button>
+      <button class="btn" id="p-next" data-i18n>次の分かれ道へ »</button>
     </div>
 
     <div class="card">
       <div class="lin-head">
         <div><div class="nm" id="p-name"></div><div class="sub" id="p-sub"></div></div>
-        <div class="species"><b id="p-n">5</b><span>種の数</span></div>
+        <div class="species"><b id="p-n">5</b><span data-i18n>種の数</span></div>
       </div>
       <div class="risk">
         <div class="track"><div class="pin" id="p-risk"></div></div>
-        <div class="row"><span>増えている</span><span>絶滅の危険</span></div>
+        <div class="row"><span data-i18n>増えている</span><span data-i18n>絶滅の危険</span></div>
       </div>
       <div class="traits" id="p-traits"></div>
     </div>
 
     <div class="card">
-      <h3>同じ瞬間に生まれた4つの系統</h3>
+      <h3 data-i18n>同じ瞬間に生まれた4つの系統</h3>
       <ul class="rivals" id="p-rivals"></ul>
     </div>
 
     <div class="card">
-      <h3>系統の記録</h3>
+      <h3 data-i18n>系統の記録</h3>
       <ol class="plog" id="p-log"></ol>
     </div>
-    <div style="display:flex;justify-content:center"><button class="btn" id="p-quit">やめてガチャに戻る</button></div>
+    <div style="display:flex;justify-content:center"><button class="btn" id="p-quit" data-i18n>やめてガチャに戻る</button></div>
   </section>
 
   <!-- ================= 進化ガチャ：結末 ================= -->
@@ -673,41 +683,43 @@
     <div class="res-hero">
       <div class="kick" id="r-kick"></div>
       <div class="big" id="r-big"></div>
-      <div class="ending-badge"><span id="r-ending"></span><span class="new" id="r-new" hidden>はじめての結末！</span></div>
+      <div class="ending-badge"><span id="r-ending"></span><span class="new" id="r-new" hidden data-i18n>はじめての結末！</span></div>
       <p id="r-lead"></p>
     </div>
     <canvas class="scene" id="r-scene" aria-hidden="true"></canvas>
     <p class="scene-cap" id="r-cap"></p>
-    <div class="card"><h3>記録</h3><ul class="stats" id="r-stats"></ul></div>
-    <div class="card"><h3>あなたが選んだ道</h3><ol class="path" id="r-path"></ol></div>
-    <div class="card"><h3>同じ瞬間に生まれた4つの系統の結末</h3><ul class="rivals" id="r-rivals"></ul></div>
-    <p class="fact-big">地球に現れた種の99%以上は、すでに絶滅しています。</p>
+    <div class="card"><h3 data-i18n>記録</h3><ul class="stats" id="r-stats"></ul></div>
+    <div class="card"><h3 data-i18n>あなたが選んだ道</h3><ol class="path" id="r-path"></ol></div>
+    <div class="card"><h3 data-i18n>同じ瞬間に生まれた4つの系統の結末</h3><ul class="rivals" id="r-rivals"></ul></div>
+    <p class="fact-big" data-i18n>地球に現れた種の99%以上は、すでに絶滅しています。</p>
     <div class="share-row">
-      <a class="btn btn-primary" id="r-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">Xでシェア</a>
-      <button class="btn" id="r-share" hidden>共有…</button>
-      <button class="btn" id="r-copy">リンクをコピー</button>
-      <button class="btn" id="r-save">画像を保存</button>
+      <a class="btn btn-primary" id="r-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener" data-i18n>Xでシェア</a>
+      <button class="btn" id="r-share" hidden data-i18n>共有…</button>
+      <button class="btn" id="r-copy" data-i18n>リンクをコピー</button>
+      <button class="btn" id="r-save" data-i18n>画像を保存</button>
     </div>
     <p class="copy-ok" id="r-copy-ok" aria-live="polite"></p>
-    <div class="preview"><img id="r-img" alt="シェア用カード"><p class="save-hint" id="r-hint" hidden>画像は長押し（PCでは右クリック）で保存できます。</p></div>
+    <div class="preview"><img id="r-img" alt="シェア用カード"><p class="save-hint" id="r-hint" hidden data-i18n>画像は長押し（PCでは右クリック）で保存できます。</p></div>
     <div class="share-row">
-      <button class="btn btn-primary" id="r-again">もう一度生まれる</button>
-      <button class="btn" id="r-hist">これまでの記録</button>
-      <button class="btn" id="r-home">いまの地球へ</button>
+      <button class="btn btn-primary" id="r-again" data-i18n>もう一度生まれる</button>
+      <button class="btn" id="r-hist" data-i18n>これまでの記録</button>
+      <button class="btn" id="r-home" data-i18n>いまの地球へ</button>
     </div>
   </section>
 
   <footer class="src">
-    地球の年齢は46億年として計算しています。年代は国際年代層序表や研究で使われる代表的な推定値で、幅や諸説があります。
-    酸素・1日の長さ・太陽の明るさは目安です。進化ガチャの淘汰は、実際の大量絶滅を手がかりにした、ゲームとしての単純化です。
-    <br><a href="v1/">前の版（46億年を1〜10分で流すタイプ）</a>
+    <span data-i18n="footer.note">地球の年齢は46億年として計算しています。年代は国際年代層序表や研究で使われる代表的な推定値で、幅や諸説があります。
+    酸素・1日の長さ・太陽の明るさは目安です。進化ガチャの淘汰は、実際の大量絶滅を手がかりにした、ゲームとしての単純化です。</span>
+    <br><a href="v1/" data-i18n>前の版（46億年を1〜10分で流すタイプ）</a>
   </footer>
 </div>
 
+<script src="i18n.js"></script>
 <script src="data.js"></script>
 <script src="scenes.js"></script>
 <script src="globe.js"></script>
 <script src="evo.js"></script>
+<script src="lang-en.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
