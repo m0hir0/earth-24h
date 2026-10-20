@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>地球の24時間</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="日本時間の0:00に地球が生まれ、24:00が今。46億年を、今日の1日として流す。">
+<meta property="og:title" content="地球の24時間">
+<meta property="og:description" content="日本時間の0:00に地球が生まれ、24:00が今。46億年を、今日の1日として流す。進化ガチャで、あなたの系統は今日まで生き残れるか。">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+  /* レイアウト：1カラムの縦スクロール。上に切り替えタブ、各画面はドット絵の風景から始まる */
+  :root {
+    color-scheme: light;
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface-2: #eeece6;
+    --text: #151513;
+    --text-2: #55534d;
+    --muted: #8a877e;
+    --line: #e1dfd7;
+    --accent: #df5f2b;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(223, 95, 43, 0.12);
+    --good: #2f8a5a;
+    --bad: #c8402f;
+    --dial-gap: #ffffff;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d0e11; --surface: #16171b; --surface-2: #1f2126; --text: #f3f2ee; --text-2: #c2c0b8; --muted: #8a877f;
+      --line: #2a2c32; --accent: #f0773f; --accent-ink: #141413; --accent-soft: rgba(240, 119, 63, 0.16);
+      --good: #4fbf85; --bad: #ef6b5a; --dial-gap: #16171b; --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d0e11; --surface: #16171b; --surface-2: #1f2126; --text: #f3f2ee; --text-2: #c2c0b8; --muted: #8a877f;
+    --line: #2a2c32; --accent: #f0773f; --accent-ink: #141413; --accent-soft: rgba(240, 119, 63, 0.16);
+    --good: #4fbf85; --bad: #ef6b5a; --dial-gap: #16171b; --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  [hidden] { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+  .app {
+    max-width: 760px; margin: 0 auto; padding-block: 0 56px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  h1, h2, h3 { text-wrap: balance; }
+
+  /* タブ */
+  .tabs {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+    display: flex; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); margin-bottom: 14px;
+  }
+  .tabs .brand { font-weight: 900; font-size: 15px; margin-right: auto; align-self: center; letter-spacing: .02em; white-space: nowrap; }
+  @media (max-width: 420px) { .tabs .brand { font-size: 13px; } .tab { font-size: 12.5px; padding: 6px 8px; } }
+  .tab {
+    border: none; background: none; color: var(--text-2); font: inherit; font-size: 13.5px; font-weight: 700;
+    padding: 6px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  }
+  .tab[aria-selected="true"] { background: var(--text); color: var(--bg); }
+  .tab:focus-visible, .btn:focus-visible, .opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text-2);
+    border-radius: 999px; padding: 9px 16px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-size: 16px; padding: 13px 26px; }
+  .btn-primary:hover { color: var(--accent-ink); filter: brightness(1.06); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  .card h3 { font-size: 15px; margin: 0 0 10px; }
+  .chip { display: inline-block; font-size: 12.5px; font-weight: 800; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 3px 11px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12.5px; }
+
+  .scene {
+    display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 3 / 1;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+    border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2);
+  }
+  .scene-cap { font-size: 12.5px; color: var(--text-2); margin: 6px 2px 12px; min-height: 1.6em; }
+
+  /* ダイヤル */
+  .dial-wrap { position: relative; width: min(100%, 300px); max-width: 100%; aspect-ratio: 1; margin: 0 auto; }
+  .dial-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .dial-center { position: absolute; inset: 24%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+  .dial-center .era { font-size: 12px; color: var(--text-2); font-weight: 700; line-height: 1.3; }
+  .dial-center .clock { font-weight: 800; font-size: clamp(24px, 7vw, 34px); line-height: 1.15; }
+  .dial-center .clock.long { font-size: clamp(15px, 4.4vw, 21px); }
+  .dial-center .ago { font-size: 13px; color: var(--text-2); font-weight: 600; }
+  .hour-label { fill: var(--muted); font-size: 12px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+  .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .tick.major { stroke: var(--text-2); stroke-width: 2.2; }
+  .era-seg { stroke: var(--dial-gap); stroke-width: 1.5; }
+  .hand line { stroke: var(--text); stroke-width: 3; stroke-linecap: round; }
+  .hand circle { fill: var(--accent); stroke: var(--dial-gap); stroke-width: 2.5; }
+
+  /* ---------- いまの地球 ---------- */
+  .jst { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 2px 0 8px; }
+  .jst .big { font-size: clamp(30px, 9vw, 44px); font-weight: 900; line-height: 1.1; }
+  .jst .eq { color: var(--muted); font-weight: 700; }
+  .jst .ago { font-size: clamp(20px, 6vw, 28px); font-weight: 800; color: var(--accent); }
+  .jst .lbl { width: 100%; font-size: 12.5px; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+  .home-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+  @media (min-width: 620px) { .home-grid { grid-template-columns: 300px 1fr; align-items: center; } }
+  .bars { display: grid; gap: 10px; }
+  .bar .row { display: flex; justify-content: space-between; font-size: 13px; }
+  .bar .row b { font-variant-numeric: tabular-nums; }
+  .bar .track { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 4px; }
+  .bar .fill { height: 100%; border-radius: 3px; background: var(--accent); }
+  .bar .note { font-size: 11.5px; color: var(--muted); }
+  .evt-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 12px; }
+  .evt-card .t { font-size: 12.5px; font-weight: 800; color: var(--accent); }
+  .evt-card .n { font-size: 19px; font-weight: 800; line-height: 1.35; }
+  .evt-card .s { font-size: 13px; color: var(--text-2); }
+  .evt-card.pop { animation: pop .6s ease; }
+  @keyframes pop { 0% { background: var(--accent-soft); transform: scale(.98); } 100% { transform: scale(1); } }
+  .next-list { list-style: none; margin: 0; padding: 0; }
+  .next-list li { display: grid; grid-template-columns: 72px 1fr auto; gap: 8px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .next-list li:first-child { border-top: none; }
+  .next-list .tt { color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .next-list .cd { color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .next-list .nm { min-width: 0; }
+  .next-list .nm small { display: block; color: var(--muted); font-size: 11.5px; }
+  .kind-ai .nm { color: var(--accent); font-weight: 700; }
+  .human-cd { text-align: center; margin: 4px 0 14px; font-size: 14px; color: var(--text-2); }
+  .human-cd b { color: var(--text); }
+  details.log { font-size: 13px; color: var(--text-2); }
+  details.log summary { cursor: pointer; font-weight: 700; padding: 6px 2px; }
+  details.log ol { list-style: none; margin: 4px 0 0; padding: 0; max-height: 300px; overflow: auto; }
+  details.log li { padding: 5px 2px; border-top: 1px solid var(--line); }
+  details.log li .tt { color: var(--accent); font-weight: 700; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  body.final .jst .big { color: var(--accent); }
+
+  /* ---------- 今を拡大 ---------- */
+  .lead { color: var(--text-2); font-size: 14.5px; margin: 0 0 12px; }
+  .zoom-level { margin-bottom: 12px; }
+  .zoom-level .range { font-size: 12.5px; color: var(--muted); margin: -6px 0 8px; }
+  .zoom-level svg { display: block; width: 100%; height: auto; margin-bottom: 6px; }
+  .z-axis { stroke: var(--line); stroke-width: 4; stroke-linecap: round; }
+  .z-dot { fill: var(--accent); }
+  .z-dot.ai { fill: #7a5ae0; }
+  .z-end { fill: var(--muted); font-size: 11px; }
+  .z-list { list-style: none; margin: 0; padding: 0; }
+  .z-list li { display: grid; grid-template-columns: 88px 1fr; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .z-list .yr { color: var(--text-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .z-list .nm small { display: block; color: var(--muted); font-size: 11.5px; }
+  .ai-head { display: grid; gap: 6px; margin-bottom: 12px; }
+  .ai-stat { background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+  .ai-stat b { color: var(--accent); }
+  .ai-list { list-style: none; margin: 0; padding: 0; position: relative; }
+  .ai-list li { position: relative; padding: 0 0 14px 22px; }
+  .ai-list li::before { content: ""; position: absolute; left: 5px; top: 8px; bottom: -6px; width: 2px; background: var(--line); }
+  .ai-list li:last-child::before { display: none; }
+  .ai-list li::after { content: ""; position: absolute; left: 0; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2px solid #7a5ae0; }
+  .ai-list li.now::after { background: var(--accent); border-color: var(--accent); }
+  .ai-list .yr { font-weight: 900; font-size: 15px; }
+  .ai-list .ttl { font-weight: 800; }
+  .ai-list .dsc { font-size: 13.5px; color: var(--text-2); }
+  .ai-list .clk { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ---------- 進化ガチャ ---------- */
+  .gacha-actions { display: flex; justify-content: center; margin: 12px 0; }
+  .cert { border: 1.5px solid var(--text); border-radius: 14px; overflow: hidden; background: var(--surface); margin-bottom: 12px; }
+  .cert-head { display: flex; justify-content: space-between; align-items: center; background: var(--text); color: var(--bg); padding: 8px 14px; font-weight: 800; font-size: 13px; }
+  .cert-body { padding: 14px; }
+  .cert .who { font-size: 24px; font-weight: 900; line-height: 1.3; margin: 2px 0 6px; }
+  .cert .line { font-size: 14px; color: var(--text-2); }
+  .cert dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin: 12px 0 0; }
+  .cert dt { font-size: 11.5px; color: var(--muted); }
+  .cert dd { margin: 0; font-size: 14px; font-weight: 700; }
+  .traits { display: grid; gap: 6px; margin-top: 12px; }
+  .trait { display: grid; grid-template-columns: 52px 1fr 28px; gap: 8px; align-items: center; font-size: 12.5px; }
+  .trait .track { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+  .trait .fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .4s ease; }
+  .trait b { text-align: right; font-variant-numeric: tabular-nums; }
+  .rivals { list-style: none; margin: 0; padding: 0; }
+  .rivals li { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .rivals li:first-child { border-top: none; }
+  .rivals .st { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rivals .dead { color: var(--bad); }
+  .rivals .live { color: var(--good); }
+  .rivals small { display: block; color: var(--muted); font-size: 11.5px; }
+  .lengths { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  .len { position: relative; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; background: var(--surface); }
+  .len input { position: absolute; opacity: 0; pointer-events: none; }
+  .len b { display: block; font-size: 16px; }
+  .len span { font-size: 11.5px; color: var(--text-2); }
+  .len:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .len:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .none-box { text-align: center; padding: 18px 10px; }
+  .none-box .big { font-size: 22px; font-weight: 900; }
+
+  /* プレイ */
+  .p-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
+  .p-clock { font-size: 22px; font-weight: 900; }
+  .p-ago { font-weight: 800; color: var(--accent); }
+  .p-rate { font-size: 12px; color: var(--muted); }
+  .controls { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 4px 0 12px; }
+  .controls .btn { padding: 8px 12px; }
+  .choice, .event {
+    border: 2px solid var(--accent); border-radius: 16px; padding: 14px; margin-bottom: 12px; background: var(--surface);
+    box-shadow: 0 8px 30px rgba(0,0,0,.08);
+  }
+  .choice .kick, .event .kick { font-size: 12px; font-weight: 800; color: var(--accent); letter-spacing: .04em; }
+  .choice .q { font-size: 18px; font-weight: 900; line-height: 1.4; margin: 4px 0 6px; }
+  .choice .ctx { font-size: 13.5px; color: var(--text-2); margin: 0 0 10px; }
+  .opts { display: grid; gap: 8px; }
+  .opt {
+    text-align: left; border: 1.5px solid var(--line); background: var(--bg); color: var(--text); border-radius: 12px;
+    padding: 10px 12px; cursor: pointer; font: inherit;
+  }
+  .opt:hover { border-color: var(--accent); }
+  .opt b { display: block; font-size: 15px; }
+  .opt span { display: block; font-size: 12.5px; color: var(--text-2); }
+  .event { border-color: var(--bad); }
+  .event .kick { color: var(--bad); }
+  .event .ttl { font-size: 18px; font-weight: 900; margin: 4px 0; }
+  .event .fact { font-size: 13.5px; color: var(--text-2); margin: 0 0 10px; }
+  .event .you { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+  .event .you.dead { color: var(--bad); }
+  .event .you.live { color: var(--good); }
+  .event .real { font-size: 13px; color: var(--text-2); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; margin: 0 0 10px; }
+  .lin-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .lin-head .nm { font-size: 18px; font-weight: 900; line-height: 1.3; }
+  .lin-head .sub { font-size: 12.5px; color: var(--text-2); }
+  .species { text-align: right; }
+  .species b { font-size: 28px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+  .species span { display: block; font-size: 11.5px; color: var(--muted); }
+  .risk { margin-top: 10px; }
+  .risk .track { height: 8px; border-radius: 4px; background: linear-gradient(90deg, var(--good), #e0b03a, var(--bad)); position: relative; }
+  .risk .pin { position: absolute; top: -3px; width: 4px; height: 14px; background: var(--text); border-radius: 2px; transform: translateX(-2px); transition: left .4s ease; }
+  .risk .row { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .plog { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow: auto; }
+  .plog li { padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .plog li:first-child { border-top: none; }
+  .plog .tt { color: var(--accent); font-weight: 700; font-size: 12px; display: block; font-variant-numeric: tabular-nums; }
+  .plog .dead { color: var(--bad); font-weight: 800; }
+
+  /* 結果 */
+  .res-hero { text-align: center; padding: 10px 0 14px; }
+  .res-hero .kick { font-size: 13px; font-weight: 800; color: var(--muted); letter-spacing: .06em; }
+  .res-hero .big { font-size: clamp(34px, 10vw, 52px); font-weight: 900; line-height: 1.15; }
+  .res-hero .big.dead { color: var(--bad); }
+  .res-hero .big.live { color: var(--good); }
+  .res-hero p { color: var(--text-2); margin: 8px auto 0; max-width: 560px; }
+  .stats { list-style: none; margin: 0; padding: 0; }
+  .stats li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .stats li:first-child { border-top: none; }
+  .stats .val { font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+  .path { margin: 0; padding-left: 20px; font-size: 14px; }
+  .path li { padding: 3px 0; }
+  .fact-big { text-align: center; font-size: 14px; color: var(--text-2); margin: 14px 0; }
+  .share-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0; }
+  .preview img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
+  .save-hint { font-size: 12px; color: var(--muted); text-align: center; margin: 6px 0 0; }
+  footer.src { font-size: 11.5px; color: var(--muted); line-height: 1.7; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 12px; }
+  footer.src a { color: var(--text-2); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .evt-card.pop { animation: none; }
+    .trait .fill, .risk .pin { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="tabs" role="tablist" aria-label="画面">
+    <span class="brand">地球の24時間</span>
+    <button class="tab" role="tab" data-tab="home" aria-selected="true">いまの地球</button>
+    <button class="tab" role="tab" data-tab="now" aria-selected="false">今を拡大</button>
+    <button class="tab" role="tab" data-tab="evo" aria-selected="false">進化ガチャ</button>
+  </nav>
+
+  <!-- ================= いまの地球（日本時間と同期） ================= -->
+  <section id="screen-home">
+    <div class="jst">
+      <span class="lbl">日本時間の0:00に地球が生まれ、24:00が今。</span>
+      <span class="big num" id="h-jst">--:--:--</span>
+      <span class="eq">＝</span>
+      <span class="ago num" id="h-ago">—</span>
+    </div>
+    <span class="chip" id="h-period">—</span>
+    <div style="height:8px"></div>
+    <canvas class="scene" id="h-scene" aria-hidden="true"></canvas>
+    <p class="scene-cap" id="h-cap"></p>
+
+    <div class="evt-card" id="h-evt" aria-live="polite">
+      <div class="t num" id="h-evt-t"></div>
+      <div class="n" id="h-evt-n"></div>
+      <div class="s" id="h-evt-s"></div>
+    </div>
+
+    <div class="home-grid">
+      <div class="dial-wrap">
+        <svg id="h-dial" aria-hidden="true"></svg>
+        <div class="dial-center">
+          <div class="era" id="h-era"></div>
+          <div class="clock num" id="h-clock"></div>
+          <div class="ago num" id="h-left"></div>
+        </div>
+      </div>
+      <div class="card" style="margin:0">
+        <h3>このときの地球</h3>
+        <div class="bars">
+          <div class="bar"><div class="row"><span>大気中の酸素</span><b id="h-o2"></b></div><div class="track"><div class="fill" id="h-o2-f"></div></div><div class="note">今は21%</div></div>
+          <div class="bar"><div class="row"><span>1日の長さ</span><b id="h-day"></b></div><div class="track"><div class="fill" id="h-day-f"></div></div><div class="note">月の引力で、地球の自転は少しずつ遅くなってきた（目安）</div></div>
+          <div class="bar"><div class="row"><span>太陽の明るさ</span><b id="h-sun"></b></div><div class="track"><div class="fill" id="h-sun-f"></div></div><div class="note">今を100とした値</div></div>
+        </div>
+        <p class="small muted" style="margin:10px 0 0">この時計の1秒は、約5.3万年。</p>
+      </div>
+    </div>
+
+    <p class="human-cd num" id="h-human"></p>
+
+    <div class="card">
+      <h3>これから起きること</h3>
+      <ol class="next-list" id="h-next"></ol>
+    </div>
+
+    <details class="log">
+      <summary>今日これまでに起きたこと（<span id="h-log-n">0</span>）</summary>
+      <ol id="h-log"></ol>
+    </details>
+  </section>
+
+  <!-- ================= 今を拡大 ================= -->
+  <section id="screen-now" hidden>
+    <h2 style="margin:0 0 6px">24:00の直前を拡大する</h2>
+    <p class="lead">日本時間の時計では、人類の歴史は毎晩 23:59:54 からの最後の5.6秒。AIの歴史は、そのさらに最後の約1ミリ秒です。</p>
+    <canvas class="scene" id="n-scene" aria-hidden="true"></canvas>
+    <p class="scene-cap" id="n-cap"></p>
+    <div id="n-zoom"></div>
+    <div class="card" id="n-ai">
+      <h3>AIの台頭 — 最後の1ミリ秒</h3>
+      <div class="ai-head" id="n-ai-head"></div>
+      <ol class="ai-list" id="n-ai-list"></ol>
+    </div>
+  </section>
+
+  <!-- ================= 進化ガチャ：誕生 ================= -->
+  <section id="screen-birth" hidden>
+    <h2 style="margin:0 0 6px">進化ガチャ</h2>
+    <p class="lead">46億年のどこかで生まれ、その生き物の系統として今日まで生き残れるかに挑みます。分かれ道では、進化の道を自分で選びます。</p>
+    <canvas class="scene" id="b-scene" aria-hidden="true"></canvas>
+    <p class="scene-cap" id="b-cap"></p>
+    <div class="dial-wrap">
+      <svg id="b-dial" aria-hidden="true"></svg>
+      <div class="dial-center">
+        <div class="era" id="b-era"></div>
+        <div class="clock num" id="b-clock">?</div>
+        <div class="ago num" id="b-ago"></div>
+      </div>
+    </div>
+    <div class="gacha-actions"><button class="btn btn-primary" id="b-spin">ガチャを引く</button></div>
+
+    <div class="card none-box" id="b-none" hidden>
+      <div class="big">生まれることができませんでした</div>
+      <p class="muted" id="b-none-t"></p>
+    </div>
+
+    <div id="b-cert-wrap" hidden>
+      <div class="cert">
+        <div class="cert-head"><span>誕生の記録</span><span class="num" id="b-no"></span></div>
+        <div class="cert-body">
+          <div class="line" id="b-line1"></div>
+          <div class="who" id="b-who"></div>
+          <div class="line" id="b-line2"></div>
+          <dl>
+            <div><dt>体のつくり</dt><dd id="b-plan"></dd></div>
+            <div><dt>暮らす場所</dt><dd id="b-hab"></dd></div>
+            <div><dt>この時代を引く確率</dt><dd id="b-prob" class="num"></dd></div>
+            <div><dt>今日まで</dt><dd id="b-left" class="num"></dd></div>
+          </dl>
+          <div class="traits" id="b-traits"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>同じ瞬間に生まれた4つの系統</h3>
+        <ul class="rivals" id="b-rivals"></ul>
+      </div>
+      <div class="card">
+        <h3>体験の長さ</h3>
+        <div class="lengths" role="radiogroup" aria-label="体験の長さ">
+          <label class="len"><input type="radio" name="len" value="300" checked><b>5分</b><span>ざっと</span></label>
+          <label class="len"><input type="radio" name="len" value="900"><b>15分</b><span>じっくり</span></label>
+          <label class="len"><input type="radio" name="len" value="1800"><b>30分</b><span>たっぷり</span></label>
+        </div>
+        <p class="small muted" style="margin:0 0 12px">分かれ道や大量絶滅では時間が止まり、あなたの番を待ちます。今に近づくほど、時間はゆっくり流れます。</p>
+        <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="b-start">進化を始める</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 進化ガチャ：プレイ ================= -->
+  <section id="screen-play" hidden>
+    <div class="p-top">
+      <span class="chip" id="p-period"></span>
+      <span class="p-rate num" id="p-rate"></span>
+    </div>
+    <div class="p-top">
+      <span class="p-clock num" id="p-clock"></span>
+      <span class="p-ago num" id="p-ago"></span>
+    </div>
+    <canvas class="scene" id="p-scene" aria-hidden="true"></canvas>
+    <p class="scene-cap" id="p-cap"></p>
+
+    <div class="choice" id="p-choice" hidden aria-live="polite">
+      <div class="kick">分かれ道</div>
+      <div class="q" id="p-q"></div>
+      <p class="ctx" id="p-ctx"></p>
+      <div class="opts" id="p-opts"></div>
+    </div>
+
+    <div class="event" id="p-event" hidden aria-live="polite">
+      <div class="kick">淘汰</div>
+      <div class="ttl" id="p-ev-t"></div>
+      <p class="fact" id="p-ev-f"></p>
+      <div class="you" id="p-ev-you"></div>
+      <p class="real" id="p-ev-real" hidden></p>
+      <ul class="rivals" id="p-ev-rivals"></ul>
+      <div style="display:flex;justify-content:center;margin-top:10px"><button class="btn btn-primary" id="p-ev-ok">先へ進む</button></div>
+    </div>
+
+    <div class="controls" id="p-controls">
+      <button class="btn" id="p-pause">⏸ 一時停止</button>
+      <button class="btn on" data-speed="1">×1</button>
+      <button class="btn" data-speed="4">×4</button>
+      <button class="btn" data-speed="16">×16</button>
+      <button class="btn" id="p-next">次の分かれ道へ »</button>
+    </div>
+
+    <div class="card">
+      <div class="lin-head">
+        <div><div class="nm" id="p-name"></div><div class="sub" id="p-sub"></div></div>
+        <div class="species"><b id="p-n">5</b><span>種の数</span></div>
+      </div>
+      <div class="risk">
+        <div class="track"><div class="pin" id="p-risk"></div></div>
+        <div class="row"><span>増えている</span><span>絶滅の危険</span></div>
+      </div>
+      <div class="traits" id="p-traits"></div>
+    </div>
+
+    <div class="card">
+      <h3>同じ瞬間に生まれた4つの系統</h3>
+      <ul class="rivals" id="p-rivals"></ul>
+    </div>
+
+    <div class="card">
+      <h3>系統の記録</h3>
+      <ol class="plog" id="p-log"></ol>
+    </div>
+    <div style="display:flex;justify-content:center"><button class="btn" id="p-quit">やめてガチャに戻る</button></div>
+  </section>
+
+  <!-- ================= 進化ガチャ：結末 ================= -->
+  <section id="screen-result" hidden>
+    <div class="res-hero">
+      <div class="kick" id="r-kick"></div>
+      <div class="big" id="r-big"></div>
+      <p id="r-lead"></p>
+    </div>
+    <canvas class="scene" id="r-scene" aria-hidden="true"></canvas>
+    <p class="scene-cap" id="r-cap"></p>
+    <div class="card"><h3>記録</h3><ul class="stats" id="r-stats"></ul></div>
+    <div class="card"><h3>あなたが選んだ道</h3><ol class="path" id="r-path"></ol></div>
+    <div class="card"><h3>同じ瞬間に生まれた4つの系統の結末</h3><ul class="rivals" id="r-rivals"></ul></div>
+    <p class="fact-big">地球に現れた種の99%以上は、すでに絶滅しています。</p>
+    <div class="share-row">
+      <a class="btn" id="r-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">Xでシェア</a>
+      <button class="btn" id="r-save">画像を保存</button>
+    </div>
+    <div class="preview"><img id="r-img" alt="シェア用カード"><p class="save-hint" id="r-hint" hidden>画像は長押し（PCでは右クリック）で保存できます。</p></div>
+    <div class="share-row">
+      <button class="btn btn-primary" id="r-again">もう一度ガチャを引く</button>
+      <button class="btn" id="r-home">いまの地球へ</button>
+    </div>
+  </section>
+
+  <footer class="src">
+    地球の年齢は46億年として計算しています。年代は国際年代層序表や研究で使われる代表的な推定値で、幅や諸説があります。
+    酸素・1日の長さ・太陽の明るさは目安です。進化ガチャの淘汰は、実際の大量絶滅を手がかりにした、ゲームとしての単純化です。
+    <br><a href="v1/">前の版（46億年を1〜10分で流すタイプ）</a>
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script src="scenes.js"></script>
+<script src="evo.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

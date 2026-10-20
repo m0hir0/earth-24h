@@ -1,0 +1,1677 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>地球の24時間</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="46億年の地球史を、1日として体感する。最後の一瞬に、人類のすべてがある。">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --surface-2: #efede7;
+    --text: #141413;
+    --text-2: #55534e;
+    --muted: #8a877f;
+    --line: #e2e0d8;
+    --accent: #e0602b;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(224, 96, 43, 0.12);
+    --dial-gap: #ffffff;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d0e11;
+      --surface: #16171b;
+      --surface-2: #1f2126;
+      --text: #f3f2ee;
+      --text-2: #c2c0b8;
+      --muted: #8a877f;
+      --line: #2a2c32;
+      --accent: #f0773f;
+      --accent-ink: #141413;
+      --accent-soft: rgba(240, 119, 63, 0.16);
+      --dial-gap: #16171b;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d0e11;
+    --surface: #16171b;
+    --surface-2: #1f2126;
+    --text: #f3f2ee;
+    --text-2: #c2c0b8;
+    --muted: #8a877f;
+    --line: #2a2c32;
+    --accent: #f0773f;
+    --accent-ink: #141413;
+    --accent-soft: rgba(240, 119, 63, 0.16);
+    --dial-gap: #16171b;
+    --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Segoe UI", sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  [hidden] { display: none !important; }
+  .app {
+    max-width: 760px; margin: 0 auto; padding-block: 24px 56px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  button { font-family: inherit; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border: 1px solid var(--line); background: var(--surface); color: var(--text-2);
+    border-radius: 999px; padding: 9px 16px; font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn-primary {
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+    font-size: 17px; padding: 14px 28px;
+  }
+  .btn-primary:hover { color: var(--accent-ink); filter: brightness(1.06); }
+  .btn-link { background: none; border: none; color: var(--text-2); text-decoration: underline; cursor: pointer; font-size: 14px; padding: 6px; }
+  .btn:disabled { opacity: .4; cursor: default; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+    padding: 20px 18px; box-shadow: var(--shadow); margin-bottom: 14px;
+  }
+
+  /* ---------- start ---------- */
+  .hero { text-align: center; padding: 28px 0 10px; }
+  .hero .kicker { font-size: 13px; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+  .hero h1 { font-size: clamp(32px, 9vw, 52px); line-height: 1.15; margin: 8px 0 12px; letter-spacing: .02em; }
+  .hero p { color: var(--text-2); margin: 0 auto; max-width: 520px; font-size: 15px; }
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 22px 0 18px; }
+  .mode {
+    position: relative; display: block; text-align: left; cursor: pointer;
+    border: 1.5px solid var(--line); background: var(--surface); border-radius: 14px; padding: 14px;
+  }
+  .mode input { position: absolute; opacity: 0; pointer-events: none; }
+  .mode b { display: block; font-size: 16px; }
+  .mode span { display: block; font-size: 12.5px; color: var(--text-2); margin-top: 2px; }
+  .mode .tag { display: inline-block; font-size: 11px; font-weight: 800; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 6px; margin-left: 4px; vertical-align: 2px; }
+  .mode:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .mode:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .start-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .fine { font-size: 12px; color: var(--muted); text-align: center; margin-top: 18px; }
+
+  /* ---------- run ---------- */
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { font-size: 13px; font-weight: 800; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 4px 12px; }
+  .rate { font-size: 13px; color: var(--text-2); font-weight: 700; }
+  .dial-wrap { position: relative; width: min(100%, 340px); max-width: 100%; aspect-ratio: 1; margin: 0 auto; }
+  .scene {
+    display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 3 / 1;
+    image-rendering: crisp-edges; image-rendering: pixelated;
+    border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2);
+  }
+  .scene-cap { font-size: 12.5px; color: var(--text-2); margin: 6px 2px 0; min-height: 1.6em; }
+  .scene-box { margin-bottom: 14px; }
+  .hero-scene { margin: 4px 0 0; }
+  .dial-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .dial-center {
+    position: absolute; inset: 24%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; pointer-events: none;
+  }
+  .dial-center .era { font-size: 12.5px; color: var(--text-2); font-weight: 700; line-height: 1.3; min-height: 2.6em; display: flex; align-items: flex-end; }
+  .dial-center .clock { font-weight: 800; font-size: clamp(28px, 8.5vw, 42px); line-height: 1.1; letter-spacing: .01em; }
+  .dial-center .clock.long { font-size: clamp(17px, 4.8vw, 24px); }
+  .dial-center .ago { font-size: 14px; color: var(--text-2); margin-top: 4px; font-weight: 600; }
+  .hour-label { fill: var(--muted); font-size: 12px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; }
+  .tick { stroke: var(--muted); stroke-width: 1.5; }
+  .tick.major { stroke: var(--text-2); stroke-width: 2.2; }
+  .era-seg { stroke: var(--dial-gap); stroke-width: 1.5; }
+  .hand line { stroke: var(--text); stroke-width: 3; stroke-linecap: round; }
+  .hand circle { fill: var(--accent); stroke: var(--dial-gap); stroke-width: 2.5; }
+
+  .remain { text-align: center; color: var(--text-2); font-size: 14px; margin: 8px 0 14px; }
+  .remain b { color: var(--text); }
+
+  .strip-box { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px 6px; }
+  .strip-cap { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+  .strip-box svg { display: block; width: 100%; height: auto; }
+  .strip-axis { stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+  .strip-fill { stroke: var(--accent); stroke-width: 6; stroke-linecap: round; }
+  .strip-dot { fill: var(--surface); stroke: var(--muted); stroke-width: 2; }
+  .strip-dot.passed { fill: var(--accent); stroke: var(--accent); }
+  .strip-end { fill: var(--muted); font-size: 12px; }
+  .strip-label { fill: var(--text); font-size: 13px; font-weight: 700; }
+  .strip-cursor { fill: var(--text); }
+  .banner {
+    position: absolute; inset: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; text-align: center;
+    background: var(--text); color: var(--bg); font-weight: 800; font-size: 14px; padding: 8px 14px; line-height: 1.5; white-space: pre-line;
+    opacity: 0; pointer-events: none; transition: opacity .35s ease;
+  }
+  .banner.show { opacity: .96; }
+
+  .evt-card { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-height: 86px; }
+  .evt-card .t { font-size: 13px; font-weight: 800; color: var(--accent); }
+  .evt-card .n { font-size: 20px; font-weight: 800; line-height: 1.3; }
+  .evt-card .s { font-size: 13px; color: var(--text-2); }
+  .evt-card.pop { animation: pop .5s ease; }
+  @keyframes pop { 0% { transform: scale(.97); background: var(--accent-soft); } 100% { transform: scale(1); } }
+
+  .ambient { margin: 14px 2px 0; font-size: 14.5px; color: var(--text-2); min-height: 3.2em; transition: opacity .4s ease; }
+  .hint { font-size: 13px; color: var(--muted); margin: 6px 2px 0; }
+  .hint b { color: var(--text-2); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 18px 0 10px; }
+  .speed { display: inline-flex; gap: 4px; }
+  .speed .btn { padding: 9px 12px; }
+  details.log { margin-top: 10px; font-size: 13px; color: var(--text-2); }
+  details.log summary { cursor: pointer; font-weight: 700; padding: 6px 2px; }
+  details.log ol { list-style: none; margin: 4px 0 0; padding: 0; max-height: 260px; overflow: auto; }
+  details.log li { padding: 5px 2px; border-top: 1px solid var(--line); }
+  details.log li .tt { color: var(--accent); font-weight: 700; margin-right: 6px; }
+
+  /* ---------- end ---------- */
+  .end-hero { text-align: center; padding: 18px 0 8px; }
+  .end-hero .big { font-size: clamp(40px, 12vw, 64px); font-weight: 900; line-height: 1; }
+  .end-hero p { color: var(--text-2); margin: 10px 0 0; }
+  .card h2 { font-size: 17px; margin: 0 0 12px; }
+  .stats { list-style: none; margin: 0; padding: 0; }
+  .stats li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .stats li:first-child { border-top: none; }
+  .stats .lbl { color: var(--text-2); }
+  .stats .lbl small { display: block; color: var(--muted); font-size: 12px; }
+  .stats .val { font-weight: 800; white-space: nowrap; }
+  .stats li.hl .val { color: var(--accent); }
+  .punch { margin: 14px 0 0; padding: 12px 14px; background: var(--accent-soft); border-radius: 12px; font-size: 14px; }
+  .life-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .life-row input {
+    font: inherit; font-size: 16px; width: 130px; padding: 9px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--text);
+  }
+  .life-out { margin-top: 10px; font-size: 14.5px; }
+  .life-out b { color: var(--accent); }
+
+  .gacha-q { font-size: 15px; color: var(--text-2); margin: 0 0 12px; }
+  .gacha-dial { width: min(100%, 300px); }
+  .gacha-dial .dial-center .clock { font-size: clamp(24px, 7vw, 32px); }
+  .gacha-actions { display: flex; justify-content: center; margin: 14px 0 4px; }
+  .result { margin-top: 12px; border-radius: 14px; border: 1.5px solid var(--line); padding: 16px; }
+  .result .rar { display: inline-block; font-size: 12px; font-weight: 900; letter-spacing: .06em; border-radius: 6px; padding: 2px 8px; color: #fff; }
+  .result .rname { font-size: 24px; font-weight: 900; margin: 6px 0 2px; line-height: 1.3; }
+  .result .rtime { font-size: 14px; color: var(--text-2); font-weight: 700; }
+  .result .rdesc { font-size: 14.5px; margin: 8px 0; }
+  .result .rprob { font-size: 13.5px; color: var(--text-2); }
+  .result .rprob b { color: var(--text); }
+  .tally { font-size: 12.5px; color: var(--muted); margin-top: 8px; text-align: center; }
+  .share-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+  .preview { margin-top: 14px; }
+  .save-hint { font-size: 12px; color: var(--muted); text-align: center; margin: 6px 0 0; }
+  .preview img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
+  .end-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 18px; }
+  footer.src { font-size: 11.5px; color: var(--muted); line-height: 1.7; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 12px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .evt-card.pop { animation: none; }
+    .banner, .ambient { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= START ================= -->
+  <section id="screen-start">
+    <div class="hero">
+      <div class="kicker">46億年を、1日として</div>
+      <h1>地球の24時間</h1>
+      <p>地球が生まれた瞬間を 0:00、今を 24:00 とします。<br>
+         時計の針が進むのを、ただ見届けてください。人類が出てくるのは、ずっと後です。</p>
+    </div>
+
+    <div class="hero-scene">
+      <canvas class="scene" id="hero-scene" aria-hidden="true"></canvas>
+      <p class="scene-cap num" id="hero-cap"></p>
+    </div>
+
+    <div class="modes" role="radiogroup" aria-label="体験の長さ">
+      <label class="mode"><input type="radio" name="mode" value="60"><b>1分</b><span>まずはざっと</span></label>
+      <label class="mode"><input type="radio" name="mode" value="300"><b>5分</b><span>ほどよく体感</span></label>
+      <label class="mode"><input type="radio" name="mode" value="600" checked><b>10分<span class="tag">おすすめ</span></b><span>長さを、ちゃんと味わう</span></label>
+      <label class="mode"><input type="radio" name="mode" value="rt"><b>リアルタイム</b><span>今日の時刻＝地球の時刻。毎晩 23:59:54 に人類が誕生</span></label>
+    </div>
+
+    <div class="start-actions">
+      <button class="btn btn-primary" id="btn-start">地球を誕生させる</button>
+      <button class="btn-link" id="btn-gacha-only">ガチャだけ引く</button>
+    </div>
+    <p class="fine">年代は研究で使われる代表的な推定値です。最後の部分は時間をゆっくり流しますが、目盛りの縮尺は正確です。</p>
+  </section>
+
+  <!-- ================= RUN ================= -->
+  <section id="screen-run" hidden>
+    <div class="topbar">
+      <span class="chip" id="seg-chip">①</span>
+      <span class="rate num" id="rate">1秒 = …</span>
+    </div>
+
+    <div class="scene-box">
+      <canvas class="scene" id="run-scene" aria-hidden="true"></canvas>
+      <p class="scene-cap" id="run-cap"></p>
+    </div>
+
+    <div class="dial-wrap" id="run-dial-wrap">
+      <svg id="run-dial" aria-hidden="true"></svg>
+      <div class="dial-center">
+        <div class="era" id="run-era"></div>
+        <div class="clock num" id="run-clock">0:00:00</div>
+        <div class="ago num" id="run-ago">46億年前</div>
+      </div>
+    </div>
+    <div class="remain num" id="run-remain"></div>
+
+    <div class="strip-box">
+      <div class="strip-cap"><span id="strip-title">いま拡大している区間</span><span id="strip-sub"></span></div>
+      <svg id="strip" viewBox="0 0 640 76" aria-hidden="true"></svg>
+      <div class="banner" id="banner"></div>
+    </div>
+
+    <div class="evt-card" id="evt-card" aria-live="polite">
+      <div class="t num" id="evt-t"></div>
+      <div class="n" id="evt-n"></div>
+      <div class="s" id="evt-s"></div>
+    </div>
+
+    <p class="ambient" id="ambient"></p>
+    <p class="hint num" id="hint"></p>
+
+    <div class="controls" id="controls-timed">
+      <button class="btn" id="btn-pause">⏸ 一時停止</button>
+      <span class="speed" role="group" aria-label="速さ">
+        <button class="btn on" data-speed="1">×1</button>
+        <button class="btn" data-speed="4">×4</button>
+        <button class="btn" data-speed="16">×16</button>
+      </span>
+    </div>
+    <div class="controls" id="controls-rt" hidden>
+      <button class="btn" id="btn-rt-end">結果とガチャへ</button>
+    </div>
+    <div class="controls">
+      <button class="btn-link" id="btn-quit">最初に戻る</button>
+      <button class="btn-link" id="btn-skip">24:00 までスキップ</button>
+    </div>
+
+    <details class="log">
+      <summary>これまでの出来事（<span id="log-count">0</span>）</summary>
+      <ol id="log"></ol>
+    </details>
+  </section>
+
+  <!-- ================= END ================= -->
+  <section id="screen-end" hidden>
+    <div id="end-summary">
+      <div class="end-hero">
+        <div class="big num">24:00</div>
+        <p id="end-lead">現在。46億年の1日が、終わりました。</p>
+      </div>
+
+      <div class="card">
+        <h2>この1日のうち、それぞれがいた時間</h2>
+        <ul class="stats num" id="stats"></ul>
+        <p class="punch" id="punch"></p>
+      </div>
+
+      <div class="card">
+        <h2>あなたの人生は、地球時計で何秒？</h2>
+        <div class="life-row">
+          <label for="birth" class="lbl">生まれた年</label>
+          <input id="birth" type="number" inputmode="numeric" min="1900" placeholder="例: 1990">
+          <button class="btn" id="btn-life">計算する</button>
+        </div>
+        <div class="life-out" id="life-out"></div>
+      </div>
+    </div>
+
+    <div class="card" id="gacha-card">
+      <h2>地球史ガチャ</h2>
+      <p class="gacha-q">もしあなたが、46億年のうちのランダムな瞬間に生まれていたら？</p>
+      <div class="scene-box" id="g-scene-box" hidden>
+        <canvas class="scene" id="g-scene" aria-hidden="true"></canvas>
+        <p class="scene-cap" id="g-cap"></p>
+      </div>
+      <div class="dial-wrap gacha-dial">
+        <svg id="gacha-dial" aria-hidden="true"></svg>
+        <div class="dial-center">
+          <div class="era" id="g-era"></div>
+          <div class="clock num" id="g-clock">?</div>
+          <div class="ago num" id="g-ago"></div>
+        </div>
+      </div>
+      <div class="gacha-actions"><button class="btn btn-primary" id="btn-spin">ガチャを引く</button></div>
+
+      <div class="result" id="result" hidden aria-live="polite">
+        <span class="rar" id="r-rar"></span>
+        <div class="rname" id="r-name"></div>
+        <div class="rtime num" id="r-time"></div>
+        <p class="rdesc" id="r-desc"></p>
+        <div class="rprob num" id="r-prob"></div>
+      </div>
+      <div class="tally num" id="tally"></div>
+
+      <div class="share-row" id="share-row" hidden>
+        <a class="btn" id="btn-share-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">Xでシェア</a>
+        <button class="btn" id="btn-share-native" hidden>共有…</button>
+        <button class="btn" id="btn-save">画像を保存</button>
+      </div>
+      <div class="preview" id="preview" hidden>
+        <img id="preview-img" alt="シェア用カードのプレビュー">
+        <p class="save-hint" id="save-hint" hidden>画像は長押し（PCでは右クリック）で保存できます。</p>
+      </div>
+    </div>
+
+    <div class="end-actions">
+      <button class="btn" id="btn-again">もう一度、地球を誕生させる</button>
+    </div>
+
+    <footer class="src">
+      地球の年齢は46億年として計算しています。各年代は研究によって幅のある推定値で、一般に広く使われる代表値を採用しています。
+      ガチャは46億年のうちの1瞬間を一様な確率で選びます（各時代の出現率＝その時代の長さ÷46億年）。
+      <br><a href="../" style="color:inherit">新しい版（日本時間と同期・進化ガチャ）へ</a>
+    </footer>
+  </section>
+
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ============================================================
+     データ
+     ============================================================ */
+  const S = 4.6e9;                       // 地球の年齢（年）
+  const DAY = 86400;                     // 24時間（秒）
+  const NOW = new Date().getFullYear();
+  const ago = (year) => NOW - year;      // 西暦 → 何年前
+
+  // 時代（ダイヤルの色帯 & ガチャの排出テーブル）
+  const ERAS = [
+    { from: S,          to: 3.8e9,      name: '灼熱の若い地球',       color: '#d9774b',
+      desc: '地表は熱い岩とマグマ。巨大な天体の衝突で月が生まれ、やがて海ができる。生命はまだいない。' },
+    { from: 3.8e9,      to: 2.4e9,      name: '微生物だけの海',       color: '#4fa6c4',
+      desc: '海には目に見えない微生物だけ。空気に酸素はほとんどなく、陸には何もない。' },
+    { from: 2.4e9,      to: 2.0e9,      name: '酸素が増えはじめた海', color: '#3f93b6',
+      desc: '光合成をする微生物（シアノバクテリア）が出す酸素で、大気が少しずつ変わりはじめた。' },
+    { from: 2.0e9,      to: 1.0e9,      name: '核を持つ細胞の時代',   color: '#3a7fc0',
+      desc: '細胞の中に核を持つ生き物（真核生物）が現れた。それでも肉眼で見える生き物はほとんどいない。' },
+    { from: 1.0e9,      to: 5.4e8,      name: '多細胞生物の海',       color: '#3a68aa',
+      desc: 'いくつもの細胞でできた生き物が現れた。地球全体が氷に覆われる「全球凍結」も起きた。' },
+    { from: 5.4e8,      to: 2.3e8,      name: '動物があふれる海と陸', color: '#2f8f6b',
+      desc: 'カンブリア爆発で多様な動物が誕生。植物が陸に上がり、魚・両生類・は虫類が現れた。' },
+    { from: 2.3e8,      to: 6.6e7,      name: '恐竜の時代',           color: '#6f8f34',
+      desc: '恐竜が陸を支配し、のちに鳥や花を咲かせる植物も現れた。哺乳類はまだ小さな存在。' },
+    { from: 6.6e7,      to: 7e6,        name: '哺乳類の時代',         color: '#a5803a',
+      desc: '隕石の衝突で恐竜が絶滅し、哺乳類が多様化。霊長類はいるが、人類の祖先はまだいない。' },
+    { from: 7e6,        to: 3e5,        name: '人類の祖先の時代',     color: '#cf8a2e',
+      desc: '猿人・原人が二本足で歩き、石器や火を使いはじめた。' },
+    { from: 3e5,        to: 1.2e4,      name: '狩猟採集のサピエンス', color: '#e0692f',
+      desc: '私たちホモ・サピエンスが登場。アフリカを出て世界中に広がり、洞窟に絵を描いた。' },
+    { from: 1.2e4,      to: ago(1780),  name: '農耕と文明の時代',     color: '#d9483f',
+      desc: '農耕が始まり、都市・文字・国家が生まれた。' },
+    { from: ago(1780),  to: 0,          name: '産業革命以後',         color: '#b8326a',
+      desc: '蒸気機関から電気、インターネット、AIへ。あなたが生きている時代。' },
+  ];
+
+  // 出来事（何年前, 名前, 補足）
+  const EVENTS = [
+    [S,          '地球誕生',                   '46億年の1日が始まる'],
+    [4.5e9,      '月の誕生',                   '巨大な天体の衝突でできたとされる'],
+    [4.0e9,      '海ができる',                 '年代には諸説あり'],
+    [3.8e9,      '最初の生命',                 '海の中の小さな微生物'],
+    [2.7e9,      '光合成をする微生物',         'シアノバクテリアが酸素を出しはじめる'],
+    [2.4e9,      '大気に酸素が増える',         '大酸化イベント'],
+    [2.0e9,      '真核生物の出現',             '核を持つ細胞'],
+    [1.0e9,      '多細胞生物の出現',           ''],
+    [7.2e8,      '全球凍結',                   '地球全体が氷に覆われる（スノーボールアース）'],
+    [5.4e8,      'カンブリア爆発',             '動物が一気に多様化'],
+    [4.7e8,      '植物が陸に上がる',           ''],
+    [3.7e8,      '両生類が陸に上がる',         ''],
+    [3.1e8,      'は虫類の出現',               ''],
+    [2.52e8,     '史上最大の大量絶滅',         'ペルム紀末。生き物の種の大半が消えた', 'eruption'],
+    [2.3e8,      '恐竜の出現',                 ''],
+    [2.0e8,      '哺乳類の出現',               ''],
+    [1.5e8,      '鳥の出現',                   '始祖鳥'],
+    [1.3e8,      '花を咲かせる植物',           ''],
+    [6.6e7,      '恐竜の絶滅',                 '巨大な隕石の衝突', 'impact'],
+    [6.0e7,      '霊長類の出現',               ''],
+    [7e6,        '人類の祖先（猿人）の出現',   '二本足で歩きはじめる'],
+    [3.8e6,      'アウストラロピテクス',       ''],
+    [2.4e6,      'ホモ・ハビリス',             '石器を使う'],
+    [1.8e6,      'ホモ・エレクトス',           '火を使いはじめる（諸説あり）'],
+    [3e5,        'ホモ・サピエンス誕生',       '私たちの種が現れる'],
+    [7e4,        '出アフリカ',                 'サピエンスが世界へ広がりはじめる'],
+    [4e4,        '洞窟壁画・芸術の始まり',     ''],
+    [1.2e4,      '農耕の始まり',               '定住と村の誕生'],
+    [ago(-3200), '文字と都市の誕生',           'メソポタミア'],
+    [ago(-2560), 'ピラミッド建設',             'ギザの大ピラミッド'],
+    [ago(-500),  '釈迦・孔子・ソクラテスの時代', ''],
+    [ago(1492),  'コロンブス、アメリカ到達',   '大航海時代'],
+    [ago(1780),  '産業革命',                   '蒸気機関と工場'],
+    [ago(1830),  '鉄道の実用化',               ''],
+    [ago(1879),  '電球の発明',                 ''],
+    [ago(1903),  '飛行機の初飛行',             'ライト兄弟'],
+    [ago(1914),  '第一次世界大戦',             ''],
+    [ago(1939),  '第二次世界大戦',             ''],
+    [ago(1946),  'コンピュータの誕生',         'ENIAC'],
+    [ago(1969),  '人類、月に立つ',             'アポロ11号'],
+    [ago(1995),  'インターネットの普及',       ''],
+    [ago(2007),  'スマートフォン登場',         ''],
+    [ago(2022),  '生成AIの普及',               ''],
+    [0,          '現在',                       'あなたが、今いるところ'],
+  ].map(([ya, name, note, fx]) => ({ ya, name, note, fx })).sort((a, b) => b.ya - a.ya);
+
+  // 時間の流し方：区間ごとに実時間の配分（f）を決める。区間内は線形。
+  const SEG = [
+    { a: S,            b: S * 2 / 24,   f: 0.55 },
+    { a: S * 2 / 24,   b: S * 3 / 1440, f: 0.16 },
+    { a: S * 3 / 1440, b: 3e5,          f: 0.08 },
+    { a: 3e5,          b: 1.2e4,        f: 0.07 },
+    { a: 1.2e4,        b: ago(1780),    f: 0.08 },
+    { a: ago(1780),    b: 0,            f: 0.06 },
+  ];
+  const SEG_DEC = [0, 0, 0, 2, 4, 6];   // 区間ごとの時計の小数桁
+  const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥'];
+
+  const P_HUMAN = 3e5 / S;              // サピエンス以降を引く確率
+
+  // 他のページに埋め込まれていると、ダウンロードや共有メニューが使えないことがある
+  const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+
+  /* ============================================================
+     書式
+     ============================================================ */
+  const trim = (s) => s.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+  const sig2 = (v) => v >= 10 ? String(Math.round(v)) : trim(v.toFixed(1));
+
+  function fmtYears(y) {
+    if (y >= 1e8) { const v = y / 1e8; return `${v >= 10 ? Math.round(v) : trim(v.toFixed(1))}億`; }
+    if (y >= 1e4) { const v = y / 1e4; return `${v >= 10 ? Math.round(v) : trim(v.toFixed(1))}万`; }
+    if (y >= 10) return Math.round(y).toLocaleString('ja-JP');
+    return trim(y.toFixed(1));
+  }
+  function fmtAgo(ya) {
+    if (ya <= 0.5) return '現在';
+    if (ya < 5100) {
+      const yr = Math.floor(NOW - ya);
+      return yr > 0 ? `西暦${yr}年` : `紀元前${-yr}年`;
+    }
+    return `${fmtYears(ya)}年前`;
+  }
+  function fmtSec(s) {
+    if (s >= 3600) { const h = Math.floor(s / 3600), m = Math.floor((s - h * 3600) / 60); return m ? `${h}時間${m}分` : `${h}時間`; }
+    if (s >= 60)   { const m = Math.floor(s / 60), r = Math.floor(s - m * 60); return r ? `${m}分${r}秒` : `${m}分`; }
+    if (s >= 1)    return `${trim(s.toFixed(1))}秒`;
+    if (s >= 0.1)  return `${trim(s.toFixed(2))}秒`;
+    if (s >= 1e-3) return `${sig2(s * 1e3)}ミリ秒`;
+    if (s >= 1e-6) return `${sig2(s * 1e6)}マイクロ秒`;
+    return `${sig2(s * 1e9)}ナノ秒`;
+  }
+  function fmtCountdown(s) {
+    s = Math.max(0, Math.ceil(s));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+    return h ? `${h}時間${m}分${r}秒` : m ? `${m}分${r}秒` : `${r}秒`;
+  }
+  function fmtClock(ya, dec = 0) {
+    if (ya <= 0) return '24:00:00';
+    const p = Math.pow(10, dec);
+    const t = Math.floor((1 - ya / S) * DAY * p) / p;
+    const h = Math.floor(t / 3600), m = Math.floor((t - h * 3600) / 60), s = t - h * 3600 - m * 60;
+    const ss = dec ? s.toFixed(dec).padStart(dec + 3, '0') : String(Math.floor(s)).padStart(2, '0');
+    return `${h}:${String(m).padStart(2, '0')}:${ss}`;
+  }
+  function fmtOneIn(n) {
+    if (n < 10) return trim(n.toFixed(1));
+    if (n < 1e4) return Math.round(n).toLocaleString('ja-JP');
+    return fmtYears(n);
+  }
+  function fmtProb(p) {
+    const pct = p * 100;
+    const s = pct >= 1 ? trim(pct.toFixed(1)) : pct.toPrecision(2);
+    return `${s}%（約${fmtOneIn(1 / p)}分の1）`;
+  }
+  function rarity(p) {
+    if (p >= 0.1)   return { label: 'COMMON',     color: '#7d8590' };
+    if (p >= 0.02)  return { label: 'RARE',       color: '#2f7fd0' };
+    if (p >= 0.001) return { label: 'SUPER RARE', color: '#8a4fd6' };
+    if (p >= 1e-5)  return { label: 'MIRACLE',    color: '#e0602b' };
+    return              { label: 'LEGEND',     color: '#c9302c' };
+  }
+
+  /* ============================================================
+     時間の対応づけ
+     ============================================================ */
+  const fracOf = (ya) => 1 - ya / S;                 // 0:00 → 0, 24:00 → 1
+  function segOf(ya) {
+    for (let i = 0; i < SEG.length; i++) if (ya > SEG[i].b) return i;
+    return SEG.length - 1;
+  }
+  function yaAt(p) {                                 // 実時間の進み 0..1 → 何年前
+    if (p >= 1) return 0;
+    let cum = 0;
+    for (let i = 0; i < SEG.length; i++) {
+      const g = SEG[i];
+      if (p <= cum + g.f || i === SEG.length - 1) {
+        const local = Math.min(1, Math.max(0, (p - cum) / g.f));
+        return g.a - (g.a - g.b) * local;
+      }
+      cum += g.f;
+    }
+    return 0;
+  }
+  function progAt(ya) {                              // 何年前 → 実時間の進み 0..1
+    const i = segOf(ya);
+    let cum = 0;
+    for (let k = 0; k < i; k++) cum += SEG[k].f;
+    const g = SEG[i];
+    return cum + g.f * (g.a - ya) / (g.a - g.b);
+  }
+  const eraOf = (ya) => ERAS.find(e => ya <= e.from && ya > e.to) || ERAS[ERAS.length - 1];
+  const segName = (i) => i === 0 ? '地球誕生〜22:00' : `最後の${fmtSec(SEG[i].a / S * DAY)}`;
+
+  /* ============================================================
+     ドット絵の風景（192×64 で描いて拡大表示）
+     ============================================================ */
+  const PW = 192, PH = 64;
+
+  function painter(ctx) {
+    const P = {
+      rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
+      disc(cx, cy, r, c) {
+        for (let dy = -r; dy <= r; dy++) { const w = Math.floor(Math.sqrt(r * r - dy * dy)); P.rect(cx - w, cy + dy, 2 * w + 1, 1, c); }
+      },
+      dome(cx, by, r, c) {
+        for (let dy = 0; dy <= r; dy++) { const w = Math.floor(Math.sqrt(r * r - dy * dy)); P.rect(cx - w, by - dy, 2 * w + 1, 1, c); }
+      },
+      tri(cx, base, h, c, slope = 1) {           // 山・ピラミッド・屋根
+        for (let dy = 0; dy < h; dy++) { const w = Math.round((h - dy) * slope); P.rect(cx - w, base - dy, 2 * w + 1, 1, c); }
+      },
+      bands(colors, y0 = 0, y1 = PH) {
+        const h = (y1 - y0) / colors.length;
+        colors.forEach((c, i) => P.rect(0, y0 + Math.floor(i * h), PW, Math.ceil(h) + 1, c));
+      },
+      ridge(base, amp, seed, c, freq = 0.06, x0 = 0, x1 = PW) {
+        for (let x = x0; x < x1; x++) {
+          const h = amp * (0.55 + 0.3 * Math.sin(x * freq + seed) + 0.15 * Math.sin(x * freq * 3.7 + seed * 1.7));
+          P.rect(x, Math.round(base - h), 1, PH, c);
+        }
+      },
+      ground(y, c, x0 = 0, x1 = PW) { P.rect(x0, y, x1 - x0, PH - y, c); },
+      water(y, c, hi, t, x0 = 0, x1 = PW) {
+        P.rect(x0, y, x1 - x0, PH - y, c);
+        for (let row = 0; y + 2 + row * 4 < PH; row++) {
+          for (let k = 0; k < 16; k++) {
+            const x = ((k * 17 + row * 9 + t * (row % 2 ? 0.5 : -0.5)) % (PW + 8) + PW + 8) % (PW + 8) - 4;
+            if (x >= x0 && x + 3 <= x1) P.rect(x, y + 2 + row * 4, 3, 1, hi);
+          }
+        }
+      },
+      cloud(x, y, c) { P.rect(x, y + 2, 16, 3, c); P.rect(x + 3, y, 7, 2, c); P.rect(x + 9, y + 1, 4, 1, c); },
+      clouds(t, c, n = 3, y = 5, speed = 0.15) {
+        for (let k = 0; k < n; k++) P.cloud(((k * 71 + t * speed) % (PW + 24)) - 20, y + (k % 2) * 6, c);
+      },
+      sprite(rows, pal, x, y, flip = false, s = 1) {   // s: 拡大率（主役の生き物は2）
+        for (let j = 0; j < rows.length; j++) {
+          const row = rows[j];
+          for (let i = 0; i < row.length; i++) {
+            const ch = row[flip ? row.length - 1 - i : i];
+            if (ch !== '.') P.rect(x + i * s, y + j * s, s, s, pal[ch]);
+          }
+        }
+      },
+    };
+    return P;
+  }
+
+  // 生き物と乗り物（右向き。flip で左向き）
+  const SPR = {
+    trilo:   ['.aaaaa.', 'abababa', '.aaaaa.', '..b.b..'],
+    anomalo: ['...aaaaaaa...', 'bbaaaaaaaaaa.', '..aaaaaaaaaab', 'bbaaaaaaaaaa.', '...aaaaaaa...'],
+    fish:    ['a.aaa.', 'aaaaaa', 'a.aaa.'],
+    amphib:  ['..aaaa..', 'aaaaaaab', '.a....a.'],
+    reptile: ['a.aaaaa..', '.aaaaaaab', '..a...a..'],
+    sauro: [
+      '.....................aa.', '....................aaab', '....................aa..', '...................aa...',
+      '..................aa....', '.................aa.....', '.......aaaaaaa..aa......', '....aaaaaaaaaaaaaa......',
+      '..aaaaaaaaaaaaaaa.......', 'aaa..aaaaaaaaaaa........', '.....bb.bb.bb.bb........', '.....bb.bb.bb.bb........',
+      '.....bb.bb.bb.bb........'],
+    thero: [
+      '........aaaaa.', '.......aaaaeaa', '.......aaaaaaa', '.......aaab...', '......aaaa....', '.a...aaaaab...',
+      '..aaaaaaaa....', '...aaaaaaa....', '.....a..a.....', '.....a..a.....', '....bb..bb....'],
+    pteroA:  ['a.........a', '.aa.....aa.', '...aaaaa...', '.....aaa...'],
+    pteroB:  ['...........', '...aaaaa...', '.aaaaaaaaa.', 'a....aa...a'],
+    mammal:  ['.......aa', 'aaaaaaaaa', '.aaaaaaa.', '.a.a..a.a'],
+    homA:    ['.aa.', '.aa.', 'aaaa', 'aaaa', '.aa.', '.bb.', '.bb.', 'b..b'],
+    homB:    ['.aa.', '.aa.', 'aaaa', 'aaaa', '.aa.', '.bb.', '.bb.', '.bb.'],
+    hunter:  ['....c', '.aa.c', '.aa.c', 'bbbbc', 'bbbbc', 'bbbbc', '.bb.c', '.bb..', '.b.b.', '.b.b.'],
+    mammoth: [
+      '....aaaaaaa.....', '..aaaaaaaaaaa...', '.aaaaaaaaaaaaa..', 'aaaaaaaaaaaaaaa.', 'aaaaaaaaaaaaaaaa',
+      'aaaaaaaaaaaaa.ab', '.aaaaaaaaaaaa.ab', '.aaaaaaaaaaa..bb', '.aa.aa..aa.aa...', '.aa.aa..aa.aa...', '.aa.aa..aa.aa...'],
+    farmer:  ['.aa.', '.aa.', 'bbbb', 'bbbb', '.bb.', '.cc.', '.c.c'],
+    car:     ['...aaaaa....', '..abbabba...', 'aaaaaaaaaaaa', 'aaaaaaaaaaaa', '.cc.....cc..'],
+    loco: [
+      '.aa...........', '.aa......bbbb.', 'aaaaaaaaabddb.', 'aaaaaaaaabbbb.', 'aaaaaaaaaaaaaa', 'aaaaaaaaaaaaaa',
+      '.cc.cc..cc.cc.', '.cc.cc..cc.cc.'],
+    biplane: ['..aaaaaaa..', 'b.....a....', 'bbbbbbbbbbb', '..aaaaaaa..'],
+    jet:     ['.......a...', 'aaaaaaaaaa.', '....aa.....'],
+  };
+
+  // 小物
+  function volcano(P, cx, base, h, t, c) {
+    P.tri(cx, base, h, c, 1.5);
+    P.rect(cx - 2, base - h, 5, 1, '#ff7a1a');
+    for (let dy = 1; dy < h; dy++) {
+      P.rect(cx + Math.round(Math.sin(dy * 0.7) * 1.2 + dy * 0.45), base - h + dy, 2, 1, (dy + t) % 4 < 2 ? '#ff7a1a' : '#e0602b');
+    }
+    for (let k = 0; k < 4; k++) {
+      const ph = (t + k * 6) % 24;
+      P.disc(cx + Math.round(Math.sin((t + k * 3) * 0.2) * 2) + (ph >> 2), base - h - 3 - ph, 1 + (ph >> 3), 'rgba(70,50,50,0.7)');
+    }
+  }
+  function fire(P, x, base, t) {
+    P.rect(x - 3, base - 1, 7, 1, '#5a3a24');
+    const f = t % 3;
+    P.rect(x - 2, base - 3, 5, 2, '#e0602b');
+    P.rect(x - 1, base - 5 - (f === 1 ? 1 : 0), 3, 2, '#ffb347');
+    P.rect(x, base - 7 - f, 1, 2, '#ffe39a');
+  }
+  function smoke(P, x, y, t, c = 'rgba(90,90,90,0.55)', n = 4) {
+    for (let k = 0; k < n; k++) { const ph = (t + k * 5) % 20; P.disc(x + (ph >> 2), y - ph, 1 + (ph >> 3), c); }
+  }
+  function palm(P, x, base, h, c = '#3f6b3a', trunk = '#7a5a3a') {
+    P.rect(x, base - h, 2, h, trunk);
+    for (let i = 0; i < 6; i++) { P.rect(x - 6 + i, base - h + Math.abs(2 - i) - 1, 1, 1, c); P.rect(x + 2 + i, base - h + Math.abs(3 - i) - 1, 1, 1, c); }
+    P.rect(x - 4, base - h - 1, 10, 2, c);
+  }
+  function fernTree(P, x, base, h, c = '#3e6a3c', trunk = '#5a4a32') {
+    P.rect(x, base - h, 2, h, trunk);
+    for (let i = 0; i < 4; i++) { const y = base - h + i * 3; P.rect(x - 5 + i, y, 12 - 2 * i, 2, c); }
+  }
+  function roundTree(P, x, base, h, c = '#4e8a44', trunk = '#6a4a30') {
+    P.rect(x, base - h + 4, 2, h - 4, trunk);
+    P.disc(x + 1, base - h + 2, 5, c);
+    P.disc(x - 2, base - h + 4, 3, c);
+  }
+  function acacia(P, x, base, h, c = '#5e7a3a', trunk = '#5a4430') {
+    P.rect(x, base - h, 1, h, trunk);
+    P.rect(x - 2, base - h + 2, 1, 2, trunk); P.rect(x + 2, base - h + 1, 1, 2, trunk);
+    P.rect(x - 9, base - h - 1, 19, 2, c); P.rect(x - 6, base - h - 2, 13, 1, c);
+  }
+  function hut(P, x, base, wall = '#b08a5a', roof = '#7a5a34') {
+    P.rect(x, base - 5, 9, 5, wall); P.rect(x + 3, base - 3, 2, 3, '#4a3424');
+    P.tri(x + 4, base - 5, 4, roof, 1.4);
+  }
+  function person(P, x, base, body, phone) {
+    P.rect(x, base - 7, 2, 2, '#c9946e'); P.rect(x - 1, base - 5, 4, 3, body); P.rect(x, base - 2, 1, 2, '#3a3a44'); P.rect(x + 1, base - 2, 1, 2, '#3a3a44');
+    if (phone) P.rect(x + 2, base - 5, 1, 1, '#9fe3ff');
+  }
+  function building(P, x, base, w, h, c, win, lit, seed) {
+    P.rect(x, base - h, w, h, c);
+    const r = seed * 9301;
+    for (let yy = base - h + 2; yy < base - 2; yy += 3) {
+      for (let xx = x + 1; xx < x + w - 1; xx += 3) {
+        const on = ((xx * 7 + yy * 13 + r) % 5) === 0;
+        P.rect(xx, yy, 1, 1, on ? lit : win);
+      }
+    }
+  }
+  const wrapX = (v, span, pad = 24) => ((v % (span + pad)) + span + pad) % (span + pad) - pad / 2;
+
+  // 時代ごとの風景
+  function sceneHadean(P, ya, t) {
+    P.bands(['#2b1016', '#43151a', '#5e1c1a', '#7c2a1b', '#9b3a1d', '#b9531f']);
+    if (ya <= 4.5e9) { P.disc(152, 15, 10, '#cdb9a0'); P.disc(149, 12, 2, '#b29c82'); P.disc(156, 18, 2, '#b29c82'); P.disc(153, 8, 1, '#b29c82'); }
+    for (let k = 0; k < 3; k++) {
+      const ph = (t * 2 + k * 31) % 70, mx = 18 + k * 58 + ph, my = -4 + ph * 0.7;
+      if (my < 40) { P.rect(mx, my, 2, 2, '#fff1c2'); P.rect(mx - 3, my - 2, 3, 1, '#ffb35a'); P.rect(mx - 6, my - 4, 3, 1, '#e0602b'); }
+    }
+    P.ridge(46, 8, 1.3, '#3a1c1a', 0.05);
+    volcano(P, 46, 47, 20, t, '#2e1714');
+    volcano(P, 128, 48, 14, t + 7, '#2e1714');
+    if (ya <= 4.0e9) {
+      P.water(48, '#3a2f36', '#5a4a52', t);
+      for (let k = 0; k < 5; k++) { const ph = (t + k * 5) % 16; P.rect(14 + k * 38 + (ph >> 2), 47 - ph, 2, 2, 'rgba(230,220,220,0.3)'); }
+    } else {
+      P.ground(48, '#24120f');
+      for (let k = 0; k < 9; k++) {
+        const x = k * 22 + 4, y = 51 + (k * 7) % 11;
+        P.rect(x, y, 10, 1, (t + k) % 6 < 3 ? '#ff7a1a' : '#ffb347'); P.rect(x + 4, y + 1, 5, 1, '#e0602b');
+      }
+    }
+  }
+
+  function sceneArchean(P, ya, t, oxy) {
+    P.bands(oxy ? ['#93b3c6', '#a6c0cc', '#b9cbcf', '#cbd5d2', '#dcdfd6'] : ['#c98a4f', '#d49a5e', '#dda96f', '#e5b883', '#ecc79a']);
+    P.disc(30, 13, 6, oxy ? '#fff4d6' : '#fbe3b0');
+    if (oxy) P.clouds(t, '#eef2f2', 2, 6, 0.1);
+    P.ridge(40, 11, 2.1, oxy ? '#8f7464' : '#7d5f4c', 0.05);
+    P.ground(44, oxy ? '#7a5546' : '#6b5244', 0, 96);
+    // 岩
+    for (let k = 0; k < 6; k++) P.dome(8 + k * 15, 46 + (k % 3) * 5, 3 + (k % 2) * 2, oxy ? '#8e5a45' : '#5a4436');
+    if (oxy) for (let y = 47; y < 64; y += 3) P.rect(0, y, 90, 1, '#a4523c');   // 赤い縞（縞状鉄鉱層）
+    P.water(45, oxy ? '#4a7f97' : '#5d7a74', oxy ? '#79a9bd' : '#86a199', t, 96, PW);
+    P.rect(92, 44, 8, PH - 44, oxy ? '#b9a084' : '#a68d70');                 // 砂浜
+    if (ya < 3.5e9) for (let k = 0; k < 6; k++) P.dome(108 + k * 14, 50 + (k % 2) * 3, 3 + (k % 3), oxy ? '#5f7d6a' : '#6d7a5e');
+  }
+
+  function sceneProterozoic(P, t) {
+    P.bands(['#86b6d6', '#9cc3db', '#b2d0de', '#c7dbdf']);
+    P.clouds(t, '#f4f7f8', 3, 6, 0.12);
+    P.ridge(40, 10, 0.8, '#8b7563', 0.05);
+    P.ground(44, '#7b6453', 0, 90);
+    for (let k = 0; k < 5; k++) P.dome(10 + k * 17, 46 + (k % 2) * 6, 3, '#5f4c40');
+    P.rect(88, 44, 8, PH - 44, '#b9a487');
+    P.water(45, '#3f7c8a', '#6aa3ae', t, 96, PW);
+    // 顕微鏡の窓（細胞）
+    const cx = 150, cy = 24, r = 15;
+    P.disc(cx, cy, r + 2, '#33413f');
+    P.disc(cx, cy, r, '#d7ecd9');
+    for (let k = 0; k < 4; k++) {
+      const a = t * 0.08 + k * 1.6, x = cx + Math.round(Math.cos(a) * (k ? 8 : 0)), y = cy + Math.round(Math.sin(a) * (k ? 6 : 0));
+      P.disc(x, y, 4, '#9cc9a4'); P.disc(x, y, 1, '#4e7f5a');
+    }
+    P.rect(cx + r - 2, cy + r - 2, 6, 3, '#33413f');
+  }
+
+  function sceneUnderwater(P, t, kind) {
+    P.bands(['#2a6f95', '#25658a', '#205a7c', '#1b4f6d', '#17445f', '#133a52']);
+    for (let k = 0; k < 5; k++) for (let y = 0; y < 46; y += 1) P.rect(10 + k * 42 + y * 0.35, y, 2, 1, 'rgba(255,255,255,0.05)');
+    P.ridge(56, 4, 0.7, '#c2ae84', 0.09);
+    P.ground(58, '#ad9a74');
+    for (let k = 0; k < 6; k++) { const ph = (t + k * 7) % 40; P.rect(20 + k * 31 + Math.round(Math.sin((t + k) * 0.3)), 52 - ph, 1, 1, 'rgba(220,240,255,0.6)'); }
+    if (kind === 'algae') {
+      for (let k = 0; k < 12; k++) {
+        const x = 8 + k * 16, h = 6 + (k % 4) * 3;
+        for (let y = 0; y < h; y++) P.rect(x + Math.round(Math.sin(y * 0.5 + t * 0.25 + k) * 1.2), 56 - y, 1, 1, '#4f8a5a');
+      }
+      for (let k = 0; k < 5; k++) P.dome(20 + k * 38, 57, 3, '#6a9a6a');
+    } else if (kind === 'ediacara') {
+      for (let k = 0; k < 9; k++) {
+        const x = 10 + k * 21, h = 8 + (k % 3) * 4;
+        for (let y = 0; y < h; y++) {
+          const sway = Math.round(Math.sin(y * 0.3 + t * 0.2 + k) * 1);
+          P.rect(x + sway - 1, 56 - y, 3, 1, y % 2 ? '#d29a72' : '#b9805c');
+        }
+      }
+      for (let k = 0; k < 6; k++) { P.disc(16 + k * 33, 58, 3, '#c98a6a'); P.disc(16 + k * 33, 58, 1, '#a46a4e'); }
+    } else {                                                        // カンブリア
+      for (let k = 0; k < 7; k++) { const x = 6 + k * 28; P.rect(x, 48 - (k % 3) * 3, 3, 10 + (k % 3) * 3, '#c9a24f'); P.rect(x + 1, 47 - (k % 3) * 3, 1, 1, '#e8c86a'); }
+      for (let k = 0; k < 4; k++) P.sprite(SPR.trilo, { a: '#a8946a', b: '#5e5240' }, wrapX(k * 52 + t * 0.4 * (k % 2 ? 1 : -1), PW, 20), 49 + (k % 2) * 2, k % 2 === 0, 2);
+      P.sprite(SPR.anomalo, { a: '#d0806a', b: '#8a4a38' }, wrapX(t * 0.9, PW, 50), 18 + Math.round(Math.sin(t * 0.15) * 2), false, 2);
+      for (let k = 0; k < 2; k++) {
+        const x = 40 + k * 90, y = 12 + Math.round(Math.sin(t * 0.2 + k) * 3);
+        P.dome(x, y, 4, 'rgba(230,200,240,0.7)');
+        for (let i = -3; i <= 3; i += 2) P.rect(x + i, y + 1, 1, 3 + ((t + i) % 2), 'rgba(230,200,240,0.6)');
+      }
+    }
+  }
+
+  function sceneSnowball(P, t) {
+    P.bands(['#c3d1db', '#cfdbe3', '#dbe4ea', '#e6edf1']);
+    P.disc(150, 12, 5, '#fffaf0');
+    P.ridge(42, 10, 0.4, '#eef3f6', 0.05);
+    P.ground(46, '#f6f9fb');
+    for (let k = 0; k < 7; k++) P.rect(8 + k * 27, 50 + (k % 3) * 4, 14, 1, '#d6e2ea');
+    for (let k = 0; k < 40; k++) {
+      const x = (k * 37 + t * (1 + k % 3) * 0.5) % PW, y = (k * 13 + t * (1 + k % 2)) % PH;
+      P.rect(x, y, 1, 1, '#ffffff');
+    }
+  }
+
+  function scenePaleoLand(P, ya, t) {
+    P.bands(['#9fc3b8', '#b1cfc1', '#c3dac9', '#d3e2cf']);
+    P.clouds(t, '#f2f6f1', 3, 5, 0.12);
+    P.ridge(38, 10, 1.7, '#7fa48c', 0.05);
+    P.ground(44, '#4f6b3a');
+    P.water(49, '#4d7a6e', '#79a296', t, 118, PW);
+    if (ya < 3.8e8) {
+      for (let k = 0; k < 6; k++) fernTree(P, 6 + k * 19, 46, 14 + (k % 3) * 5);
+      for (let k = 0; k < 5; k++) { const x = 14 + k * 23; P.rect(x, 34 + (k % 2) * 4, 1, 12, '#5a7a3e'); }
+    } else {
+      for (let k = 0; k < 14; k++) { const x = 4 + k * 8; P.rect(x, 40 + (k % 3), 1, 6, '#5e8a44'); P.rect(x - 1, 40 + (k % 3), 3, 1, '#6e9a50'); }
+    }
+    if (ya < 3.7e8) P.sprite(SPR.amphib, { a: '#3f5a34', b: '#f0e6c0' }, 100 + Math.round(Math.sin(t * 0.1) * 3), 42, false, 2);
+    if (ya < 3.1e8) P.sprite(SPR.reptile, { a: '#9a7a3e', b: '#2a2a1a' }, wrapX(40 + t * 0.35, 100, 30), 52, false, 2);
+    if (ya < 3.2e8) {
+      const x = wrapX(t * 1.2, PW, 20), y = 20 + Math.round(Math.sin(t * 0.4) * 4);
+      P.rect(x, y, 6, 1, '#2f5f7a'); P.rect(x + 1, y - 1, 2, 1, t % 2 ? 'rgba(230,245,255,0.9)' : 'rgba(230,245,255,0.4)'); P.rect(x + 1, y + 1, 2, 1, 'rgba(230,245,255,0.6)');
+    }
+  }
+
+  function sceneDino(P, ya, t) {
+    P.bands(['#8fc0d8', '#a3cbdc', '#b8d6df', '#cde0df']);
+    P.clouds(t, '#f6f8f6', 3, 4, 0.12);
+    volcano(P, 160, 38, 12, t, '#9a9a88');
+    P.ridge(40, 8, 2.5, '#86a07a', 0.05);
+    P.ground(46, '#7d9a52');
+    P.rect(0, 52, PW, 1, '#6c8a45'); P.rect(0, 58, PW, 1, '#6c8a45');
+    palm(P, 12, 47, 18); palm(P, 92, 47, 14); palm(P, 178, 47, 20);
+    for (let k = 0; k < 5; k++) P.dome(30 + k * 34, 47, 3, '#4f7a3e');
+    P.sprite(SPR.sauro, { a: '#7a6e5c', b: '#544b3e' }, wrapX(10 + t * 0.25, PW, 70), 22, false, 2);
+    P.sprite(SPR.thero, { a: '#a8603a', b: '#6a3f28', e: '#f4ead0' }, 126 + Math.round(Math.sin(t * 0.1) * 6), 26 + (t % 4 < 2 ? 0 : 1), true, 2);
+    const px = wrapX(PW - t * 0.8, PW, 40);
+    P.sprite(t % 4 < 2 ? SPR.pteroA : SPR.pteroB, { a: '#6e4e3e' }, px, 6 + Math.round(Math.sin(t * 0.2) * 2), false, 2);
+    if (ya < 1.5e8) for (let k = 0; k < 3; k++) { const x = wrapX(t * 0.6 + k * 9, PW), y = 22 + k * 2; P.rect(x, y, 3, 1, '#5a4a3a'); P.rect(x + 1, y - (t % 2), 1, 1, '#5a4a3a'); }
+  }
+
+  function sceneMammal(P, ya, t) {
+    P.bands(['#8ec5e6', '#a5d1ea', '#bddcec', '#d3e6ea']);
+    P.clouds(t, '#fbfcfc', 3, 5, 0.12);
+    P.ridge(38, 10, 3.1, '#7fae7a', 0.05);
+    P.ground(45, '#7aa956');
+    for (let k = 0; k < 20; k++) P.rect(4 + k * 10, 47 + (k % 3) * 5, 2, 1, '#5f8f42');
+    roundTree(P, 20, 46, 20); roundTree(P, 40, 46, 16); roundTree(P, 168, 46, 22);
+    if (ya < 6e7) {                                                     // 木の上の霊長類
+      P.rect(23, 27 + (t % 6 < 3 ? 0 : 1), 3, 3, '#5a3a24'); P.rect(169, 25, 3, 3, '#5a3a24');
+    }
+    for (let k = 0; k < 3; k++) P.sprite(SPR.mammal, { a: k === 1 ? '#7d5a3a' : '#9a6e48' }, wrapX(60 + k * 34 + t * 0.2 * (k % 2 ? 1 : -1), PW, 40), 44 + k * 5, k % 2 === 0, 2);
+  }
+
+  function sceneImpact(P, t) {
+    P.bands(['#3a1a14', '#6b2a18', '#a2441c', '#d36a24', '#f09a3a']);
+    const ph = t % 24;
+    if (ph < 10) {                                                      // 落ちてくる隕石
+      const x = 40 + ph * 9, y = 2 + ph * 4;
+      for (let i = 1; i < 8; i++) P.rect(x - i * 2 - 1, y - i * 0.9 - 1, 3, 2, `rgba(255,${200 - i * 12},120,${0.8 - i * 0.09})`);
+      P.disc(x, y, 3, '#fff1c2'); P.disc(x, y, 2, '#ffffff');
+    } else {
+      P.disc(140, 46, Math.min(30, (ph - 9) * 4), 'rgba(255,220,150,0.55)');
+      P.disc(140, 46, Math.min(16, (ph - 9) * 2), '#fff4d0');
+    }
+    P.ridge(44, 6, 1.1, '#2a1410', 0.06);
+    P.ground(47, '#1e0f0c');
+    palm(P, 20, 48, 16, '#1a0d0a', '#1a0d0a'); palm(P, 74, 48, 12, '#1a0d0a', '#1a0d0a');
+    P.sprite(SPR.sauro, { a: '#140a08', b: '#140a08' }, 24, 22, false, 2);
+  }
+
+  function sceneHominin(P, ya, t) {
+    P.bands(['#9cc6e0', '#b6d3e0', '#d0dfdc', '#e6e2cc']);
+    P.disc(160, 12, 6, '#fff3cf');
+    P.ridge(40, 7, 0.9, '#b9a77a', 0.05);
+    P.ground(44, '#d2b46a');
+    for (let k = 0; k < 26; k++) { const x = 3 + k * 7.4, y = 46 + (k % 4) * 4; P.rect(x, y - 1, 1, 2, '#b8963f'); P.rect(x + 2, y - 2, 1, 3, '#b8963f'); }
+    acacia(P, 30, 45, 14); acacia(P, 120, 45, 11); acacia(P, 176, 45, 15);
+    const gx = wrapX(30 + t * 0.4, ya < 1.8e6 ? 110 : PW, 40);
+    for (let k = 0; k < 3; k++) P.sprite((t + k) % 4 < 2 ? SPR.homA : SPR.homB, { a: '#5e3e2a', b: '#3e2a1e' }, gx + k * 11, 43 + (k === 1 ? 2 : 0), false, 2);
+    if (ya < 1.8e6) { fire(P, 158, 60, t); P.sprite(SPR.homB, { a: '#5e3e2a', b: '#3e2a1e' }, 140, 44, false, 2); P.sprite(SPR.homB, { a: '#4e3424', b: '#3e2a1e' }, 168, 44, false, 2); }
+  }
+
+  function sceneSapiens(P, ya, t) {
+    P.bands(['#4b5a8a', '#6b6a95', '#9a7a92', '#c98f86', '#e6ab7c']);
+    for (let k = 0; k < 8; k++) P.rect((k * 53) % PW, 3 + (k * 7) % 12, 1, 1, t % 8 === k ? '#ffffff' : '#d9dcf0');
+    P.ridge(40, 9, 2.4, '#5a5068', 0.05);
+    P.ground(46, '#6f6a50');
+    // 洞窟
+    P.dome(22, 47, 24, '#5c4c44');
+    P.rect(0, 23, 22, 24, '#5c4c44');
+    P.dome(22, 47, 9, '#241c18');
+    if (ya < 4e4) {                                                     // 壁画
+      P.rect(36, 30, 2, 3, '#c8553a'); P.rect(35, 31, 1, 1, '#c8553a'); P.rect(38, 31, 1, 1, '#c8553a');
+      P.rect(28, 27, 6, 2, '#b8743a'); P.rect(29, 29, 1, 2, '#b8743a'); P.rect(32, 29, 1, 2, '#b8743a');
+    }
+    fire(P, 22, 52, t);
+    P.sprite(SPR.mammoth, { a: '#5a3a2a', b: '#efe4cc' }, wrapX(PW - 50 - t * 0.15, PW, 70), 34, true, 2);
+    const hx = 62 + Math.round(Math.sin(t * 0.05) * 10);
+    P.sprite(SPR.hunter, { a: '#c08a66', b: '#6b4a32', c: '#e0cfa0' }, hx, 37, false, 2);
+    P.sprite(SPR.hunter, { a: '#a8764f', b: '#5a3e2a', c: '#e0cfa0' }, hx + 14, 39, false, 2);
+  }
+
+  function sceneCiv(P, ya, t) {
+    P.bands(['#8fc3e3', '#a7cfe6', '#c0dbe8', '#d8e6e6']);
+    P.clouds(t, '#fbfcfc', 3, 5, 0.1);
+    P.ridge(38, 7, 1.9, '#8aa77a', 0.05);
+    if (ya < 4600) { P.tri(152, 41, 14, '#d8c08a', 1.2); for (let dy = 0; dy < 14; dy++) P.rect(152, 41 - dy, Math.round((14 - dy) * 1.2) + 1, 1, '#b89e68'); P.tri(176, 41, 8, '#d0b884', 1.2); }
+    P.ground(42, '#8bb35a');
+    for (let y = 47; y < PH; y += 3) P.rect(84, y, PW - 84, 2, (y >> 1) % 2 ? '#d9c25a' : '#c9b04c');
+    for (let x = 86; x < PW; x += 4) P.rect(x, 46 + ((x + t) % 3 === 0 ? 0 : 1), 1, 1, '#e8d27a');
+    P.rect(0, 58, 84, 6, '#5f95b5'); P.water(58, '#5f95b5', '#8fbcd6', t, 0, 84);
+    hut(P, 12, 50); hut(P, 30, 51, '#a47e50'); hut(P, 52, 50);
+    smoke(P, 16, 43, t, 'rgba(200,200,200,0.55)', 3);
+    if (ya < 5200) { P.rect(66, 40, 10, 10, '#c9a876'); P.rect(68, 37, 6, 3, '#b8966a'); P.rect(70, 44, 2, 6, '#7a5a3a'); }
+    P.sprite(SPR.farmer, { a: '#b98563', b: '#f0e6cc', c: '#7a5a3c' }, 104 + Math.round(Math.sin(t * 0.08) * 8), 46, false, 2);
+    P.sprite(SPR.farmer, { a: '#a8764f', b: '#d8604a', c: '#6a4a32' }, 150 - Math.round(Math.sin(t * 0.08) * 6), 49, false, 2);
+  }
+
+  function sceneModern(P, ya, t) {
+    const Y = NOW - ya;
+    if (Y < 1880) {
+      P.bands(['#a9a69a', '#b8b4a5', '#c8c2b0', '#d6cfba']);
+      P.ridge(40, 5, 1.2, '#9b9384', 0.08);
+      for (let k = 0; k < 4; k++) {
+        const x = 20 + k * 44;
+        P.rect(x, 32, 30, 14, '#8a5a44');
+        for (let i = 0; i < 5; i++) P.tri(x + 3 + i * 6, 32, 3, '#6e4636', 1);
+        P.rect(x + 22, 18, 3, 14, '#6e4636');
+        smoke(P, x + 23, 15, t + k * 3, 'rgba(80,76,72,0.6)', 5);
+      }
+      P.ground(46, '#6c655a');
+      P.rect(0, 55, PW, 1, '#3a3632'); for (let x = 0; x < PW; x += 5) P.rect(x, 56, 3, 1, '#4a4440');
+      const tx = wrapX(PW - t * 1.0, PW, 70);
+      P.sprite(SPR.loco, { a: '#3c3a40', b: '#9a3a2e', c: '#1f1e22', d: '#e8c56a' }, tx, 47);
+      for (let k = 0; k < 2; k++) { P.rect(tx + 15 + k * 13, 49, 11, 5, '#7a4a3a'); P.rect(tx + 16 + k * 13, 54, 2, 1, '#1f1e22'); P.rect(tx + 23 + k * 13, 54, 2, 1, '#1f1e22'); }
+      smoke(P, tx + 2, 44, t, 'rgba(240,240,240,0.7)', 4);
+      return;
+    }
+    if (Y < 1950) {
+      P.bands(['#9ccbe6', '#b2d6ea', '#c8e0ec', '#dce8ea']);
+      P.clouds(t, '#fbfcfc', 3, 4, 0.12);
+      P.sprite(SPR.biplane, { a: '#b84a3a', b: '#5a3a2a' }, wrapX(t * 0.7, PW, 30), 12 + Math.round(Math.sin(t * 0.15) * 2));
+      for (let k = 0; k < 6; k++) building(P, 6 + k * 32, 46, 22, 14 + (k % 3) * 5, ['#a8735a', '#b8866a', '#9a6a52'][k % 3], '#e8dcc8', '#fff0b0', k);
+      for (let k = 0; k < 4; k++) P.rect(20 + k * 50, 28, 1, 18, '#4a3a32');
+      P.rect(0, 29, PW, 1, 'rgba(40,40,40,0.5)');
+      P.ground(46, '#8a8578');
+      P.rect(0, 51, PW, 8, '#5a5a5e'); for (let x = 0; x < PW; x += 10) P.rect(x + (t % 10), 55, 5, 1, '#d8d4c4');
+      P.sprite(SPR.car, { a: '#2a2a2e', b: '#cfe6f2', c: '#111' }, wrapX(t * 1.2, PW, 30), 50);
+      P.sprite(SPR.car, { a: '#6a2a2a', b: '#cfe6f2', c: '#111' }, wrapX(PW - t * 0.9, PW, 30), 53, true);
+      person(P, 60 + Math.round(Math.sin(t * 0.05) * 6), 50, '#4a5a7a'); person(P, 140, 50, '#7a5a4a');
+      return;
+    }
+    if (Y < 2000) {
+      P.bands(['#86bde3', '#9ccbe8', '#b4d8ec', '#cde4ee']);
+      P.clouds(t, '#fbfcfc', 2, 4, 0.12);
+      if (Y >= 1957) {                                                  // ロケット
+        const ph = t % 48, rx = 176, ry = 40 - ph * 1.2;
+        if (ry > -6) { P.rect(rx, ry, 2, 5, '#f2f2f2'); P.rect(rx, ry + 5, 2, 2, '#ff9a3a'); for (let i = 1; i < 8; i++) P.disc(rx + 1, ry + 7 + i * 2, 1, 'rgba(240,240,240,0.5)'); }
+      }
+      for (let k = 0; k < 9; k++) building(P, 4 + k * 19, 46, 14, 12 + ((k * 7) % 5) * 5, ['#8a96a6', '#a0a8b2', '#7a8696'][k % 3], '#c9d6e2', '#fff0b0', k);
+      P.rect(70, 12, 1, 8, '#555'); P.rect(68, 14, 5, 1, '#555');
+      P.ground(46, '#7f8478');
+      P.rect(0, 50, PW, 10, '#4c4e54'); for (let x = 0; x < PW; x += 12) P.rect(x + (t % 12), 55, 6, 1, '#e8e4d0');
+      for (let k = 0; k < 3; k++) P.sprite(SPR.car, { a: ['#c9433a', '#3a6ac9', '#e0b03a'][k], b: '#cfe6f2', c: '#111' }, wrapX(k * 64 + t * 1.4, PW, 30), 50);
+      P.sprite(SPR.car, { a: '#ececec', b: '#cfe6f2', c: '#111' }, wrapX(PW - t * 1.1, PW, 30), 54, true);
+      return;
+    }
+    P.bands(['#7fb6e0', '#96c4e6', '#afd3ea', '#c9e1ee']);
+    P.clouds(t, '#fbfcfc', 2, 4, 0.12);
+    P.sprite(SPR.jet, { a: '#e8eef2' }, wrapX(PW - t * 0.6, PW, 30), 9, true);
+    for (let k = 0; k < 10; k++) building(P, 2 + k * 19, 46, 15, 18 + ((k * 5) % 4) * 6, ['#7ea4c4', '#94b4cc', '#6a8fb0'][k % 3], '#b8d0e2', '#fff4c0', k + 3);
+    // 風車
+    P.rect(186, 20, 1, 26, '#e8ecef');
+    const a = t * 0.35;
+    for (let i = 0; i < 3; i++) { const ang = a + i * 2.094; for (let r = 1; r < 8; r++) P.rect(186 + Math.round(Math.cos(ang) * r), 20 + Math.round(Math.sin(ang) * r), 1, 1, '#f4f6f8'); }
+    P.ground(46, '#8a9088');
+    P.rect(0, 50, PW, 8, '#4c4e54'); for (let x = 0; x < PW; x += 12) P.rect(x + (t % 12), 54, 6, 1, '#e8e4d0');
+    for (let k = 0; k < 2; k++) P.sprite(SPR.car, { a: ['#ffffff', '#3a3a3e'][k], b: '#cfe6f2', c: '#111' }, wrapX(k * 90 + t * 1.3, PW, 30), 49);
+    P.rect(0, 58, PW, 6, '#b8b4aa');
+    for (let k = 0; k < 6; k++) person(P, wrapX(k * 33 + t * (k % 2 ? 0.25 : -0.25), PW), 64, ['#d0603a', '#3a5a8a', '#5a8a5a'][k % 3], true);
+  }
+
+  function drawScene(ctx, ya, t, fx) {
+    const P = painter(ctx);
+    ctx.clearRect(0, 0, PW, PH);
+    if (fx === 'impact') sceneImpact(P, t);
+    else if (ya > 3.8e9) sceneHadean(P, ya, t);
+    else if (ya > 2.4e9) sceneArchean(P, ya, t, false);
+    else if (ya > 2.0e9) sceneArchean(P, ya, t, true);
+    else if (ya > 1.0e9) sceneProterozoic(P, t);
+    else if (ya > 7.2e8 || (ya > 5.4e8 && ya <= 6.35e8)) sceneUnderwater(P, t, ya > 5.75e8 ? 'algae' : 'ediacara');
+    else if (ya > 6.35e8) sceneSnowball(P, t);
+    else if (ya > 4.2e8) sceneUnderwater(P, t, 'cambrian');
+    else if (ya > 2.3e8) scenePaleoLand(P, ya, t);
+    else if (ya > 6.6e7) sceneDino(P, ya, t);
+    else if (ya > 7e6) sceneMammal(P, ya, t);
+    else if (ya > 3e5) sceneHominin(P, ya, t);
+    else if (ya > 1.2e4) sceneSapiens(P, ya, t);
+    else if (ya > ago(1780)) sceneCiv(P, ya, t);
+    else sceneModern(P, ya, t);
+    if (fx === 'eruption') {
+      P.rect(0, 0, PW, PH, 'rgba(70,20,10,0.55)');
+      for (let k = 0; k < 30; k++) P.rect((k * 41 + t) % PW, (k * 17 + t * 2) % PH, 1, 1, 'rgba(60,50,50,0.9)');
+    }
+  }
+
+  const FX_CAPTION = {
+    impact: '巨大隕石の衝突・恐竜の時代が終わる',
+    eruption: '大噴火で空が暗くなる・生き物の大半が絶滅',
+  };
+  function sceneCaption(ya) {
+    if (ya > 3.8e9) return ya > 4.5e9 ? '降りそそぐ隕石・溶岩の大地' : ya > 4.0e9 ? '生まれたばかりの月・噴き出す火山' : '熱い海ができる・生命はまだいない';
+    if (ya > 2.4e9) return ya > 3.5e9 ? '岩だけの陸と浅い海・酸素のない空' : '浅い海に、微生物がつくる岩（ストロマトライト）';
+    if (ya > 2.0e9) return '酸素で鉄がさび、赤い縞の地層ができる';
+    if (ya > 1.0e9) return '陸はまだ岩だけ・海に核を持つ細胞（右上は拡大図）';
+    if (ya > 7.2e8) return '海の中・藻のような多細胞生物';
+    if (ya > 6.35e8) return '全球凍結・地球全体が氷に覆われる';
+    if (ya > 5.4e8) return ya > 5.75e8 ? '海の中・藻のような多細胞生物' : '海の底・葉のような形のエディアカラ生物';
+    if (ya > 4.2e8) return '海の中・三葉虫とアノマロカリス';
+    if (ya > 2.3e8) return ya > 3.8e8 ? '水辺に小さな植物が広がる' : ya > 3.1e8 ? 'シダの森・陸に上がった両生類' : 'シダの森・は虫類と大きなトンボ';
+    if (ya > 6.6e7) return 'ソテツの森・首の長い恐竜と肉食恐竜・空に翼竜';
+    if (ya > 7e6) return '森と草原・小さな哺乳類が増える';
+    if (ya > 3e5) return ya > 1.8e6 ? 'サバンナを二本足で歩く人類の祖先' : 'サバンナで火を囲む原人';
+    if (ya > 1.2e4) return ya > 4e4 ? '洞窟のそば・マンモスを追う狩人' : '洞窟に絵を描く・マンモスを追う狩人';
+    if (ya > ago(1780)) return ya > 4600 ? '畑と小さな村・農耕の始まり' : '畑の向こうにピラミッド・都市と文明';
+    const Y = NOW - ya;
+    if (Y < 1880) return '工場の煙と蒸気機関車';
+    if (Y < 1950) return 'れんがの街と自動車・空に複葉機';
+    if (Y < 2000) return 'ビルの街と道路・ロケットが宇宙へ';
+    return '高層ビルとスマートフォン・風力発電';
+  }
+
+  // 表示中のキャンバスを 8コマ/秒 で描き直す
+  const sceneViews = [];
+  function sceneView(canvas, getYa, getFx) {
+    canvas.width = PW; canvas.height = PH;
+    sceneViews.push({ canvas, ctx: canvas.getContext('2d'), getYa, getFx, key: '' });
+  }
+  const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sceneLoop(now) {
+    const t = REDUCE_MOTION ? 0 : Math.floor(now / 125);
+    for (const v of sceneViews) {
+      if (!v.canvas.offsetParent) continue;
+      const ya = v.getYa();
+      if (ya == null) continue;
+      const fx = v.getFx ? v.getFx(now) : null;
+      const key = `${t}|${ya}|${fx}`;
+      if (key === v.key) continue;
+      v.key = key;
+      drawScene(v.ctx, ya, t, fx);
+    }
+    requestAnimationFrame(sceneLoop);
+  }
+  requestAnimationFrame(sceneLoop);
+
+  /* ============================================================
+     ダイヤル（SVG）
+     ============================================================ */
+  const NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  const C = 200;
+  const pt = (r, deg) => { const a = deg * Math.PI / 180; return [C + r * Math.sin(a), C - r * Math.cos(a)]; };
+  function annulus(a0, a1, r0, r1) {
+    const large = a1 - a0 > 180 ? 1 : 0;
+    const [x0, y0] = pt(r1, a0), [x1, y1] = pt(r1, a1), [x2, y2] = pt(r0, a1), [x3, y3] = pt(r0, a0);
+    return `M${x0},${y0} A${r1},${r1} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r0},${r0} 0 ${large} 0 ${x3},${y3} Z`;
+  }
+  function pie(deg) {
+    if (deg <= 0) return 'M0,0';
+    if (deg >= 359.999) return `M${C},${C - 210} A210,210 0 1 1 ${C - 0.01},${C - 210} Z`;
+    const [x, y] = pt(210, deg);
+    return `M${C},${C} L${C},${C - 210} A210,210 0 ${deg > 180 ? 1 : 0} 1 ${x},${y} Z`;
+  }
+  let maskSeq = 0;
+  function buildDial(svg, { reveal }) {
+    svg.setAttribute('viewBox', '0 0 400 400');
+    svg.textContent = '';
+    const R0 = 150, R1 = 186;
+    let revealPath = null;
+    const gBase = el('g', { opacity: reveal ? 0.2 : 1 }, svg);
+    let gFull = null;
+    if (reveal) {
+      const id = `reveal-${++maskSeq}`;
+      const defs = el('defs', {}, svg);
+      const mask = el('mask', { id }, defs);
+      revealPath = el('path', { d: 'M0,0', fill: '#fff' }, mask);
+      gFull = el('g', { mask: `url(#${id})` }, svg);
+    }
+    for (const e of ERAS) {
+      const d = annulus(fracOf(e.from) * 360, fracOf(e.to) * 360, R0, R1);
+      el('path', { d, fill: e.color, class: 'era-seg' }, gBase);
+      if (gFull) el('path', { d, fill: e.color, class: 'era-seg' }, gFull);
+    }
+    for (let h = 0; h < 24; h++) {
+      const major = h % 3 === 0;
+      const [x0, y0] = pt(R0 - 4, h * 15), [x1, y1] = pt(R0 - (major ? 14 : 9), h * 15);
+      el('line', { x1: x0, y1: y0, x2: x1, y2: y1, class: major ? 'tick major' : 'tick' }, svg);
+      if (major) {
+        const [tx, ty] = pt(R0 - 27, h * 15);
+        el('text', { x: tx, y: ty, class: 'hour-label' }, svg).textContent = h === 0 ? '0/24' : h;
+      }
+    }
+    const hand = el('g', { class: 'hand' }, svg);
+    el('line', { x1: C, y1: C - R0 + 6, x2: C, y2: C - R1 - 10 }, hand);
+    el('circle', { cx: C, cy: C - R1 - 10, r: 7 }, hand);
+    return {
+      set(deg) {
+        hand.setAttribute('transform', `rotate(${deg} ${C} ${C})`);
+        if (revealPath) revealPath.setAttribute('d', pie(deg));
+      },
+    };
+  }
+
+  /* ============================================================
+     拡大ストリップ（いまの区間を線形で）
+     ============================================================ */
+  const strip = {
+    svg: document.getElementById('strip'), seg: -1, dots: [], fill: null, cursor: null, label: null,
+    x(ya) { const g = SEG[this.seg]; return 24 + 592 * (g.a - ya) / (g.a - g.b); },
+    build(i) {
+      this.seg = i;
+      const svg = this.svg; svg.textContent = '';
+      const g = SEG[i];
+      el('line', { x1: 24, y1: 40, x2: 616, y2: 40, class: 'strip-axis' }, svg);
+      this.fill = el('line', { x1: 24, y1: 40, x2: 24, y2: 40, class: 'strip-fill' }, svg);
+      this.dots = EVENTS.filter(e => e.ya <= g.a && e.ya >= g.b).map(e => ({
+        e, node: el('circle', { cx: this.x(e.ya), cy: 40, r: 5.5, class: 'strip-dot' }, svg),
+      }));
+      this.label = el('text', { x: 24, y: 22, class: 'strip-label', 'text-anchor': 'start' }, svg);
+      this.cursor = el('path', { d: 'M0,0', class: 'strip-cursor' }, svg);
+      el('text', { x: 24, y: 70, class: 'strip-end', 'text-anchor': 'start' }, svg).textContent =
+        `${fmtClock(g.a, SEG_DEC[i])}（${fmtAgo(g.a)}）`;
+      el('text', { x: 616, y: 70, class: 'strip-end', 'text-anchor': 'end' }, svg).textContent =
+        `${fmtClock(g.b, SEG_DEC[i])}（${fmtAgo(g.b)}）`;
+      document.getElementById('strip-title').textContent = `${CIRCLED[i]} ${segName(i)}を拡大中`;
+    },
+    update(ya) {
+      const x = this.x(ya);
+      this.fill.setAttribute('x2', x);
+      this.cursor.setAttribute('d', `M${x},31 l-6,-9 h12 Z`);
+      let last = null;
+      for (const d of this.dots) {
+        const passed = d.e.ya >= ya;
+        d.node.classList.toggle('passed', passed);
+        if (passed) last = d;
+      }
+      if (last) {
+        const lx = this.x(last.e.ya);
+        const anchor = lx > 470 ? 'end' : lx < 170 ? 'start' : 'middle';
+        this.label.setAttribute('x', anchor === 'end' ? Math.min(lx + 6, 616) : anchor === 'start' ? Math.max(lx - 6, 24) : lx);
+        this.label.setAttribute('text-anchor', anchor);
+        this.label.textContent = last.e.name;
+      } else {
+        this.label.textContent = '';
+      }
+    },
+  };
+
+  /* ============================================================
+     体感モード
+     ============================================================ */
+  const $ = (id) => document.getElementById(id);
+  const screens = { start: $('screen-start'), run: $('screen-run'), end: $('screen-end') };
+  function show(name) {
+    for (const k in screens) screens[k].hidden = k !== name;
+    window.scrollTo(0, 0);
+  }
+
+  const runDial = buildDial($('run-dial'), { reveal: true });
+  const st = {
+    mode: 'timed', T: 600, speed: 1, paused: false, elapsed: 0, last: 0,
+    next: 0, seg: -1, era: null, prevYa: S, raf: 0, ended: false, logN: 0,
+    curYa: S, fx: null, cap: '',
+  };
+  sceneView($('run-scene'), () => st.curYa, (now) => (st.fx && now < st.fx.until ? st.fx.type : null));
+
+  // スタート画面：時代を順に見せる
+  const HERO_YA = [4.3e9, 3.0e9, 2.2e9, 1.5e9, 6.8e8, 5.0e8, 3.4e8, 1.2e8, 3.0e7, 2.0e6, 5.0e4, 3000, ago(1850), ago(1930), ago(1985), 1];
+  let heroIdx = 0;
+  sceneView($('hero-scene'), () => HERO_YA[heroIdx]);
+  function heroCap() { const ya = HERO_YA[heroIdx]; $('hero-cap').textContent = `${fmtAgo(ya)}・${sceneCaption(ya)}`; }
+  heroCap();
+  setInterval(() => {
+    if (screens.start.hidden) return;
+    heroIdx = (heroIdx + 1) % HERO_YA.length;
+    heroCap();
+  }, 2600);
+
+  function rateAt(i) {
+    if (st.mode === 'rt') return S / DAY;
+    const g = SEG[i];
+    return (g.a - g.b) / (g.f * st.T) * st.speed;
+  }
+
+  let bannerTimer = 0;
+  function banner(text) {
+    const b = $('banner');
+    b.textContent = text;
+    b.classList.add('show');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => b.classList.remove('show'), 3200);
+  }
+
+  function setEventCard(e, animate) {
+    $('evt-t').textContent = `${fmtClock(e.ya, SEG_DEC[segOf(e.ya)])}・${fmtAgo(e.ya)}`;
+    $('evt-n').textContent = e.name;
+    $('evt-s').textContent = e.note;
+    const card = $('evt-card');
+    if (animate) { card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop'); }
+  }
+  function addLog(e) {
+    const li = document.createElement('li');
+    const tt = document.createElement('span');
+    tt.className = 'tt num';
+    tt.textContent = fmtClock(e.ya, SEG_DEC[segOf(e.ya)]);
+    li.append(tt, `${e.name}（${fmtAgo(e.ya)}）`);
+    $('log').prepend(li);
+    $('log-count').textContent = ++st.logN;
+  }
+  function resetLog() { $('log').textContent = ''; st.logN = 0; $('log-count').textContent = 0; }
+
+  function startRun(modeValue) {
+    cancelAnimationFrame(st.raf);
+    Object.assign(st, {
+      mode: modeValue === 'rt' ? 'rt' : 'timed', T: modeValue === 'rt' ? DAY : Number(modeValue),
+      speed: 1, paused: false, elapsed: 0, last: 0, next: 0, seg: -1, era: null, prevYa: S, ended: false,
+      curYa: S, fx: null, cap: '',
+    });
+    resetLog();
+    document.querySelectorAll('.speed .btn').forEach(b => b.classList.toggle('on', b.dataset.speed === '1'));
+    $('btn-pause').textContent = '⏸ 一時停止';
+    $('controls-timed').hidden = st.mode === 'rt';
+    $('controls-rt').hidden = st.mode !== 'rt';
+    $('btn-skip').hidden = st.mode === 'rt';
+    $('banner').classList.remove('show');
+
+    if (st.mode === 'rt') {
+      const ya = rtYa();
+      while (st.next < EVENTS.length && EVENTS[st.next].ya >= ya) addLog(EVENTS[st.next++]);
+      setEventCard(EVENTS[Math.max(0, st.next - 1)], false);
+      st.prevYa = ya;
+    }
+    show('run');
+    st.raf = requestAnimationFrame(tick);
+  }
+
+  function rtYa() {
+    const d = new Date();
+    const sec = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+    return Math.max(1e-9, (1 - sec / DAY) * S);
+  }
+
+  function tick(ts) {
+    if (!st.last) st.last = ts;
+    const dt = Math.min((ts - st.last) / 1000, 0.25);
+    st.last = ts;
+
+    let ya, p;
+    if (st.mode === 'rt') {
+      ya = rtYa();
+      if (ya > st.prevYa + 1e9) { st.next = 0; resetLog(); }     // 日付が変わった
+      p = fracOf(ya);
+    } else {
+      if (!st.paused) st.elapsed += dt * st.speed;
+      p = Math.min(st.elapsed / st.T, 1);
+      ya = yaAt(p);
+    }
+    st.prevYa = ya;
+    render(ya, p);
+
+    if (st.mode === 'timed' && p >= 1) { finish(); return; }
+    st.raf = requestAnimationFrame(tick);
+  }
+
+  function render(ya, p) {
+    const i = segOf(ya);
+    if (i !== st.seg) {
+      if (st.seg >= 0 && st.mode === 'timed' && i > st.seg) {
+        const factor = rateAt(st.seg) / rateAt(i);
+        banner(`ここから時間を約${Math.round(factor)}倍ゆっくり流します\n1秒 = ${fmtYears(rateAt(i))}年`);
+      }
+      st.seg = i;
+      strip.build(i);
+      $('seg-chip').textContent = `${CIRCLED[i]} ${segName(i)}`;
+    }
+
+    // 風景
+    st.curYa = ya;
+    const fxNow = st.fx && performance.now() < st.fx.until ? st.fx.type : null;
+    const cap = fxNow ? FX_CAPTION[fxNow] : sceneCaption(ya);
+    if (cap !== st.cap) { st.cap = cap; $('run-cap').textContent = cap; }
+
+    // ダイヤルと時計
+    runDial.set(fracOf(ya) * 360);
+    const clock = fmtClock(ya, st.mode === 'rt' ? 0 : SEG_DEC[i]);
+    const ck = $('run-clock');
+    ck.textContent = clock;
+    ck.classList.toggle('long', clock.length > 10);
+    $('run-ago').textContent = fmtAgo(ya);
+    $('run-remain').innerHTML = ya > 0
+      ? `24:00 まで、地球時計で あと <b>${fmtSec(ya / S * DAY)}</b>`
+      : '<b>24:00 — 現在</b>';
+    $('rate').textContent = `1秒 = ${fmtYears(rateAt(i))}年${st.mode === 'rt' ? '（リアルタイム）' : ''}`;
+    strip.update(ya);
+
+    // 時代の説明
+    const era = eraOf(ya);
+    if (era !== st.era) {
+      st.era = era;
+      $('run-era').textContent = era.name;
+      const amb = $('ambient');
+      amb.style.opacity = 0;
+      setTimeout(() => { amb.textContent = era.desc; amb.style.opacity = 1; }, 200);
+    }
+
+    // 出来事
+    let fired = null;
+    while (st.next < EVENTS.length && EVENTS[st.next].ya >= ya) {
+      fired = EVENTS[st.next++];
+      addLog(fired);
+      if (fired.fx) st.fx = { type: fired.fx, until: performance.now() + 3500 };
+    }
+    if (fired) setEventCard(fired, true);
+
+    // 次のヒント
+    $('hint').innerHTML = hintText(ya, p);
+  }
+
+  function hintText(ya, p) {
+    if (st.mode === 'rt') {
+      const e = EVENTS[st.next];
+      const sapiens = `毎晩 <b>${fmtClock(3e5)}</b> にホモ・サピエンスが誕生します。`;
+      if (!e) return sapiens;
+      return `次の出来事：<b>${e.name}</b>（${fmtClock(e.ya, SEG_DEC[segOf(e.ya)])}）まで あと ${fmtCountdown((ya - e.ya) / S * DAY)}<br>${sapiens}`;
+    }
+    const targets = [[7e6, '人類の祖先が現れるまで'], [3e5, 'ホモ・サピエンス誕生まで'], [0, '現在まで']];
+    const t = targets.find(([y]) => ya > y);
+    if (!t) return '';
+    const realLeft = (progAt(t[0]) - p) * st.T / st.speed;
+    return `${t[1]}、実際の時間で あと <b>${fmtCountdown(realLeft)}</b>`;
+  }
+
+  function finish() {
+    if (st.ended) return;
+    st.ended = true;
+    setEventCard(EVENTS[EVENTS.length - 1], true);
+    setTimeout(() => showEnd(false), 1800);
+  }
+
+  // 操作
+  $('btn-pause').addEventListener('click', () => {
+    st.paused = !st.paused;
+    $('btn-pause').textContent = st.paused ? '▶ 再開' : '⏸ 一時停止';
+  });
+  document.querySelectorAll('.speed .btn').forEach(b => b.addEventListener('click', () => {
+    st.speed = Number(b.dataset.speed);
+    document.querySelectorAll('.speed .btn').forEach(x => x.classList.toggle('on', x === b));
+  }));
+  $('btn-quit').addEventListener('click', () => { cancelAnimationFrame(st.raf); show('start'); });
+  $('btn-skip').addEventListener('click', () => { st.elapsed = st.T; });
+  $('btn-rt-end').addEventListener('click', () => { cancelAnimationFrame(st.raf); showEnd(false); });
+  $('btn-start').addEventListener('click', () => {
+    startRun(document.querySelector('input[name="mode"]:checked').value);
+  });
+  $('btn-gacha-only').addEventListener('click', () => showEnd(true));
+
+  // 開発用：#scenes で全時代の風景を一覧表示
+  if (location.hash === '#scenes') {
+    const list = [4.55e9, 4.3e9, 3.9e9, 3.6e9, 3.0e9, 2.2e9, 1.5e9, 8e8, 6.8e8, 5.6e8, 5.0e8, 4.0e8, 3.4e8, 2.8e8, 2.0e8, 1.2e8,
+      5.0e7, 4.0e6, 1.0e6, 1.0e5, 2.0e4, 8000, 3000, ago(1850), ago(1930), ago(1975), 1];
+    const box = document.createElement('div');
+    box.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:16px';
+    for (const ya of list) {
+      const wrap = document.createElement('div');
+      const cv = document.createElement('canvas'); cv.className = 'scene';
+      const cap = document.createElement('p'); cap.className = 'scene-cap'; cap.textContent = `${fmtAgo(ya)}・${sceneCaption(ya)}`;
+      wrap.append(cv, cap); box.appendChild(wrap);
+      sceneView(cv, () => ya);
+    }
+    for (const fx of ['impact', 'eruption']) {
+      const wrap = document.createElement('div');
+      const cv = document.createElement('canvas'); cv.className = 'scene';
+      const cap = document.createElement('p'); cap.className = 'scene-cap'; cap.textContent = FX_CAPTION[fx];
+      wrap.append(cv, cap); box.appendChild(wrap);
+      sceneView(cv, () => (fx === 'impact' ? 6.6e7 : 2.52e8), () => fx);
+    }
+    screens.start.appendChild(box);
+  }
+  $('btn-again').addEventListener('click', () => { cancelAnimationFrame(st.raf); show('start'); });
+
+  /* ============================================================
+     結果画面
+     ============================================================ */
+  function showEnd(gachaOnly) {
+    $('end-summary').hidden = gachaOnly;
+    if (!gachaOnly) renderStats();
+    show('end');
+  }
+
+  function renderStats() {
+    const rows = [
+      ['生命がいた時間',             '38億年',   3.8e9,              false],
+      ['動物がいた時間',             '5.4億年',  5.4e8,              false],
+      ['恐竜が栄えた時間',           '1.6億年',  2.3e8 - 6.6e7,      false],
+      ['人類の祖先がいた時間',       '700万年',  7e6,                false],
+      ['ホモ・サピエンスがいた時間', '30万年',   3e5,                true],
+      ['文字と都市の歴史',           '5000年',   5e3,                true],
+      ['産業革命から今まで',         `${ago(1780)}年`, ago(1780),    true],
+    ];
+    const ul = $('stats'); ul.textContent = '';
+    for (const [label, span, years, hl] of rows) {
+      const li = document.createElement('li');
+      if (hl) li.className = 'hl';
+      const l = document.createElement('span'); l.className = 'lbl';
+      l.textContent = label;
+      const sm = document.createElement('small'); sm.textContent = span; l.appendChild(sm);
+      const v = document.createElement('span'); v.className = 'val';
+      v.textContent = fmtSec(years / S * DAY);
+      li.append(l, v);
+      ul.appendChild(li);
+    }
+    const label = st.mode === 'rt' ? '24時間' : fmtSec(st.T);
+    $('end-lead').textContent = st.mode === 'rt'
+      ? '現在。今日の24時間が、そのまま46億年でした。'
+      : `現在。${label}かけて、46億年を流しました。`;
+    $('punch').textContent = st.mode === 'rt'
+      ? '人類の歴史は、毎晩23:59:54からのたった5.6秒です。'
+      : `最後は時間をゆっくり流しました。もし縮尺どおり${label}で流していたら、ホモ・サピエンスが映るのは最後の${fmtSec(3e5 / S * st.T)}だけでした。`;
+  }
+
+  $('btn-life').addEventListener('click', () => {
+    const y = Number($('birth').value);
+    const out = $('life-out');
+    if (!Number.isFinite(y) || y < 1900 || y > NOW) { out.textContent = `1900〜${NOW}の西暦で入力してください。`; return; }
+    const n = Math.max(NOW - y, 0.5);
+    out.innerHTML = `生まれてからの${n >= 1 ? n + '年' : '日々'}は、地球時計で <b>${fmtSec(n / S * DAY)}</b>。<br>` +
+      `100年生きても <b>${fmtSec(100 / S * DAY)}</b>。24:00 の、ほんの直前です。`;
+  });
+  $('birth').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') $('btn-life').click(); });
+
+  /* ============================================================
+     ガチャ
+     ============================================================ */
+  const KEY = 'earth24.gacha';
+  let memo = { n: 0, best: null };     // localStorage が使えない環境ではこのページの間だけ覚える
+  const store = {
+    get() { try { return JSON.parse(localStorage.getItem(KEY)) || memo; } catch (e) { return memo; } },
+    set(v) { memo = v; try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* 保存できなくても遊べる */ } },
+  };
+  const gDial = buildDial($('gacha-dial'), { reveal: false });
+  const g = { angle: 0, spinning: false, last: null, viewYa: null };
+  sceneView($('g-scene'), () => g.viewYa);
+  gDial.set(0);
+  renderTally();
+
+  function renderTally() {
+    const s = store.get();
+    if (!s.n) { $('tally').textContent = `人類の時代（サピエンス以降）を引ける確率は 約${fmtOneIn(1 / P_HUMAN)}分の1。`; return; }
+    const best = s.best != null ? ERAS[s.best] : null;
+    $('tally').textContent = `これまで ${s.n} 回引きました` + (best ? `・いちばんレア：${best.name}` : '');
+  }
+
+  $('btn-spin').addEventListener('click', () => {
+    if (g.spinning) return;
+    g.spinning = true;
+    $('btn-spin').disabled = true;
+    const t = Math.random() * S;                   // 何年前（一様）
+    const target = fracOf(t) * 360;
+    const start = g.angle % 360;
+    const end = start + 360 * 3 + ((target - start + 360) % 360);
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const dur = reduce ? 300 : 2400;
+    const t0 = performance.now();
+    $('result').hidden = true;
+    $('g-scene-box').hidden = false;
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - k, 3);
+      const deg = start + (end - start) * e;
+      gDial.set(deg);
+      const ya = (1 - (deg % 360) / 360) * S;
+      $('g-clock').textContent = fmtClock(ya);
+      $('g-ago').textContent = fmtAgo(ya);
+      $('g-era').textContent = eraOf(ya).name;
+      g.viewYa = ya;
+      $('g-cap').textContent = sceneCaption(ya);
+      if (k < 1) { requestAnimationFrame(step); return; }
+      g.angle = target;
+      gDial.set(target);
+      g.spinning = false;
+      $('btn-spin').disabled = false;
+      $('btn-spin').textContent = 'もう一度引く';
+      showResult(t);
+    };
+    requestAnimationFrame(step);
+  });
+
+  function showResult(t) {
+    const idx = ERAS.indexOf(eraOf(t));
+    const era = ERAS[idx];
+    const p = (era.from - era.to) / S;
+    const r = rarity(p);
+    const clock = fmtClock(t);
+    g.last = { t, era, p, r, clock };
+
+    $('g-clock').textContent = clock;
+    $('g-ago').textContent = fmtAgo(t);
+    g.viewYa = t;
+    $('g-cap').textContent = sceneCaption(t);
+    $('g-era').textContent = era.name;
+    $('r-rar').textContent = r.label;
+    $('r-rar').style.background = r.color;
+    $('r-name').textContent = era.name;
+    $('r-time').textContent = `地球時計 ${clock}・${fmtAgo(t)}`;
+    $('r-desc').textContent = era.desc;
+    $('r-prob').innerHTML = `この時代の出現率 <b>${fmtProb(p)}</b><br>人類の時代（サピエンス以降）を引ける確率は 約${fmtOneIn(1 / P_HUMAN)}分の1`;
+    $('result').style.borderColor = r.color;
+    $('result').hidden = false;
+
+    const s = store.get();
+    s.n += 1;
+    if (s.best == null || p < (ERAS[s.best].from - ERAS[s.best].to) / S) s.best = idx;
+    store.set(s);
+    renderTally();
+
+    $('share-row').hidden = false;
+    $('btn-share-native').hidden = EMBEDDED || !(navigator.canShare && navigator.share);
+    $('btn-save').hidden = EMBEDDED;
+    $('save-hint').hidden = !EMBEDDED;
+    $('btn-share-x').href = xUrl();
+    const url = drawCard(g.last).toDataURL('image/png');
+    $('preview-img').src = url;
+    $('preview').hidden = false;
+  }
+
+  /* ============================================================
+     シェアカード（1200×630）
+     ============================================================ */
+  const FONT = '"Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif';
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function drawCard(res) {
+    const cv = document.createElement('canvas');
+    cv.width = 1200; cv.height = 630;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#0c111b'; ctx.fillRect(0, 0, 1200, 630);
+
+    // 風景（ドット絵を6倍に拡大）
+    const sc = document.createElement('canvas');
+    sc.width = PW; sc.height = PH;
+    drawScene(sc.getContext('2d'), res.t, 3, null);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(sc, 24, 24, PW * 6, PH * 6);
+    ctx.fillStyle = 'rgba(12,17,27,0.72)'; ctx.fillRect(24, 360, PW * 6, 48);
+    ctx.fillStyle = '#e8edf4'; ctx.font = `700 24px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(sceneCaption(res.t), 44, 385);
+
+    // 小さな地球時計
+    const cx = 124, cy = 520, rMid = 72;
+    for (const e of ERAS) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, rMid, -Math.PI / 2 + fracOf(e.from) * Math.PI * 2, -Math.PI / 2 + fracOf(e.to) * Math.PI * 2);
+      ctx.strokeStyle = e.color; ctx.lineWidth = 22; ctx.stroke();
+    }
+    const am = -Math.PI / 2 + fracOf(res.t) * Math.PI * 2;
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(am) * (rMid - 20), cy + Math.sin(am) * (rMid - 20));
+    ctx.lineTo(cx + Math.cos(am) * (rMid + 20), cy + Math.sin(am) * (rMid + 20));
+    ctx.stroke();
+    ctx.fillStyle = res.r.color;
+    ctx.beginPath(); ctx.arc(cx + Math.cos(am) * (rMid + 24), cy + Math.sin(am) * (rMid + 24), 8, 0, Math.PI * 2); ctx.fill();
+    ctx.textAlign = 'center'; ctx.fillStyle = '#ffffff'; ctx.font = `800 22px ${FONT}`;
+    ctx.fillText(res.clock, cx, cy);
+
+    // テキスト
+    const x = 236, right = 1176;
+    const fit = (text, weight, size, min, maxW) => {
+      ctx.font = `${weight} ${size}px ${FONT}`;
+      while (ctx.measureText(text).width > maxW && size > min) { size -= 1; ctx.font = `${weight} ${size}px ${FONT}`; }
+    };
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#9fb0c8'; ctx.font = `700 24px ${FONT}`;
+    ctx.fillText('もし地球史のランダムな瞬間に生まれていたら…', x, 456);
+
+    ctx.font = `900 20px ${FONT}`;
+    const bw = ctx.measureText(res.r.label).width + 24;
+    ctx.fillStyle = res.r.color; roundRect(ctx, x, 478, bw, 34, 8); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fillText(res.r.label, x + 12, 502);
+    fit(res.era.name, 900, 48, 30, right - (x + bw + 16));
+    ctx.fillText(res.era.name, x + bw + 16, 514);
+
+    const line = `${fmtAgo(res.t)}・出現率 ${fmtProb(res.p)}`;
+    ctx.fillStyle = '#ffb48f'; fit(line, 800, 26, 18, right - x);
+    ctx.fillText(line, x, 560);
+
+    ctx.fillStyle = '#7f8ea6'; ctx.font = `700 20px ${FONT}`;
+    ctx.fillText('地球の24時間  #地球の24時間', x, 604);
+    return cv;
+  }
+
+  function shareText() {
+    const r = g.last;
+    return `もし地球史のランダムな瞬間に生まれていたら…\n地球時計 ${r.clock}（${fmtAgo(r.t)}）「${r.era.name}」でした。出現率 ${fmtProb(r.p)}\n人類の時代を引ける確率は約${fmtOneIn(1 / P_HUMAN)}分の1。\n#地球の24時間`;
+  }
+  const pageUrl = () => !EMBEDDED && /^https?:/.test(location.protocol) ? location.href.split('#')[0].split('?')[0] : '';
+
+  function xUrl() {
+    const u = new URL('https://twitter.com/intent/tweet');
+    u.searchParams.set('text', shareText());
+    if (pageUrl()) u.searchParams.set('url', pageUrl());
+    return u.toString();
+  }
+  $('btn-save').addEventListener('click', () => {
+    if (!g.last) return;
+    const a = document.createElement('a');
+    a.href = drawCard(g.last).toDataURL('image/png');
+    a.download = 'earth-24h.png';
+    a.click();
+  });
+  $('btn-share-native').addEventListener('click', () => {
+    if (!g.last) return;
+    drawCard(g.last).toBlob(async (blob) => {
+      const file = new File([blob], 'earth-24h.png', { type: 'image/png' });
+      const data = { text: shareText(), files: [file] };
+      if (pageUrl()) data.url = pageUrl();
+      try {
+        if (navigator.canShare(data)) await navigator.share(data);
+        else await navigator.share({ text: shareText(), url: pageUrl() || undefined });
+      } catch (e) { /* キャンセル */ }
+    });
+  });
+})();
+</script>
+</body>
+</html>
