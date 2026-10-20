@@ -87,12 +87,15 @@
     if (name === 'now') zoomShow();
     window.scrollTo(0, 0);
   }
-  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => show(t.dataset.tab === 'evo' ? evoScreen : t.dataset.tab)));
+  // 「生まれる」タブ：プレイ中ならその続きへ、それ以外はガチャの画面へ
+  document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => show(t.dataset.tab === 'evo' ? (evoScreen === 'play' && P.on ? 'play' : 'birth') : t.dataset.tab)));
 
   /* ============================================================
      いまの地球（日本時間と同期）
      ============================================================ */
   const hDial = buildDial($('h-dial'), { reveal: true });
+  const GL = { ctx: null, last: 0 };
+  { const c = $('h-globe'); c.width = c.height = E.globe.N; GL.ctx = c.getContext('2d'); }
   const FX_BY_EVENT = { '大酸化イベント': 'oxygen', '全球凍結（スターティアン氷期）': 'ice', '2度目の全球凍結（マリノア氷期）': 'ice', 'ペルム紀末の大量絶滅': 'eruption', '恐竜の絶滅': 'impact' };
   const home = { next: 0, lastSec: -1, logN: 0, last: null, ya: S, fx: null, fxUntil: 0, secShown: -1, cap: '' };
   sceneView($('h-scene'), (now) => ({ ya: home.ya, fx: now < home.fxUntil ? home.fx : null }));
@@ -146,6 +149,8 @@
     $('h-jst').textContent = jstText(sec, dec);
     $('h-ago').textContent = fmtAgo(ya);
     hDial.set(fracOf(ya) * 360);
+    const nowMs = performance.now();
+    if (nowMs - GL.last > 100) { GL.last = nowMs; E.globe.draw(GL.ctx, ya, REDUCE ? 0.6 : nowMs * 0.00028); }
     setClock($('h-clock'), fmtClock(ya, clockDecFor(ya)));
     $('h-era').textContent = eraOf(ya).name;
     $('h-left').textContent = `24:00まで ${left < 60 ? fmtSec(left) : fmtCountdown(left)}`;
@@ -157,6 +162,7 @@
     if (whole === home.secShown) return;
     home.secShown = whole;
     $('h-period').textContent = periodLabel(ya);
+    $('h-globe-cap').textContent = `地球のすがた：${E.globe.label(ya)}`;
     const o2 = status.oxygen(ya), day = status.dayLength(ya), sun = status.sun(ya);
     $('h-o2').textContent = o2 < 0.01 ? 'ほぼ0%' : `約${o2 < 1 ? o2.toFixed(1) : Math.round(o2)}%`;
     $('h-o2-f').style.width = `${Math.min(100, (o2 / 35) * 100)}%`;
@@ -312,11 +318,14 @@
     $('z-play').textContent = '⏸ 一時停止';
     zEvent({ ya: ZSEG[0].a, name: '最後の3分間へ', note: '人類の祖先が現れる直前から、今日までを再生します。', kind: '' }, false);
     zRender();
+    $('z-seek').value = 0;
   }
   function zRender() {
     const ya = Z.ya, i = zSegOf(ya);
+    if (!Z.dragging) $('z-seek').value = Math.round(Z.p * 1000);
     if (i !== Z.seg) {
-      if (Z.seg >= 0 && i > Z.seg) zBanner(`ここから時間を約${Math.round(zRate(Z.seg) / zRate(i))}倍ゆっくり流します\n1秒 = ${fmtYears(zRate(i))}年`);
+      [...$('z-seek-labels').children].forEach((sp, k) => sp.classList.toggle('on', k === i));
+      if (Z.seg >= 0 && i > Z.seg && !Z.quiet) zBanner(`ここから時間を約${Math.round(zRate(Z.seg) / zRate(i))}倍ゆっくり流します\n1秒 = ${fmtYears(zRate(i))}年`);
       Z.seg = i;
       zStrip.build(i);
       $('z-chip').textContent = segLabel(i);
@@ -335,7 +344,7 @@
   }
   function zLoop(ts) {
     requestAnimationFrame(zLoop);
-    if ($('screen-now').hidden || !Z.playing || Z.ended) { Z.last = 0; return; }
+    if ($('screen-now').hidden || !Z.playing || Z.ended || Z.dragging) { Z.last = 0; return; }
     if (!Z.last) Z.last = ts;
     const dt = Math.min((ts - Z.last) / 1000, 0.25);
     Z.last = ts;
@@ -361,6 +370,42 @@
     if (Z.seg >= 0) $('z-rate').textContent = `1秒 = ${fmtYears(Math.max(zRate(Z.seg), 0.1))}年`;
   }));
   $('z-restart').addEventListener('click', zReset);
+
+  // ゲージをドラッグして、進めたり戻したりする
+  const Z_INTRO = { ya: ZSEG[0].a, name: '最後の3分間へ', note: '人類の祖先が現れる直前から、今日までを再生します。', kind: '' };
+  {
+    const box = $('z-seek-labels');
+    box.style.gridTemplateColumns = ZSEG.map((g) => `${g.f}fr`).join(' ');
+    ZSEG.forEach((g, i) => { const sp = document.createElement('span'); sp.textContent = i === ZSEG.length - 1 ? 'AIの台頭' : segLabel(i).replace('最後の', ''); box.appendChild(sp); });
+  }
+  const zCum = (i) => ZSEG.slice(0, i).reduce((a, g) => a + g.f, 0);
+  function zSeek(p) {
+    Z.p = Math.max(0, Math.min(1, p));
+    Z.ya = zYa(Z.p);
+    Z.next = ZEV.findIndex((e) => e.ya < Z.ya);
+    if (Z.next < 0) Z.next = ZEV.length;
+    Z.quiet = true; zRender(); Z.quiet = false;
+    zEvent(ZEV[Z.next - 1] || Z_INTRO, false);
+    if (Z.p >= 1) { if (!Z.ended) zFinish(); }
+    else if (Z.ended) { Z.ended = false; $('z-end').hidden = true; }
+  }
+  const seek = $('z-seek');
+  seek.addEventListener('input', () => { Z.dragging = true; zSeek(seek.value / 1000); });
+  seek.addEventListener('change', () => { Z.dragging = false; });
+  seek.addEventListener('pointerup', () => { Z.dragging = false; });
+  // 拡大中の区間の帯も、つかんで動かせる
+  const strip = $('z-strip');
+  function stripTo(ev) {
+    const r = strip.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, ((ev.clientX - r.left) / r.width * 640 - 24) / 592));
+    const i = zStrip.seg;
+    zSeek(zCum(i) + ZSEG[i].f * Math.min(frac, 0.9999));
+  }
+  strip.addEventListener('pointerdown', (ev) => { Z.dragging = true; strip.setPointerCapture(ev.pointerId); stripTo(ev); });
+  strip.addEventListener('pointermove', (ev) => { if (Z.dragging && strip.hasPointerCapture(ev.pointerId)) stripTo(ev); });
+  const stripEnd = () => { Z.dragging = false; };
+  strip.addEventListener('pointerup', stripEnd);
+  strip.addEventListener('pointercancel', stripEnd);
   $('z-again').addEventListener('click', zReset);
 
   let aiBuilt = false;
@@ -762,7 +807,9 @@
     $('r-img').src = card.toDataURL('image/png');
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
-    R.share = { text: shareText(L, alive, endYa), url: shareUrl(L, alive, endYa), card };
+    const data = resultData(L, alive, endYa);
+    histAdd(data);
+    R.share = { text: shareTextFrom(data), url: shareUrlFrom(data), card };
     $('r-x').href = xUrl(R.share);
     $('r-share').hidden = EMBEDDED || !navigator.share;
     $('r-copy').hidden = !R.share.url;
@@ -807,28 +854,32 @@
     ctx.fillText('地球の24時間  #地球の24時間', 28, 604);
     return cv;
   }
-  function shareText(L, alive, endYa) {
-    return alive
-      ? `${fmtAgo(L.bornYa)}に「${L.firstName}」として生まれ、${L.path.length}回の分かれ道を選んで、${L.name}として今日まで生き残った。\n#地球の24時間 #進化ガチャ`
-      : `${fmtAgo(L.bornYa)}に「${L.firstName}」として生まれ、${fmtAgo(endYa)}、${L.name}として絶滅した。\n#地球の24時間 #進化ガチャ`;
+  // 1回の人生（系統）の記録。シェアのリンクにも、履歴にも同じ形で使う
+  function resultData(L, alive, endYa) {
+    return { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause };
+  }
+  function cleanData(d) {
+    if (!d || d.v !== 1 || !evo.PLANS[d.p] || !(d.b > 0 && d.b <= S) || !(d.e >= 0 && d.e <= d.b)) return null;
+    const str = (x, n) => String(x || '').slice(0, n);
+    return { v: 1, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)) };
+  }
+  function shareTextFrom(d) {
+    return d.a
+      ? `${fmtAgo(d.b)}に「${d.f}」として生まれ、${d.k.length}回の分かれ道を選んで、${d.n}として今日まで生き残った。\n#地球の24時間 #進化ガチャ`
+      : `${fmtAgo(d.b)}に「${d.f}」として生まれ、${fmtAgo(d.e)}、${d.n}として絶滅した。\n#地球の24時間 #進化ガチャ`;
   }
   // 結果をリンクに埋め込む（#r=...）。開いた人には、この結果と「あなたも生まれてみる」が出る
   const b64 = (str) => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64 = (str) => decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))));
-  function shareUrl(L, alive, endYa) {
+  function shareUrlFrom(d) {
     if (EMBEDDED || !/^https?:/.test(location.protocol)) return '';
-    const data = { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause };
-    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify(data))}`;
+    const { v, b, f, n, p, h, a, e, k, c } = d;
+    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, b, f, n, p, h, a, e, k, c }))}`;
   }
   function readShared() {
     const m = location.hash.match(/^#r=([A-Za-z0-9_-]+)$/);
     if (!m) return null;
-    try {
-      const d = JSON.parse(unb64(m[1]));
-      if (!d || d.v !== 1 || !evo.PLANS[d.p] || !(d.b > 0 && d.b <= S) || !(d.e >= 0 && d.e <= d.b)) return null;
-      const str = (x, n) => String(x || '').slice(0, n);
-      return { b: d.b, e: d.e, a: !!d.a, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)) };
-    } catch (e) { return null; }
+    try { return cleanData(JSON.parse(unb64(m[1]))); } catch (e) { return null; }
   }
   function xUrl(sh) {
     const u = new URL('https://twitter.com/intent/tweet');
@@ -855,6 +906,84 @@
     });
   });
 
+  /* ---------- 生きた系統の履歴（この端末のブラウザに保存） ---------- */
+  const HKEY = 'earth24.history';
+  let memHist = [];
+  function histLoad() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(HKEY));
+      if (!Array.isArray(raw)) return memHist;
+      return raw.map((x) => { const d = cleanData(x); return d ? { ...d, t: Number(x.t) || 0, id: String(x.id || '') } : null; }).filter(Boolean);
+    } catch (e) { return memHist; }
+  }
+  function histSave(list) {
+    memHist = list;
+    try { localStorage.setItem(HKEY, JSON.stringify(list)); } catch (e) { /* 保存できなくても、このページの間は残る */ }
+  }
+  function histAdd(d) {
+    const list = histLoad();
+    list.unshift({ ...d, t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) });
+    histSave(list.slice(0, 100));
+    renderHist();
+  }
+  const HD = { st: null, d: null };
+  sceneView($('hd-scene'), () => HD.st);
+  const fmtDate = (t) => { const x = new Date(t); return `${x.getMonth() + 1}/${x.getDate()} ${x.getHours()}:${String(x.getMinutes()).padStart(2, '0')}`; };
+  function renderHist() {
+    const list = histLoad();
+    const ul = $('hist-list'); ul.textContent = '';
+    $('hist-empty').hidden = list.length > 0;
+    $('hist-clear').hidden = list.length === 0;
+    if (!list.length) { $('hist-sum').textContent = ''; return; }
+    const alive = list.filter((d) => d.a).length;
+    const longest = list.reduce((m, d) => (d.b - d.e > m.b - m.e ? d : m), list[0]);
+    $('hist-sum').textContent = `これまで${list.length}回生まれ、${alive}回は今日まで生き残りました（生存率${Math.round(alive / list.length * 100)}%）。いちばん長く続いたのは「${longest.f}」からの系統（${fmtYears(longest.b - longest.e)}年）。`;
+    list.forEach((d) => {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.innerHTML = '<span class="tag"></span><span class="hn"><span class="hm"></span><span class="hs"></span></span>';
+      const tag = b.querySelector('.tag');
+      tag.textContent = d.a ? '生存' : '絶滅';
+      tag.classList.add(d.a ? 'alive' : 'dead');
+      b.querySelector('.hm').textContent = d.f === d.n ? d.n : `${d.f} → ${d.n}`;
+      b.querySelector('.hs').textContent = `${fmtAgo(d.b)}〜${d.a ? '今' : fmtAgo(d.e)}・分かれ道${d.k.length}回・${fmtDate(d.t)}`;
+      b.addEventListener('click', () => openHist(d));
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+  function openHist(d) {
+    HD.d = d;
+    HD.st = endScene(d.a, d.e, d.p, d.h, d.c);
+    const t = $('hd-ttl');
+    t.textContent = d.a ? '今も生きている' : '絶滅';
+    t.className = `ttl ${d.a ? 'alive' : 'dead'}`;
+    $('hd-text').textContent = d.a
+      ? `${fmtAgo(d.b)}に「${d.f}」として生まれ、${d.k.length}回の分かれ道を選んで、${d.n}として今日まで生き残りました。今の子孫：${evo.PLANS[d.p].today}。`
+      : `${fmtAgo(d.b)}に「${d.f}」として生まれ、${fmtAgo(d.e)}、${d.n}として絶滅しました${d.c && !d.c.includes('背景') ? `（${d.c}）` : ''}。続いた期間は${fmtYears(d.b - d.e)}年。`;
+    const ol = $('hd-path'); ol.textContent = '';
+    d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = x; ol.appendChild(li); });
+    const url = shareUrlFrom(d);
+    $('hd-x').href = xUrl({ text: shareTextFrom(d), url });
+    $('hd-copy').hidden = !url;
+    $('hd-copy-ok').textContent = '';
+    $('hist-detail').hidden = false;
+    $('hist-detail').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
+  }
+  $('hd-close').addEventListener('click', () => { $('hist-detail').hidden = true; HD.st = null; });
+  $('hd-copy').addEventListener('click', async () => {
+    const url = shareUrlFrom(HD.d);
+    try { await navigator.clipboard.writeText(url); $('hd-copy-ok').textContent = 'リンクをコピーしました'; }
+    catch (e) { $('hd-copy-ok').textContent = url; }
+  });
+  let clearArmed = 0;
+  $('hist-clear').addEventListener('click', () => {
+    if (Date.now() - clearArmed > 4000) { clearArmed = Date.now(); $('hist-clear').textContent = 'もう一度押すと、すべての記録を消します'; return; }
+    histSave([]); clearArmed = 0; $('hist-clear').textContent = '記録をすべて消す';
+    $('hist-detail').hidden = true; HD.st = null;
+    renderHist();
+  });
+
   // シェアされた結果を表示する
   const SH = { st: null };
   sceneView($('s-scene'), () => SH.st);
@@ -877,6 +1006,12 @@
   });
   $('r-again').addEventListener('click', () => { show('birth'); spinTo(Math.random() * S); });
   $('r-home').addEventListener('click', () => show('home'));
+  $('r-hist').addEventListener('click', () => {
+    show('birth');
+    const list = histLoad();
+    if (list.length) openHist(list[0]);
+    $('hist').scrollIntoView({ block: 'start', behavior: REDUCE ? 'auto' : 'smooth' });
+  });
 
   // 開発用（localhost のときだけ）：生まれる時代と生き物を指定して試す
   if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
@@ -899,6 +1034,7 @@
   homeInit();
   liveTick();
   requestAnimationFrame(homeLoop);
+  renderHist();
   const shared = readShared();
   if (shared) showShared(shared);
   if (location.hash === '#clock') show('home');

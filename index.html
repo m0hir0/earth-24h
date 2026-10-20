@@ -336,6 +336,50 @@
   details.card summary { cursor: pointer; font-weight: 800; }
   .copy-ok { font-size: 12.5px; color: var(--good); text-align: center; min-height: 1.4em; margin: 0; }
 
+  /* 地球の時計 */
+  .globe {
+    position: absolute; left: 23%; top: 23%; width: 54%; height: 54%; border-radius: 50%;
+    image-rendering: crisp-edges; image-rendering: pixelated; box-shadow: 0 0 28px rgba(110, 170, 255, .28);
+  }
+  .dial-under { text-align: center; margin-top: 4px; }
+  .dial-under .clock { font-size: 26px; font-weight: 900; line-height: 1.2; }
+  .dial-under .era { font-size: 13px; font-weight: 700; color: var(--text-2); }
+  .dial-under .ago { font-size: 12.5px; color: var(--muted); }
+  .dial-under .gcap { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* 今を拡大のシークバー */
+  .seek { margin: -4px 0 12px; }
+  .seek input { width: 100%; accent-color: var(--accent); margin: 0; height: 28px; cursor: pointer; }
+  .seek-labels { display: grid; font-size: 10.5px; color: var(--muted); }
+  .seek-labels span { border-left: 1px solid var(--line); padding-left: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seek-labels span.on { color: var(--accent); font-weight: 800; }
+  #z-strip { cursor: grab; touch-action: none; }
+  #z-strip:active { cursor: grabbing; }
+
+  /* 生きた系統の履歴 */
+  #hist { scroll-margin-top: 110px; }
+  .hist-sum { font-size: 13px; color: var(--text-2); margin: -4px 0 10px; }
+  .hist-list { list-style: none; margin: 0; padding: 0; }
+  .hist-list button {
+    display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; width: 100%; text-align: left;
+    background: none; border: none; border-top: 1px solid var(--line); padding: 9px 2px; font: inherit; color: var(--text); cursor: pointer;
+  }
+  .hist-list li:first-child button { border-top: none; }
+  .hist-list button:hover .hn { color: var(--accent); }
+  .hist-list .tag { font-size: 11.5px; font-weight: 900; border-radius: 6px; padding: 2px 7px; color: #fff; }
+  .hist-list .tag.dead { background: var(--bad); }
+  .hist-list .tag.alive { background: var(--good); }
+  .hist-list .hn { font-weight: 800; font-size: 14px; min-width: 0; }
+  .hist-list .hs { display: block; font-size: 12px; color: var(--muted); font-weight: 400; }
+  .hist-detail { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+  .hist-detail .ttl { font-size: 20px; font-weight: 900; margin: 8px 0 2px; }
+  .hist-detail .ttl.dead { color: var(--bad); }
+  .hist-detail .ttl.alive { color: var(--good); }
+  .hist-detail p { margin: 0 0 6px; font-size: 14px; color: var(--text-2); }
+  .hist-detail ol { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-2); }
+  .hist-foot { text-align: right; margin-top: 6px; }
+  .btn-link { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; font-size: 12.5px; padding: 4px; }
+
   @media (prefers-reduced-motion: reduce) {
     .evt-card.pop { animation: none; }
     .trait .fill, .risk .pin { transition: none; }
@@ -377,12 +421,16 @@
     </div>
 
     <div class="home-grid">
-      <div class="dial-wrap">
-        <svg id="h-dial" aria-hidden="true"></svg>
-        <div class="dial-center">
-          <div class="era" id="h-era"></div>
+      <div>
+        <div class="dial-wrap">
+          <canvas class="globe" id="h-globe" aria-hidden="true"></canvas>
+          <svg id="h-dial" aria-hidden="true"></svg>
+        </div>
+        <div class="dial-under">
           <div class="clock num" id="h-clock"></div>
+          <div class="era" id="h-era"></div>
           <div class="ago num" id="h-left"></div>
+          <div class="gcap" id="h-globe-cap"></div>
         </div>
       </div>
       <div class="card" style="margin:0">
@@ -428,6 +476,10 @@
       <div class="strip-cap" id="z-strip-cap"></div>
       <svg id="z-strip" viewBox="0 0 640 76" aria-hidden="true"></svg>
       <div class="banner" id="z-banner"></div>
+    </div>
+    <div class="seek">
+      <input type="range" id="z-seek" min="0" max="1000" step="1" value="0" aria-label="再生位置（ドラッグで進める・戻す）">
+      <div class="seek-labels" id="z-seek-labels" aria-hidden="true"></div>
     </div>
     <div class="evt-card" id="z-evt" aria-live="polite">
       <div class="t num" id="z-evt-t"></div>
@@ -520,6 +572,25 @@
         <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="b-start">進化を始める</button></div>
       </div>
     </div>
+    <div class="card" id="hist">
+      <h3>あなたが生きた系統</h3>
+      <p class="hist-sum num" id="hist-sum"></p>
+      <div class="hist-detail" id="hist-detail" hidden>
+        <canvas class="scene" id="hd-scene" aria-hidden="true"></canvas>
+        <div class="ttl" id="hd-ttl"></div>
+        <p id="hd-text"></p>
+        <ol id="hd-path"></ol>
+        <div class="share-row">
+          <a class="btn btn-primary" id="hd-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">Xでシェア</a>
+          <button class="btn" id="hd-copy">リンクをコピー</button>
+          <button class="btn" id="hd-close">閉じる</button>
+        </div>
+        <p class="copy-ok" id="hd-copy-ok" aria-live="polite"></p>
+      </div>
+      <p class="muted small" id="hist-empty">まだ記録はありません。生まれて結末を迎えると、ここに残ります。記録はこの端末のブラウザにだけ保存されます。</p>
+      <ul class="hist-list" id="hist-list"></ul>
+      <div class="hist-foot"><button class="btn-link" id="hist-clear" hidden>記録をすべて消す</button></div>
+    </div>
   </section>
 
   <!-- ================= 進化ガチャ：プレイ ================= -->
@@ -607,6 +678,7 @@
     <div class="preview"><img id="r-img" alt="シェア用カード"><p class="save-hint" id="r-hint" hidden>画像は長押し（PCでは右クリック）で保存できます。</p></div>
     <div class="share-row">
       <button class="btn btn-primary" id="r-again">もう一度生まれる</button>
+      <button class="btn" id="r-hist">これまでの記録</button>
       <button class="btn" id="r-home">いまの地球へ</button>
     </div>
   </section>
@@ -620,6 +692,7 @@
 
 <script src="data.js"></script>
 <script src="scenes.js"></script>
+<script src="globe.js"></script>
 <script src="evo.js"></script>
 <script src="app.js"></script>
 </body>
