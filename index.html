@@ -235,8 +235,9 @@
   .p-clock { font-size: 22px; font-weight: 900; }
   .p-ago { font-weight: 800; color: var(--accent); }
   .p-rate { font-size: 12px; color: var(--muted); }
-  .controls { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 4px 0 12px; }
-  .controls .btn { padding: 8px 12px; }
+  .controls { display: flex; flex-wrap: nowrap; gap: 5px; justify-content: center; margin: 4px 0 12px; }
+  .controls .btn { padding: 8px 11px; font-size: 13.5px; white-space: nowrap; min-width: 0; }
+  @media (max-width: 400px) { .controls { gap: 4px; } .controls .btn { padding: 7px 8px; font-size: 12.5px; } }
   .choice, .event {
     border: 2px solid var(--accent); border-radius: 16px; padding: 14px; margin-bottom: 12px; background: var(--surface);
     box-shadow: 0 8px 30px rgba(0,0,0,.08);
@@ -319,17 +320,21 @@
   .traits.compact .trait > span { grid-area: l; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
   .traits.compact .trait b { grid-area: v; }
   .traits.compact .trait .track { grid-area: t; }
-  .life { display: flex; gap: 8px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--good);
-    border-radius: 12px; padding: 8px 12px; margin: -2px 0 12px; font-size: 13.5px; line-height: 1.5; }
-  .life .lk { flex: 0 0 auto; font-size: 11px; font-weight: 900; color: var(--good); border: 1px solid var(--good); border-radius: 6px; padding: 0 6px; margin-top: 2px; }
-  .life.pop { animation: lifepop .7s ease; }
-  @keyframes lifepop { 0% { opacity: 0; transform: translateY(4px); } 100% { opacity: 1; transform: none; } }
   .ev-box { max-height: 100%; overflow: auto; text-align: left; border-color: #6a2a26; }
   .ev-box.hit { animation: evhit .6s ease; }
   @keyframes evhit { 0% { transform: translateX(0); box-shadow: 0 0 0 0 rgba(255, 90, 70, .8); } 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 100% { transform: none; box-shadow: 0 0 50px 10px rgba(255, 90, 70, 0); } }
   .ev-kick { font-size: 12px; font-weight: 900; color: #ff8a78; letter-spacing: .06em; }
   .ev-box .ttl { font-size: 19px; font-weight: 900; line-height: 1.35; margin: 2px 0 10px; }
-  .ev-box canvas.scene { width: 100%; border-radius: 10px; margin: 0 0 10px; }
+  .ev-box canvas.scene { width: 100%; aspect-ratio: 3 / 1; border-radius: 10px; margin: 0 0 10px; background: #1a2232; border-color: #2a3348; cursor: default; }
+  .ch-box { border-color: #7a4a2a; }
+  .ch-box .ev-kick { color: #ffb36b; }
+  .ch-box .opt { background: #141b28; border-color: #2a3348; color: #eef2f8; }
+  .ch-box .opt:hover, .ch-box .opt:focus-visible { border-color: #ffb36b; }
+  .ch-box .opt span { color: #b8c4d6; }
+  .ch-box .chips .up { background: rgba(127, 224, 168, .15); color: #7fe0a8; }
+  .ch-box .chips .down { background: rgba(255, 138, 120, .15); color: #ff8a78; }
+  .ch-box .chips .hab { background: #222b3c; color: #b8c4d6; }
+  .cert .about { font-size: 13.5px; line-height: 1.65; color: var(--text-2); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; margin: 6px 0 4px; }
   .ev-box .fact { font-size: 13.5px; color: #b8c4d6; margin: 0 0 10px; }
   .ev-box .you { font-size: 15px; font-weight: 900; margin-bottom: 8px; }
   .ev-box .you.dead { color: #ff8a78; }
@@ -491,7 +496,7 @@
   @media (prefers-reduced-motion: reduce) {
     .evt-card.pop { animation: none; }
     .trait .fill, .risk .pin { transition: none; }
-    .trait .dl.show, .life.pop, .ev-box.hit { animation: none; }
+    .trait .dl.show, .ev-box.hit { animation: none; }
   }
 </style>
 </head>
@@ -669,6 +674,7 @@
         <div class="cert-body">
           <div class="line" id="b-line1"></div>
           <div class="who" id="b-who"></div>
+          <p class="about" id="b-about"></p>
           <div class="line" id="b-line2"></div>
           <dl>
             <div><dt data-i18n>体のつくり</dt><dd id="b-plan"></dd></div>
@@ -728,14 +734,7 @@
     </div>
     <canvas class="scene" id="p-scene" aria-hidden="true"></canvas>
     <p class="scene-cap" id="p-cap"></p>
-    <div class="life" id="p-life" hidden aria-live="polite"><span class="lk" data-i18n>暮らし</span><span class="lt" id="p-life-t"></span></div>
 
-    <div class="choice" id="p-choice" hidden aria-live="polite">
-      <div class="kick" data-i18n>分かれ道</div>
-      <div class="q" id="p-q"></div>
-      <p class="ctx" id="p-ctx"></p>
-      <div class="opts" id="p-opts"></div>
-    </div>
 
     <div class="controls" id="p-controls">
       <button class="btn" id="p-pause" data-i18n>⏸ 一時停止</button>
@@ -808,6 +807,16 @@
       <canvas id="evo-cv" width="64" height="48" aria-hidden="true"></canvas>
       <p class="evo-sub" id="evo-sub"></p>
       <button class="btn btn-primary" id="evo-ok" hidden data-i18n>つぎへ</button>
+    </div>
+  </div>
+
+  <div class="evo-modal ch-modal" id="p-choice" hidden role="dialog" aria-modal="true" aria-labelledby="p-q">
+    <div class="evo-box ev-box ch-box" id="ch-box">
+      <div class="ev-kick" data-i18n>分かれ道</div>
+      <div class="ttl" id="p-q"></div>
+      <canvas class="scene" id="ch-scene" aria-hidden="true"></canvas>
+      <p class="fact" id="p-ctx"></p>
+      <div class="opts" id="p-opts"></div>
     </div>
   </div>
 

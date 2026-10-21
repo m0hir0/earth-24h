@@ -585,6 +585,8 @@
     $('b-no').textContent = `No. ${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
     $('b-line1').textContent = T('あなたは');
     $('b-who').textContent = T('{n}として生まれました', { n: nameOf(player) });
+    $('b-about').textContent = evo.ABOUT[player.name] || '';
+    $('b-about').hidden = !evo.ABOUT[player.name];
     $('b-line2').textContent = `${fmtAgo(t)} · ${T('地球時計 {c}', { c: fmtClock(t) })} · ${periodLabel(t)}`;
     $('b-plan').textContent = evo.PLANS[player.plan].name;
     $('b-hab').textContent = evo.HAB_LABEL[player.habitat] || '';
@@ -622,7 +624,6 @@
       pending: null, last: 0, fx: null, fxUntil: 0, rnd: evo.rng(Math.floor(Math.random() * 2 ** 31)),
       done: new Set(), log: [], startedAt: t, lifeT: 0, lifeNext: 4, lifeRecent: [],
     });
-    $('p-life').hidden = true;
     $('p-log').textContent = '';
     player.forms = [{ ya: t, look: lookOfL(player), name: player.name }];
     document.querySelectorAll('#p-controls [data-speed]').forEach((b) => b.classList.toggle('on', b.dataset.speed === '1'));
@@ -707,7 +708,8 @@
       box.appendChild(b);
     });
     $('p-choice').hidden = false;
-    $('p-choice').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
+    $('ch-box').scrollTop = 0;
+    box.firstChild.focus({ preventScroll: true });
     return true;
   }
   // 選んだらどう変わるかを、写しで試して調べる
@@ -779,6 +781,7 @@
     box.classList.remove('hit'); void box.offsetWidth; box.classList.add('hit');
     $('p-ev-ok').focus({ preventScroll: true });
   }
+  sceneView($('ch-scene'), () => ($('p-choice').hidden || !P.L ? null : { ya: P.ya, plan: P.L.plan, habitat: P.L.habitat, look: lookOfL(P.L) }));
   sceneView($('ev-scene'), () => ($('ev-modal').hidden || !P.L ? null : { ya: P.ya, plan: P.L.alive ? P.L.plan : null, habitat: P.L.habitat, look: lookOfL(P.L), fx: P.fx }));
   $('p-ev-ok').addEventListener('click', () => {
     $('ev-modal').hidden = true;
@@ -865,9 +868,6 @@
     const before = { ...P.L.traits };
     if (ep.fx) evo.bump(P.L, ep.fx);
     plog(P.ya, tr(ep.text), 'life', traitDelta(before, P.L));
-    const box = $('p-life');
-    $('p-life-t').textContent = tr(ep.text);
-    box.hidden = false; box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
     renderPlay(true);
   }
 

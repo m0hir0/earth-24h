@@ -515,6 +515,50 @@
   };
 
 
+  const ABOUT = {
+    "熱水噴出孔の微生物": "A microbe too small to see, living by chimneys of hot water on the deep seafloor. In total darkness, it gets energy from chemicals dissolved in the water.",
+    "浅い海の微生物": "A single cell without even a nucleus. At this time, nearly all life on Earth was microbes like this.",
+    "シアノバクテリア": "Bacteria that make food from sunlight and give off oxygen as they do. They filled Earth's air with oxygen, and they still live in seas and lakes today.",
+    "酸素を使いはじめた細菌": "Bacteria that learned to use oxygen, a poison to most life, to make energy. Their relatives later became the mitochondria inside animal cells.",
+    "核を持つ単細胞生物": "A larger single cell with a nucleus to hold its genes. A distant relative of today's amoebas, and the group that animals, plants and fungi all came from.",
+    "紅藻の祖先（多細胞）": "The ancestor of reddish seaweeds, made of many cells working together. One of the oldest known many-celled living things.",
+    "海綿の祖先": "It stays stuck to a rock, drawing seawater through holes in its body to filter out food. Thought to be among the very first animals.",
+    "海綿の仲間": "An animal that stays stuck to a rock and filters food from seawater through holes in its body. No brain or muscles, yet sponges are still common today.",
+    "はうように動く小さな動物": "A soft animal a few millimeters long, creeping slowly over the seafloor. No eyes or legs, but it may be the ancestor of many later animals.",
+    "ディッキンソニア（エディアカラ生物）": "A flat, oval creature lying on the seafloor, sometimes nearly a meter long. For a long time, nobody was sure whether it was even an animal.",
+    "三葉虫": "A sea arthropod with a hard shell and many legs, its body split into three lengthwise lobes. It walked the seafloor, saw through compound eyes, and thrived for about 300 million years.",
+    "アノマロカリス": "A top predator of the Cambrian seas, up to about a meter long. It swam by rippling the flaps along its sides and grabbed prey with two spiny arms in front of its head. Two big eyes stuck out on stalks. A distant relative of shrimp and crabs.",
+    "ゴカイの仲間": "A long, soft-bodied animal living burrowed in seafloor mud and sand. Its body is divided into many segments, like today's ragworms used as fishing bait.",
+    "ハイコウイクチス（最古級の魚）": "A tiny fish about 3 cm long, with no jaws but a stiff rod along its back that came before the backbone. One of the oldest relatives of all animals with backbones, including us.",
+    "硬骨魚": "A fish with a skeleton of bone and jaws. Most fish alive today belong to this group, and the animals that later moved onto land came from it too.",
+    "サメの祖先": "A fish whose skeleton is soft cartilage, not bone. Its sharp teeth keep growing back. This group has lived on for over 400 million years, changing little.",
+    "ダンクルオステウス（板皮類）": "An armored fish with its head and chest covered in plates of bone, growing to more than 6 meters long. Instead of teeth, it sliced prey with blade-like bony plates.",
+    "原始的な昆虫": "A small, still wingless insect, among the first to live on land. It ate bits of plants among the mosses and ferns.",
+    "イクチオステガ（初期の両生類）": "One of the first animals to evolve from fish and walk on land with legs, about a meter long. It still had to stay near water and laid its eggs there.",
+    "ヒロノムス（は虫類の祖先）": "A small, lizard-like animal about 20 cm long. It could lay shelled eggs on land, so it was among the first able to live away from water.",
+    "ディメトロドン（単弓類）": "A meat-eater about 3 meters long with a big sail on its back. It looks like a dinosaur, but it is actually closer to us mammals than to dinosaurs.",
+    "トカゲの仲間": "A small reptile whose scaly skin lets it live on dry land. It eats insects and the like, and it quietly survived through the age of dinosaurs.",
+    "昆虫": "A small creature with six legs and wings. Insects are incredibly numerous and varied, one of the main groups of life on land.",
+    "魚竜": "A reptile shaped like a dolphin that swam the seas. Its ancestors lived on land, but it returned to the sea and even gave birth there.",
+    "小型の恐竜": "A dinosaur about 1 to 2 meters long that ran fast on two back legs. Dinosaurs started out small like this, and giants came later.",
+    "翼竜": "A reptile that flew on skin stretched between its arm and one very long finger. A relative of dinosaurs but not one itself. The biggest had wings 10 meters across.",
+    "哺乳類の祖先（ネズミほどの大きさ）": "A tiny animal that lived quietly in the dark of night during the age of dinosaurs. Covered in fur, it fed its young on milk. A distant ancestor of ours.",
+    "首の長い恐竜": "A plant-eating dinosaur with a long neck and tail, among the largest land animals ever. Some were over 30 meters long, eating leaves high in the trees.",
+    "肉食恐竜": "A dinosaur that walked on two back legs and caught prey with sharp teeth and claws. Tyrannosaurus belongs to this group, and birds evolved from it.",
+    "初期の鳥": "It had feathers and wings, but also teeth in its mouth and clawed fingers on its wings. A creature from the time dinosaurs were becoming birds.",
+    "小型の哺乳類": "A small mammal in a world without dinosaurs, as mammals began spreading into many forms. Furry, and it feeds its young on milk.",
+    "鳥": "A feathered flier on wings, the surviving descendant of the dinosaurs. It made it through the asteroid that ended the other dinosaurs.",
+    "ウマの祖先": "About the size of a fox, it ate soft leaves in the forest. It had four toes on its front feet and three on its back feet.",
+    "初期の霊長類": "A small, squirrel-sized animal living in the trees, with grasping hands and forward-facing eyes. A distant ancestor of monkeys and humans.",
+    "クジラの祖先": "A wolf-like mammal that walked along the water's edge on four legs. Its line returned to the sea and became whales and dolphins.",
+    "人類の祖先": "An ape that left the forest and began walking upright on two legs. Its brain was still small, but its hands were now free.",
+    "類人猿": "A large, tailless primate, a relative of chimpanzees, gorillas and orangutans. Clever, and it lives in groups.",
+    "大型の哺乳類": "A large mammal of grasslands and forests, related to elephants, rhinos, deer and the like.",
+    "ホモ・サピエンス": "Us: modern humans. Born in Africa, we used tools, fire and language, and eventually spread across the world.",
+    "ネアンデルタール人": "A close human relative who lived in cold Europe. Stocky and strong, they used fire and stone tools.",
+    "マンモス": "An Ice Age relative of elephants with long hair and huge tusks, grazing on cold grasslands.",
+  };
+
   /* ---------------- 暮らしの出来事 ---------------- */
   const LIFE = {
     "ひだまりの浅瀬で、ゆっくり分裂して数を増やした。": "In a sunny shallow, you slowly divided and multiplied.",
@@ -740,6 +784,7 @@
   for (const p of E.PERIODS) { p.era = PERIODS[p.era] || p.era; p.name = PERIODS[p.name] || p.name; }
   for (const a of E.AI_STORY) { const x = AI_STORY[a[0]] || (a[0] >= E.NOW_YEAR ? AI_NOW : null); if (x) { a[1] = x[0]; a[2] = x[1]; } }
   for (const k in PLANS) if (evo.PLANS[k]) { NAMES[evo.PLANS[k].ja] = NAMES[evo.PLANS[k].ja] || PLANS[k][0]; evo.PLANS[k].name = PLANS[k][0]; evo.PLANS[k].today = PLANS[k][1]; }
+  Object.assign(evo.ABOUT, ABOUT);
   Object.assign(evo.HAB_LABEL, HAB);
   Object.assign(evo.TRAIT_LABEL, TRAITS);
   Object.assign(evo.TRAIT_SHORT, TRAITS, { armor: 'Armor', adapt: 'Adapt' });
