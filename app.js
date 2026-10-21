@@ -505,7 +505,7 @@
     for (let k = 0; k < 160; k++) for (const o of evo.birthOptions(e.from - (e.from - e.to) * (k + 0.5) / 160)) seen.add(tr(o.name));   // 古い順
     return [...seen];
   }
-  function showEra(i) {
+  function showEra(i, x = 0, y = -1) {
     const box = $('b-era-info'), late = i >= LATE;
     const list = late ? ERAS.slice(LATE) : [ERAS[i]];
     bDial.select(late ? list.map((_, k) => LATE + k) : [i]);
@@ -519,12 +519,15 @@
     } else {
       $('ei-note').textContent = T(ERA_NOTE[i]);
       const names = bornNames(ERAS[i]);
-      $('ei-who').textContent = names.length ? T('生まれる可能性のある生き物：{n}', { n: names.join(E.LANG === 'en' ? ', ' : '、') }) : T('この時代には、まだ生命がいません。');
+      const shown = names.slice(0, 6).join(E.LANG === 'en' ? ', ' : '、') + (names.length > 6 ? T('など') : '');
+      $('ei-who').textContent = names.length ? T('生まれる可能性のある生き物：{n}', { n: shown }) : T('この時代には、まだ生命がいません。');
     }
     const e0 = list[0], e1 = list[list.length - 1];
     $('ei-prob').textContent = T('この時代を引く確率：{p}', { p: fmtProb((e0.from - e1.to) / S) });
+    // 吹き出しは時計の中央に重ねる。しっぽは、タップした色のある側（上か下）の、タップした横位置へ
+    box.classList.toggle('below', y < 0); box.classList.toggle('above', y >= 0);
+    box.style.setProperty('--tail', `${Math.max(10, Math.min(90, 50 + x / 400 * 100 / 0.92))}%`);
     box.hidden = false;
-    box.scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
   }
   $('b-dial').addEventListener('click', (ev) => {
     const r = $('b-dial').getBoundingClientRect();
@@ -533,9 +536,15 @@
     if (d < 120 || d > 215) return;                                  // 輪の上だけ
     const ang = (Math.atan2(x, -y) * 180 / Math.PI + 360) % 360;
     const ya = (1 - ang / 360) * S;
-    showEra(ang > 359.3 ? LATE : ERAS.indexOf(eraOf(ya)));
+    showEra(ang > 359.3 ? LATE : ERAS.indexOf(eraOf(ya)), x, y);
   });
-  $('ei-x').addEventListener('click', () => { $('b-era-info').hidden = true; bDial.select([]); });
+  const closeEra = () => { $('b-era-info').hidden = true; bDial.select([]); };
+  $('ei-x').addEventListener('click', closeEra);
+  // 吹き出しの外（時計の輪以外）をタップしたら閉じる
+  document.addEventListener('click', (ev) => {
+    if ($('b-era-info').hidden || $('b-era-info').contains(ev.target) || $('b-dial').contains(ev.target)) return;
+    closeEra();
+  });
   bDial.set(0);
   const G = { angle: 0, spinning: false, birth: null };
 
