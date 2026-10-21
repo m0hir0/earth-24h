@@ -628,6 +628,22 @@
   ];
 
   /* ---------------- 種の数の増減（背景の絶滅） ---------------- */
+  /* ---------------- 見せるための種の数と状態 ----------------
+     中の N（0〜CAP）はゲームの釣り合い用。画面では、その仲間の実際の種数の目安に合わせて見せる。
+     REAL：その仲間がいちばん栄えたときの種数の目安（今わかっている数や推定。微生物などはおおまか） */
+  const REAL = {
+    microbe: 100000, cyano: 5000, cell: 50000, colony: 10000, sponge: 9000, ediacaran: 200, soft: 20000,
+    arthropod: 20000, anomalo: 50, jawless: 500, fish: 30000, shark: 1200, armorfish: 1000, insect: 1000000,
+    amphibian: 8000, reptile: 12000, synapsid: 1000, marine_reptile: 500, pterosaur: 200, dino_small: 600,
+    sauropod: 300, theropod: 600, bird: 11000, mammal: 6500, mammal_large: 2000, whale: 90, primate: 500,
+    hominin: 20, human: 1,
+  };
+  // 上から2けたに丸める（100未満はそのまま）
+  const round2 = (x) => { if (x < 100) return Math.round(x); const p = 10 ** (Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; };
+  function realCount(L, n = L.N) {
+    if (!(n > 0)) return 0;
+    return Math.max(1, round2((REAL[L.plan] || 1000) * Math.min(n, CAP) / CAP));
+  }
   function rates(L, ya) {
     const T = L.traits;
     if (L.plan === 'human') return { lam: 0, mu: 0 };
@@ -932,7 +948,7 @@
 
   E.evo = {
     ENDINGS, endingOf,
-    CAP, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
+    CAP, REAL, realCount, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
     ABOUT, LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die,
   };
 })();

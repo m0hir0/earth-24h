@@ -494,6 +494,13 @@
     const seen = {};
     list.forEach((L) => { seen[L.name] = (seen[L.name] || 0) + 1; if (seen[L.name] > 1) L.dup = seen[L.name]; });
   }
+  // 種の数は、その仲間の実際の種数の目安に合わせて見せる（evo.realCount）
+  function fmtCount(n) {
+    if (E.LANG === 'en') return n.toLocaleString('en-US');
+    if (n >= 10000) return `${E.trim((n / 10000).toFixed(n >= 100000 ? 0 : 1))}万`;
+    return n.toLocaleString('ja-JP');
+  }
+  const spc = (L, n) => fmtCount(evo.realCount(L, n));
   function traitBars(box, L) {
     if (!box.children.length) {
       for (const k of evo.TRAITS) {
@@ -746,7 +753,7 @@
     const others = P.rivals.map((R) => ({ R, res: evo.applyExtinction(R, ev, P.rnd) }));
     if (!me) return;
     const dead = !P.L.alive;
-    plog(ev.ya, T('{e}：{b}種 → {a}種', { e: tr(ev.name), b: me.before, a: me.after }) + (dead ? T('。系統が絶滅した') : ''), dead ? 'dead' : me.p >= 0.05 ? 'event' : 'info');
+    plog(ev.ya, T('{e}：{b}種 → {a}種', { e: tr(ev.name), b: spc(P.L, me.before), a: spc(P.L, me.after) }) + (dead ? T('。系統が絶滅した') : ''), dead ? 'dead' : me.p >= 0.05 ? 'event' : 'info');
     others.forEach(({ R, res }) => { if (res && !R.alive) plog(ev.ya, T('{n}の系統が、{e}で絶滅した', { n: nameOf(R), e: mid(tr(ev.name)) }), 'rival'); });
     if (me.p < 0.05 && !dead) return;                              // ほとんど影響のない出来事は記録だけ
     P.pending = { type: 'event', ev };
@@ -756,8 +763,8 @@
     const you = $('p-ev-you');
     you.className = `you ${dead ? 'dead' : 'live'}`;
     you.textContent = dead
-      ? T('あなたの系統：{b}種 → 0種。ここで絶滅しました。', { b: me.before })
-      : T('あなたの系統：{b}種 → {a}種。なんとか生き延びた。', { b: me.before, a: me.after });
+      ? T('あなたの系統：{b}種 → 0種。ここで絶滅しました。', { b: spc(P.L, me.before) })
+      : T('あなたの系統：{b}種 → {a}種。なんとか生き延びた。', { b: spc(P.L, me.before), a: spc(P.L, me.after) });
     const real = $('p-ev-real');
     real.hidden = me.p < 1;
     real.textContent = P.L.flags.admix && ev.ya === 4e4
@@ -770,7 +777,7 @@
       li.children[0].textContent = nameOf(R);
       const st = li.children[1];
       if (!res) { st.textContent = T('すでに絶滅'); st.className = 'st muted'; }
-      else { st.textContent = T('{b} → {a}種', { b: res.before, a: res.after }); st.className = `st ${R.alive ? 'live' : 'dead'}`; }
+      else { st.textContent = T('{b} → {a}種', { b: spc(R, res.before), a: spc(R, res.after) }); st.className = `st ${R.alive ? 'live' : 'dead'}`; }
       ul.appendChild(li);
     });
     $('ev-modal').hidden = false;
@@ -903,7 +910,7 @@
     $('p-name').textContent = nameOf(L);
     drawLineMap($('p-map'), P.log, P.ya0, ya);
     $('p-sub').textContent = `${evo.PLANS[L.plan].name}${SEP}${evo.HAB_LABEL[L.habitat] || ''}`;
-    $('p-n').textContent = L.alive ? (L.N >= evo.CAP ? `${evo.CAP}+` : Math.round(L.N)) : 0;
+    $('p-n').textContent = L.alive ? spc(L) : 0;
     const { lam, mu } = evo.rates(L, ya);
     const r = L.plan === 'human' ? 0 : Math.min(1, (mu / lam) / 1.4);
     $('p-risk').style.left = `${r * 100}%`;
@@ -915,7 +922,7 @@
       li.querySelector('.rn').textContent = nameOf(R);
       li.querySelector('small').textContent = evo.PLANS[R.plan].name;
       const st = li.querySelector('.st');
-      if (R.alive) { st.textContent = T('{n}種', { n: R.N >= evo.CAP ? evo.CAP + '+' : Math.round(R.N) }); st.classList.add('live'); }
+      if (R.alive) { st.textContent = T('{n}種', { n: spc(R) }); st.classList.add('live'); }
       else { st.textContent = T('絶滅（{a}）', { a: fmtAgo(R.deathYa) }); st.classList.add('dead'); }
       ul.appendChild(li);
     });
@@ -952,7 +959,7 @@
   const endingLabel = (e) => T('結末 No.{no}「{t}」', { no: String(e.no).padStart(2, '0'), t: e.title });
   const foundEndings = () => new Set(histLoad().map((h) => evo.endingOf(h).id));
   function rivalStatus(Rv) {
-    return Rv.alive ? T('今も生きている（{n}種）', { n: Rv.N >= evo.CAP ? evo.CAP + '+' : Math.round(Rv.N) }) : T('{a}に絶滅', { a: fmtAgo(Rv.deathYa) });
+    return Rv.alive ? T('今も生きている（{n}種）', { n: spc(Rv) }) : T('{a}に絶滅', { a: fmtAgo(Rv.deathYa) });
   }
   function endPlay() {
     P.on = false;
@@ -980,7 +987,7 @@
       [T('生まれた'), T('{a}（地球時計 {c}）', { a: fmtAgo(L.bornYa), c: fmtClock(L.bornYa) })],
       [alive ? T('今') : T('絶滅した'), alive ? '24:00' : T('{a}（地球時計 {c}）', { a: fmtAgo(endYa), c: fmtClock(endYa, clockDecFor(endYa)) })],
       [T('続いた期間'), T('{y}（地球時計で{t}）', { y: fmtSpan(span), t: fmtSec(span / S * DAY) })],
-      [T('いちばん多いときの種の数'), L.maxN >= evo.CAP ? T('{n}種以上', { n: evo.CAP }) : T('{n}種', { n: Math.round(L.maxN) })],
+      [T('いちばん多いときの種の数'), T('{n}種', { n: spc(L, L.maxN) })],
       [T('最後の姿'), nameOf(L) === evo.PLANS[L.plan].name ? nameOf(L) : T('{n}（{p}）', { n: nameOf(L), p: evo.PLANS[L.plan].name })],
     ];
     const st = $('r-stats'); st.textContent = '';

@@ -694,7 +694,7 @@
       'Your birth moment is picked evenly across 4.6 billion years. Over 99% of all species that ever lived are already extinct.',
     '生まれることができませんでした': 'You couldn\'t be born', '誕生の記録': 'Birth record', '体のつくり': 'Body plan', '暮らす場所': 'Habitat',
     'この時代を引く確率': 'Chance of this era', '今日まで': 'Time until today', 'この生き物で進化を始める': 'Start evolving as this creature',
-    '誕生の記録を見る': 'View birth record', 'あなたは、{n}として生まれました': 'You were born as {n}',
+    '誕生の記録を見る': 'View birth record', '種の数（推定）': 'est. species', 'あなたは、{n}として生まれました': 'You were born as {n}',
     '同じ瞬間に生まれた4つの系統': 'Four lineages born at the same moment', '結末の図鑑': 'Ending collection', 'あなたが生きた系統': 'Lineages you lived',
     'Xでシェア': 'Share on X', 'リンクをコピー': 'Copy link', '閉じる': 'Close',
     'まだ記録はありません。生まれて結末を迎えると、ここと図鑑に残ります。記録はこの端末のブラウザにだけ保存されます。':
@@ -707,7 +707,7 @@
     '共有…': 'Share…', '画像を保存': 'Save image', '画像は長押し（PCでは右クリック）で保存できます。': 'Long-press the image (or right-click on a computer) to save it.',
     'もう一度生まれる': 'Be born again', 'これまでの記録': 'Your records', 'いまの地球へ': 'Earth now',
     '前の版（46億年を1〜10分で流すタイプ）': 'Previous version (4.6 billion years in 1–10 minutes)',
-    'footer.note': 'Earth\'s age is taken as 4.6 billion years. Dates are representative estimates from the international chronostratigraphic chart and research, and many are debated. Oxygen, day length and solar brightness are rough estimates. Selection in Evolution Gacha is a game simplification based on real mass extinctions.',
+    'footer.note': 'Earth\'s age is taken as 4.6 billion years. Dates are representative estimates from the international chronostratigraphic chart and research, and many are debated. Oxygen, day length and solar brightness are rough estimates. Selection in Evolution Gacha is a game simplification based on real mass extinctions. Species counts are rough figures scaled to the real number of species each group had at its peak (known or estimated).',
     '画面': 'Screens', 'いまの地球を見る': 'See Earth now', '再生位置（ドラッグで進める・戻す）': 'Playback position (drag to move forward or back)',
     // 画面のコード
     '#地球の24時間 #進化ガチャ': '#EarthIn24Hours #EvolutionGacha', '地球の24時間  #地球の24時間 #進化ガチャ': 'Earth in 24 Hours  #EarthIn24Hours #EvolutionGacha',
