@@ -241,8 +241,9 @@
   .len span { font-size: 11.5px; color: var(--text-2); }
   .len:has(input:checked) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
   .len:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .none-box { text-align: center; padding: 18px 10px; }
-  .none-box .big { font-size: 22px; font-weight: 900; }
+  .none-box { text-align: center; }
+  .none-box .big { font-size: 21px; font-weight: 900; margin: 10px 0 4px; }
+  .none-box p { margin: 0 0 6px; font-size: 13.5px; }
 
   /* プレイ */
   .p-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
@@ -746,11 +747,6 @@
       <div class="sub" id="b-odds">生まれる時代は46億年のうちから均等に選ばれます。わたしたちと同じホモ・サピエンスとして生まれる確率は0.0024%（約4.1万分の1）。</div>
     </div>
 
-    <div class="card none-box" id="b-none" hidden>
-      <div class="big" data-i18n>生まれることができませんでした</div>
-      <p class="muted" id="b-none-t"></p>
-      <p class="none-rec" id="b-none-rec"></p>
-    </div>
 
     <div id="b-cert-wrap" hidden>
       <div class="reopen"><button class="btn" id="b-reopen" data-i18n>誕生の記録を見る</button></div>
@@ -869,6 +865,19 @@
     <div class="preview"><img id="r-img" alt="シェア用カード"><p class="save-hint" id="r-hint" hidden data-i18n>画像は長押し（PCでは右クリック）で保存できます。</p></div>
   </section>
 
+  <div class="evo-modal cert-modal" id="b-none" hidden role="dialog" aria-modal="true" aria-labelledby="b-none-h">
+    <div class="cert">
+      <div class="cert-head"><span data-i18n>誕生の記録</span><button class="cert-x" id="b-none-x" aria-label="閉じる" data-i18n-label="閉じる">×</button></div>
+      <div class="cert-body none-box">
+        <canvas class="scene" id="b-none-scene" aria-hidden="true"></canvas>
+        <div class="big" id="b-none-h" data-i18n>生まれることができませんでした</div>
+        <p class="muted" id="b-none-t"></p>
+        <p class="none-rec" id="b-none-rec"></p>
+        <div class="start-box"><button class="btn btn-primary" id="b-none-again" data-i18n>もう一度生まれる</button></div>
+      </div>
+    </div>
+  </div>
+
   <div class="evo-modal cert-modal" id="b-cert-modal" hidden role="dialog" aria-modal="true" aria-labelledby="b-who">
       <div class="cert" id="b-cert">
         <div class="cert-head"><span data-i18n>誕生の記録</span><span class="num" id="b-no"></span><button class="cert-x" id="b-close" aria-label="閉じる" data-i18n-label="閉じる">×</button></div>
@@ -937,12 +946,12 @@
   </footer>
 </div>
 
-<script src="i18n.js?v=202610211502"></script>
-<script src="data.js?v=202610211502"></script>
-<script src="scenes.js?v=202610211502"></script>
-<script src="globe.js?v=202610211502"></script>
-<script src="evo.js?v=202610211502"></script>
-<script src="lang-en.js?v=202610211502"></script>
-<script src="app.js?v=202610211502"></script>
+<script src="i18n.js?v=202610211507"></script>
+<script src="data.js?v=202610211507"></script>
+<script src="scenes.js?v=202610211507"></script>
+<script src="globe.js?v=202610211507"></script>
+<script src="evo.js?v=202610211507"></script>
+<script src="lang-en.js?v=202610211507"></script>
+<script src="app.js?v=202610211507"></script>
 </body>
 </html>

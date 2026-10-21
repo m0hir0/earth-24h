@@ -96,7 +96,7 @@
   let evoScreen = 'birth';
   function show(name) {
     for (const k in SCREENS) $(SCREENS[k]).hidden = k !== name;
-    if (name !== 'birth') $('b-cert-modal').hidden = true;
+    if (name !== 'birth') { $('b-cert-modal').hidden = true; $('b-none').hidden = true; }
     const tab = ['birth', 'play', 'result'].includes(name) ? 'evo' : name;
     if (tab === 'evo') evoScreen = name;
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === tab)));
@@ -614,8 +614,13 @@
   $('b-close').addEventListener('click', () => openCert(false));
   $('b-reopen').addEventListener('click', () => openCert(true));
   $('b-cert-modal').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) openCert(false); });
-  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('b-cert-modal').hidden) openCert(false); });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { if (!$('b-cert-modal').hidden) openCert(false); $('b-none').hidden = true; } });
   $('b-again').addEventListener('click', () => { openCert(false); spinTo(Math.random() * S); });
+  // 生まれられなかったときも、同じようなポップアップ（その時代の地球の絵つき）
+  sceneView($('b-none-scene'), () => ($('b-none').hidden ? null : { ya: G.noneYa }));
+  $('b-none-x').addEventListener('click', () => { $('b-none').hidden = true; });
+  $('b-none').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) $('b-none').hidden = true; });
+  $('b-none-again').addEventListener('click', () => { $('b-none').hidden = true; spinTo(Math.random() * S); });
   $('b-now').addEventListener('click', () => spinTo(yaOfSec(E.clockSec())));
   function spinTo(t) {
     if (G.spinning) return;
@@ -655,7 +660,9 @@
     $('b-era').textContent = eraOf(t).name;
     const options = evo.birthOptions(t);
     if (!options.length) {
+      G.noneYa = t;
       $('b-none').hidden = false;
+      $('b-none-again').focus({ preventScroll: true });
       const unborn = { v: 1, u: 1, b: Math.round(t), e: Math.round(t), a: 0, f: '', n: '', p: 'microbe', h: '', k: [], c: '' };
       const isNewU = !foundEndings().has('u-unborn');
       histAdd(unborn);
