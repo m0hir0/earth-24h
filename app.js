@@ -970,7 +970,7 @@
     const ya = P.ya, L = P.L;
     setClock($('p-clock'), T('地球時計 {c}', { c: fmtClock(ya, clockDecFor(ya)) }));
     pDial.set(fracOf(ya) * 360);
-    $('p-ago').textContent = fmtAgo(ya);
+    $('p-ago').textContent = ya >= 1 ? T('{n}年前', { n: Math.round(ya).toLocaleString(E.LANG === 'en' ? 'en-US' : 'ja-JP') }) : T('今');   // 略さず1年単位で
     $('p-period').textContent = periodLabel(ya);
     const p = pAtYa(ya);
     const rate = (2 * P.ya0 * (1 - p) / P.T) * (P.skipping ? 80 : P.speed);
