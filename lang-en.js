@@ -690,8 +690,8 @@
     'どの時代に、何として生まれるかは選べません。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。':
       'You can\'t choose when or as what you\'re born. Choose your path at each fork in evolution, make it through the mass extinctions, and see if your lineage survives to today.',
     'いまの地球時計の時代に生まれる': 'Be born in the era on Earth\'s clock right now',
-    '生まれる時代は46億年のうちから均等に選ばれます。地球に現れた種の99%以上は、すでに絶滅しています。':
-      'Your birth moment is picked evenly across 4.6 billion years. Over 99% of all species that ever lived are already extinct.',
+    '生まれる時代は46億年のうちから均等に選ばれます。わたしたちと同じホモ・サピエンスとして生まれる確率は{p}。':
+      'Your era is picked evenly from 4.6 billion years. The chance of being born as Homo sapiens, like us, is {p}.',
     '生まれることができませんでした': 'You couldn\'t be born', '誕生の記録': 'Birth record', '体のつくり': 'Body plan', '暮らす場所': 'Habitat',
     'この時代を引く確率': 'Chance of this era', '今日まで': 'Time until today', 'この生き物で進化を始める': 'Start evolving as this creature',
     '誕生の記録を見る': 'View birth record', '遊び方': 'How to play', '遊び方を見る': 'How to play', '地球史と進化の解説・出典': 'Earth history & sources', '運営者について': 'About', 'お問い合わせ': 'Contact', 'プライバシーポリシー': 'Privacy policy', '結果をシェアする': 'Share your result', '種の数（推定）': 'est. species', 'あなたは、{n}として生まれました': 'You were born as {n}',

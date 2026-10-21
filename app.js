@@ -525,6 +525,15 @@
   }
 
   $('b-spin').addEventListener('click', () => spinTo(Math.random() * S));
+  // ホモ・サピエンスとして生まれる確率：時代ごとの候補の数から計算する（30万年前より後だけ）
+  {
+    let p = 0;
+    for (let ya = 50; ya < 4e5; ya += 100) {
+      const o = evo.birthOptions(ya);
+      if (o.some((x) => x.plan === 'human')) p += 100 / o.length;
+    }
+    $('b-odds').textContent = T('生まれる時代は46億年のうちから均等に選ばれます。わたしたちと同じホモ・サピエンスとして生まれる確率は{p}。', { p: fmtProb(p / S) });
+  }
   // 誕生の記録はポップアップ。閉じても「誕生の記録を見る」で開き直せる
   const openCert = (v) => { $('b-cert-modal').hidden = !v; if (v) { $('b-cert').scrollTop = 0; $('b-start').focus({ preventScroll: true }); } };
   $('b-close').addEventListener('click', () => openCert(false));

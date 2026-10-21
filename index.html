@@ -433,7 +433,8 @@
   footer.src { font-size: 11.5px; color: var(--muted); line-height: 1.7; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 12px; }
   footer.src a { color: var(--text-2); }
   .site-nav { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 10px 0 8px; font-size: 13px; font-weight: 700; }
-  .hero-link { display: inline-block; margin-top: 8px; font-size: 13.5px; font-weight: 800; color: var(--accent); }
+  .hero-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .hero-link { font-size: 13px; font-weight: 800; color: var(--accent); white-space: nowrap; }
 
   .hero { padding: 6px 0 12px; }
   .hero .kicker { font-size: 12.5px; font-weight: 800; color: var(--muted); letter-spacing: .08em; }
@@ -686,15 +687,9 @@
       <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="s-play" data-i18n>あなたも生まれてみる</button></div>
     </div>
     <div class="hero">
-      <div class="kicker" data-i18n>進化ガチャ</div>
+      <div class="hero-top"><div class="kicker" data-i18n>進化ガチャ</div><a class="hero-link" href="guide.html" data-i18n>遊び方を見る</a></div>
       <h1 data-i18n="hero.h1">46億年のどこかに、<br>生まれる。</h1>
       <p data-i18n>どの時代に、何として生まれるかは選べません。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
-      <a class="hero-link" href="guide.html" data-i18n>遊び方を見る</a>
-    </div>
-    <div class="birth-actions">
-      <button class="btn btn-primary" id="b-spin" data-i18n>生まれる</button>
-      <button class="btn" id="b-now" data-i18n>いまの地球時計の時代に生まれる</button>
-      <div class="sub" data-i18n>生まれる時代は46億年のうちから均等に選ばれます。地球に現れた種の99%以上は、すでに絶滅しています。</div>
     </div>
     <div class="dial-wrap">
       <svg id="b-dial" aria-hidden="true"></svg>
@@ -703,6 +698,11 @@
         <div class="clock num" id="b-clock">?</div>
         <div class="ago num" id="b-ago"></div>
       </div>
+    </div>
+    <div class="birth-actions">
+      <button class="btn btn-primary" id="b-spin" data-i18n>生まれる</button>
+      <button class="btn" id="b-now" data-i18n>いまの地球時計の時代に生まれる</button>
+      <div class="sub" id="b-odds"></div>
     </div>
 
     <div class="card none-box" id="b-none" hidden>
