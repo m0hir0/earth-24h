@@ -1329,9 +1329,35 @@
     const spr = SPR[spec[0]], rows = spr.rows || spr, s = 2, cell = s / (spr.d || 1);
     const w = rows[0].length * cell, h = rows.length * cell;
     const x0 = 96 - Math.round(w / 2), y0 = fy + 2 - Math.round(h / 2);
+    const bones = VERTEBRATES.has(plan) ? skeleton(rows) : rows;
     const mono = (c) => Object.fromEntries([...'abcdefksw'].map((k) => [k, c]));
-    P.sprite(spr, mono(shade), x0 + 1, y0 + 1, true, s);
-    P.sprite(spr, mono(bone), x0, y0, true, s);
+    const fs = { d: spr.d || 1, rows: bones };
+    P.sprite(fs, mono(shade), x0 + cell / 2, y0 + cell / 2, true, s);
+    P.sprite(fs, mono(bone), x0, y0, true, s);
+  }
+
+  // 背骨のある生き物の化石は、骨格にして描く：
+  // 体の内側はあばら骨のしま、腹の縁はあばら骨の先だけ、目はくぼみ。細い首・尾・あしは骨の列のまま
+  const VERTEBRATES = new Set(['jawless', 'fish', 'shark', 'armorfish', 'amphibian', 'reptile', 'synapsid', 'marine_reptile', 'pterosaur',
+    'dino_small', 'sauropod', 'theropod', 'bird', 'mammal', 'mammal_large', 'whale', 'primate', 'hominin', 'human']);
+  function skeleton(rows) {
+    const H = rows.length, W = rows[0].length;
+    const on = (i, j) => j >= 0 && j < H && i >= 0 && i < W && rows[j][i] !== '.';
+    const socket = new Set();                             // 目のくぼみ（目のまわり2×2）
+    rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === 'k') [[0, 0], [-1, 0], [0, 1], [-1, 1]].forEach(([di, dj]) => socket.add(`${i + di},${j + dj}`)); }));
+    return rows.map((row, j) => [...row].map((ch, i) => {
+      if (ch === '.' || socket.has(`${i},${j}`)) return '.';
+      if (ch === 'w') return i % 2 ? 'a' : '.';          // 歯
+      if (j + 1 < H && rows[j + 1][i] === 'w') return '.'; // 口のすきま
+      const up = on(i, j - 1), dn = on(i, j + 1), lf = on(i - 1, j), rt = on(i + 1, j);
+      const inside = up && dn && lf && rt;
+      if (inside) {
+        const thick = on(i, j - 2) && on(i, j + 2);       // 胴体の中（首や尾ではない）
+        return !thick || i % 2 === 0 ? 'a' : '.';
+      }
+      if (up && !dn && lf && rt && on(i, j - 2)) return i % 2 === 0 ? 'a' : '.';   // 腹の縁：あばら骨の先
+      return 'a';
+    }).join(''));
   }
 
   function drawEnding(P, e, t) {
