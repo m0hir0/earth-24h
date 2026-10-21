@@ -47,6 +47,7 @@
 - localhost のときだけ `window.__e24.born(年前, '名前の一部')` で生まれる時代と生き物を指定、`window.__e24.spin(年前)` でその時代にガチャを回せる（誕生前の確認など）。
 - 構文チェック：`node -e "new Function(require('fs').readFileSync('app.js','utf8'))"`。
 - 翻訳漏れチェックや淘汰の釣り合い（2000回の自動プレイ）は node で data.js/evo.js/lang-en.js を読み込んで確かめてきた。
+- **push の前に `python3 tools/bump-version.py`**：各ページが読み込む .js/.css に `?v=日時` を付け直す。GitHub Pages はファイルを約10分キャッシュさせるので、付け忘れると「新しいページ＋古いJS」になって表示が欠ける（実際に `#b-odds` の文が消えた）。
 - コミットは日本語、末尾に `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`。push 後に `gh api repos/m0hir0/earth-24h/pages/builds/latest` で反映を確認。
 
 ## これまでの経緯（決めたこと）
