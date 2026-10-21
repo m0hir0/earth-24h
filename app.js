@@ -49,9 +49,10 @@
       revealPath = el('path', { d: 'M0,0', fill: '#fff' }, mask);
       gFull = el('g', { mask: `url(#${id})` }, svg);
     }
+    const segs = [];
     for (const e of ERAS) {
       const d = annulus(fracOf(e.from) * 360, fracOf(e.to) * 360, R0, R1);
-      el('path', { d, fill: e.color, class: 'era-seg' }, gBase);
+      segs.push(el('path', { d, fill: e.color, class: 'era-seg' }, gBase));
       if (gFull) el('path', { d, fill: e.color, class: 'era-seg' }, gFull);
     }
     for (let h = 0; h < 24; h++) {
@@ -68,6 +69,7 @@
         hand.setAttribute('transform', `rotate(${deg} ${C} ${C})`);
         if (revealPath) revealPath.setAttribute('d', pie(deg));
       },
+      select(list) { segs.forEach((p, i) => p.classList.toggle('sel', list.includes(i))); },
     };
   }
   function setClock(elm, text) {
@@ -482,6 +484,58 @@
      進化ガチャ：誕生
      ============================================================ */
   const bDial = buildDial($('b-dial'), { reveal: false });
+  // 時計の色をタップすると、その時代の説明。24:00直前の細い時代はまとめて見せる
+  const ERA_NOTE = [
+    '隕石が降りそそぎ、マグマの海が広がる。月が生まれ、やがて海ができる。生命はまだいない。',
+    '最初の生命が生まれ、核を持たない小さな細胞だけが海で暮らす。シアノバクテリアが光合成で酸素を出しはじめる。',
+    '大酸化イベントで、空気に酸素が増える。酸素は多くの微生物にとって毒だったが、酸素を使う細菌も現れる。',
+    '細菌を体に取り込んだ、核を持つ大きな細胞が現れる。のちの動物・植物・キノコの祖先。',
+    '細胞が集まった多細胞生物が増える。地球全体が凍る全球凍結が2回起き、そのあとエディアカラ生物が現れる。',
+    'カンブリア爆発で、三葉虫やアノマロカリスなどの動物がいっせいに現れる。植物と動物が陸に上がり、両生類やは虫類が生まれる。',
+    '史上最大の大量絶滅のあと、恐竜が陸の主役に。海には魚竜や首長竜、空には翼竜、そして最初の鳥。',
+    '隕石の衝突で鳥以外の恐竜が消え、哺乳類が広がる。ウマやクジラ、サルの祖先が現れる。',
+    'アフリカで人類の祖先が二足歩行をはじめ、やがて石器や火を使うようになる。',
+    'ホモ・サピエンスが生まれ、狩りと採集をしながら世界中に広がる。',
+    '農耕が始まり、村、都市、文字、国が生まれる。',
+    '機械と電気、コンピュータ、そしてAI。すべて24時間の最後の1秒の中。',
+  ];
+  const LATE = ERAS.findIndex((e) => e.from <= 7e6);               // 人類の祖先の時代から先は細すぎるので、まとめる
+  function bornNames(e) {
+    const seen = new Set();
+    for (let k = 0; k < 160; k++) for (const o of evo.birthOptions(e.from - (e.from - e.to) * (k + 0.5) / 160)) seen.add(tr(o.name));   // 古い順
+    return [...seen];
+  }
+  function showEra(i) {
+    const box = $('b-era-info'), late = i >= LATE;
+    const list = late ? ERAS.slice(LATE) : [ERAS[i]];
+    bDial.select(late ? list.map((_, k) => LATE + k) : [i]);
+    $('ei-dot').style.background = list[0].color;
+    $('ei-name').textContent = late ? T('24:00の直前（最後の約2分）') : ERAS[i].name;
+    const span = (e) => `${T('地球時計 {a}〜{b}', { a: fmtClock(e.from, 0), b: fmtClock(e.to, 0) })}${SEP}${fmtAgo(e.from)} → ${e.to > 0 ? fmtAgo(e.to) : T('今')}`;
+    $('ei-when').textContent = late ? span({ from: list[0].from, to: 0 }) : span(ERAS[i]);
+    if (late) {
+      $('ei-note').textContent = T('人類の祖先から今日までが、時計のこの細いすき間に入っています。くわしくは「今を拡大」で。');
+      $('ei-who').textContent = list.map((e) => T('{n}（{c}〜）', { n: e.name, c: fmtClock(e.from, 0) })).join(E.LANG === 'en' ? ' / ' : '、');
+    } else {
+      $('ei-note').textContent = T(ERA_NOTE[i]);
+      const names = bornNames(ERAS[i]);
+      $('ei-who').textContent = names.length ? T('生まれる可能性のある生き物：{n}', { n: names.join(E.LANG === 'en' ? ', ' : '、') }) : T('この時代には、まだ生命がいません。');
+    }
+    const e0 = list[0], e1 = list[list.length - 1];
+    $('ei-prob').textContent = T('この時代を引く確率：{p}', { p: fmtProb((e0.from - e1.to) / S) });
+    box.hidden = false;
+    box.scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
+  }
+  $('b-dial').addEventListener('click', (ev) => {
+    const r = $('b-dial').getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width * 400 - 200, y = (ev.clientY - r.top) / r.height * 400 - 200;
+    const d = Math.hypot(x, y);
+    if (d < 120 || d > 215) return;                                  // 輪の上だけ
+    const ang = (Math.atan2(x, -y) * 180 / Math.PI + 360) % 360;
+    const ya = (1 - ang / 360) * S;
+    showEra(ang > 359.3 ? LATE : ERAS.indexOf(eraOf(ya)));
+  });
+  $('ei-x').addEventListener('click', () => { $('b-era-info').hidden = true; bDial.select([]); });
   bDial.set(0);
   const G = { angle: 0, spinning: false, birth: null };
 

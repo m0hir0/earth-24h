@@ -1318,22 +1318,35 @@
       for (let k = 0; k < 5; k++) for (let r = 0; r < 4; r++) { const x = 72 + k * 12; P.dome(x, fy + 6 - r * 2, 5 - r, r % 2 ? '#8a6e55' : bone); }
       return;
     }
-    if (plan === 'ediacaran' || plan === 'soft') {
-      for (let yy = 0; yy < 14; yy++) { P.rect(95, fy - 6 + yy, 2, 1, shade); P.rect(89 + (yy % 2), fy - 6 + yy, 5, 1, bone); P.rect(98, fy - 6 + yy, 5 - (yy % 2), 1, bone); }
+    if (plan === 'soft') {                                 // ゴカイ：くねった節の跡
+      oval(P, 96, fy + 1, 20, 6, '#7d6f5e'); oval(P, 96, fy + 1, 19, 5, '#968672');
+      for (let i = 0; i < 30; i++) {
+        const x = 82 + i, y = fy + Math.round(Math.sin(i * 0.35) * 3) / 2;
+        P.rect(x - 0.5, y - 0.5, 1, 2, '#cbbba0'); P.rect(x + 0.5, y + 0.5, 1, 2, '#4e4436'); P.rect(x, y, 1, 2, i % 2 ? '#a8977c' : '#8a7a63');
+      }
       return;
     }
-    if (plan === 'sponge') { P.rect(92, fy - 7, 8, 16, bone); for (let yy = 0; yy < 16; yy += 3) P.rect(92, fy - 7 + yy, 8, 1, shade); return; }
-    if (plan === 'insect') { P.rect(88, fy, 14, 2, bone); P.rect(90, fy - 3, 6, 3, '#d8ccb0'); P.rect(90, fy + 2, 6, 3, '#d8ccb0'); return; }
     const spec = specOf(lookOf(look || plan));
     if (!spec) return;
-    const spr = SPR[spec[0]], rows = spr.rows || spr, s = 2, cell = s / (spr.d || 1);
+    const spr = SPR[spec[0]], rows = spr.rows || spr, d = spr.d || 1;
+    const s = !VERTEBRATES.has(plan) && rows[0].length / d < 11 ? 3 : 2, cell = s / d;   // 小さな化石は大きめに
     const w = rows[0].length * cell, h = rows.length * cell;
     const x0 = 96 - Math.round(w / 2), y0 = fy + 2 - Math.round(h / 2);
-    const bones = VERTEBRATES.has(plan) ? skeleton(rows) : rows;
     const mono = (c) => Object.fromEntries([...'abcdefksw'].map((k) => [k, c]));
-    const fs = { d: spr.d || 1, rows: bones };
-    P.sprite(fs, mono(shade), x0 + cell / 2, y0 + cell / 2, true, s);
-    P.sprite(fs, mono(bone), x0, y0, true, s);
+    if (VERTEBRATES.has(plan)) {                                         // 骨格
+      const fs = { d: spr.d || 1, rows: skeleton(rows) };
+      P.sprite(fs, mono(shade), x0 + cell / 2, y0 + cell / 2, true, s);
+      P.sprite(fs, mono(bone), x0, y0, true, s);
+      return;
+    }
+    // 背骨のない生き物：石のかたまり（ノジュール）に残った、凹凸のある跡
+    oval(P, x0 + w / 2, y0 + h / 2, w / 2 + 5, h / 2 + 4, '#7d6f5e');
+    oval(P, x0 + w / 2, y0 + h / 2, w / 2 + 4, h / 2 + 3, '#968672');
+    for (let k = 0; k < 6; k++) P.rect(x0 - 2 + ((k * 7) % (w + 4)), y0 - 1 + ((k * 5) % (h + 2)), 1, 0.5, '#87776a');
+    const STONE = { a: '#a8977c', b: '#6e604c', c: '#c2b296', d: '#8a7a63', e: '#4e4436', f: '#7a6b56', s: '#c4b498', k: '#4e4436', w: '#c2b296' };
+    P.sprite(spr, mono('#cbbba0'), x0 - cell / 2, y0 - cell / 2, true, s);   // 光の当たる縁
+    P.sprite(spr, mono('#4e4436'), x0 + cell / 2, y0 + cell / 2, true, s);   // 影
+    P.sprite(spr, STONE, x0, y0, true, s);
   }
 
   // 背骨のある生き物の化石は、骨格にして描く：
