@@ -401,6 +401,19 @@
   .path { margin: 0; padding-left: 20px; font-size: 14px; }
   .path li { padding: 3px 0; }
   .fact-big { text-align: center; font-size: 14px; color: var(--text-2); margin: 14px 0; }
+  .r-actions { margin: -4px 0 14px; }
+  .r-actions .share-row { margin: 0; gap: 6px; }
+  .r-actions .btn { padding: 8px 12px; font-size: 13.5px; }
+  .r-actions .copy-ok { min-height: 0; margin: 2px 0 6px; }
+  @media (max-width: 420px) {
+    .res-hero { padding: 2px 0 8px; }
+    .res-hero .big { font-size: clamp(30px, 9vw, 40px); }
+    .res-hero .ending-badge { font-size: 15px; margin-top: 4px; }
+    .res-hero p { font-size: 14px; margin-top: 6px; line-height: 1.55; }
+    #r-cap { margin-bottom: 8px; }
+    .r-actions .share-row { gap: 5px; flex-wrap: nowrap; }
+    .r-actions .btn { padding: 8px 9px; font-size: 12.5px; white-space: nowrap; }
+  }
   .share-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0; }
   .preview img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
   .save-hint { font-size: 12px; color: var(--muted); text-align: center; margin: 6px 0 0; }
@@ -769,31 +782,33 @@
       <div class="ending-badge"><span id="r-ending"></span><span class="new" id="r-new" hidden data-i18n>はじめての結末！</span></div>
       <p id="r-lead"></p>
     </div>
+    <canvas class="scene" id="r-scene" aria-hidden="true"></canvas>
+    <p class="scene-cap" id="r-cap"></p>
+    <div class="r-actions">
+      <div class="share-row">
+        <a class="btn btn-primary" id="r-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener" data-i18n>Xでシェア</a>
+        <button class="btn" id="r-share" hidden data-i18n>共有…</button>
+        <button class="btn" id="r-copy" data-i18n>リンクをコピー</button>
+        <button class="btn" id="r-save" data-i18n>画像を保存</button>
+      </div>
+      <p class="copy-ok" id="r-copy-ok" aria-live="polite"></p>
+      <div class="share-row">
+        <button class="btn btn-primary" id="r-again" data-i18n>もう一度生まれる</button>
+        <button class="btn" id="r-hist" data-i18n>これまでの記録</button>
+        <button class="btn" id="r-home" data-i18n>いまの地球へ</button>
+      </div>
+    </div>
     <div class="unlock" id="r-unlock" hidden>
       <span data-i18n>「今を拡大」が見られるようになりました</span>
       <button class="btn" id="r-zoom" data-i18n>今を拡大を見る</button>
     </div>
-    <canvas class="scene" id="r-scene" aria-hidden="true"></canvas>
-    <p class="scene-cap" id="r-cap"></p>
     <div class="card"><h3 data-i18n>記録</h3><ul class="stats" id="r-stats"></ul></div>
     <div class="card"><h3 data-i18n>進化の系譜</h3><div class="chain" id="r-chain"></div></div>
     <div class="card"><h3 data-i18n>系統のタイムライン</h3><svg class="linemap" id="r-map" viewBox="0 0 640 74" aria-hidden="true"></svg><ol class="plog" id="r-log"></ol></div>
     <div class="card"><h3 data-i18n>あなたが選んだ道</h3><ol class="path" id="r-path"></ol></div>
     <div class="card"><h3 data-i18n>同じ瞬間に生まれた4つの系統の結末</h3><ul class="rivals" id="r-rivals"></ul></div>
     <p class="fact-big" data-i18n>地球に現れた種の99%以上は、すでに絶滅しています。</p>
-    <div class="share-row">
-      <a class="btn btn-primary" id="r-x" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener" data-i18n>Xでシェア</a>
-      <button class="btn" id="r-share" hidden data-i18n>共有…</button>
-      <button class="btn" id="r-copy" data-i18n>リンクをコピー</button>
-      <button class="btn" id="r-save" data-i18n>画像を保存</button>
-    </div>
-    <p class="copy-ok" id="r-copy-ok" aria-live="polite"></p>
     <div class="preview"><img id="r-img" alt="シェア用カード"><p class="save-hint" id="r-hint" hidden data-i18n>画像は長押し（PCでは右クリック）で保存できます。</p></div>
-    <div class="share-row">
-      <button class="btn btn-primary" id="r-again" data-i18n>もう一度生まれる</button>
-      <button class="btn" id="r-hist" data-i18n>これまでの記録</button>
-      <button class="btn" id="r-home" data-i18n>いまの地球へ</button>
-    </div>
   </section>
 
   <div class="evo-modal cert-modal" id="b-cert-modal" hidden role="dialog" aria-modal="true" aria-labelledby="b-who">
