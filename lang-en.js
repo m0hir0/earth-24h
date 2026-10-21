@@ -712,7 +712,7 @@
     "生まれる可能性のある生き物：{n}": "You could be born as: {n}",
     "この時代には、まだ生命がいません。": "No life exists yet in this era.",
     "この時代を引く確率：{p}": "Chance of drawing this era: {p}",
-    '{n}年前': '{n} years ago', '{n}（{c}〜）': '{n} (from {c})', 'など': ', and more', '誕生の記録を見る': 'View birth record', '遊び方': 'How to play', '遊び方を見る': 'How to play', '地球史と進化の解説・出典': 'Earth history & sources', '運営者について': 'About', 'お問い合わせ': 'Contact', 'プライバシーポリシー': 'Privacy policy', '結果をシェアする': 'Share your result', '種の数（推定）': 'est. species', 'あなたは、{n}として生まれました': 'You were born as {n}',
+    '{n}年前': '{n} years ago', '繁栄': 'Thriving', 'この先：{t}': 'Ahead: {t}', '大量絶滅を生き延びやすくなる': 'better at surviving mass extinctions', '大量絶滅、特に隕石に弱くなる': 'vulnerable to mass extinctions, especially the asteroid', '大量絶滅で消えやすくなる': 'vulnerable to mass extinctions', '食べられて減りにくくなる': 'fewer losses to predators', '食べられて減りやすくなる': 'more losses to predators', '種がすぐに増える': 'more species right away', '数が増えやすくなる': 'grows faster', '{n}（{c}〜）': '{n} (from {c})', 'など': ', and more', '誕生の記録を見る': 'View birth record', '遊び方': 'How to play', '遊び方を見る': 'How to play', '地球史と進化の解説・出典': 'Earth history & sources', '運営者について': 'About', 'お問い合わせ': 'Contact', 'プライバシーポリシー': 'Privacy policy', '結果をシェアする': 'Share your result', '種の数（推定）': 'est. species', 'あなたは、{n}として生まれました': 'You were born as {n}',
     '同じ瞬間に生まれた4つの系統': 'Four lineages born at the same moment', '結末の図鑑': 'Ending collection', 'あなたが生きた系統': 'Lineages you lived',
     'Xでシェア': 'Share on X', 'リンクをコピー': 'Copy link', '閉じる': 'Close',
     'まだ記録はありません。生まれて結末を迎えると、ここと図鑑に残ります。記録はこの端末のブラウザにだけ保存されます。':

@@ -648,7 +648,10 @@
     const T = L.traits;
     if (L.plan === 'human') return { lam: 0, mu: 0 };
     let lam = 0.26 * (0.5 + T.adapt / 150 + T.speed / 400 + T.brain / 500);
-    let mu = 0.22 * (0.75 + T.size / 200 - T.armor / 500 - T.adapt / 300);
+    // 守り：食べられて減るのを防ぐ。捕食者の多い時代（カンブリア紀〜デボン紀の海、恐竜の時代）にはさらに効く
+    // 大きさ：ふだんは減る理由にならない（大量絶滅と隕石で不利になる。applyExtinction と EXTINCTIONS）
+    const pred = (ya > 3.59e8 && ya < 5.39e8) || (ya > 6.6e7 && ya < 2.3e8) ? 1.6 : 1;
+    let mu = 0.22 * (0.82 + T.size / 400 - T.armor * pred / 300 - T.adapt / 300);
     if (MICRO.has(L.plan)) { lam *= 0.15; mu *= 0.12; }
     if (L.plan === 'anomalo' && ya < 4.4e8) mu *= 3;
     if (L.plan === 'amphibian' && ya < 3.0e8) mu *= 1.4;

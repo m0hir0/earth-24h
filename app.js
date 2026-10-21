@@ -61,6 +61,8 @@
       el('line', { x1: x0, y1: y0, x2: x1, y2: y1, class: major ? 'tick major' : 'tick' }, svg);
       if (major) { const [tx, ty] = pt(R0 - 27, h * 15); el('text', { x: tx, y: ty, class: 'hour-label' }, svg).textContent = h === 0 ? '0/24' : h; }
     }
+    const gMarks = el('g', { class: 'marks' }, svg);              // 出来事の印（プレイ中の小さな時計）
+    let drawn = 0;
     const hand = el('g', { class: 'hand' }, svg);
     el('line', { x1: C, y1: C - R0 + 6, x2: C, y2: C - R1 - 10 }, hand);
     el('circle', { cx: C, cy: C - R1 - 10, r: 7 }, hand);
@@ -70,6 +72,16 @@
         if (revealPath) revealPath.setAttribute('d', pie(deg));
       },
       select(list) { segs.forEach((p, i) => p.classList.toggle('sel', list.includes(i))); },
+      // 誕生・分かれ道・進化・淘汰・絶滅を、その時刻の位置に印で置く。新しい印はぽんと現れる
+      marks(log) {
+        const list = log.filter((e) => ['birth', 'choice', 'evo', 'event', 'dead'].includes(e.kind));
+        if (list.length < drawn) { gMarks.textContent = ''; drawn = 0; }
+        for (let i = drawn; i < list.length; i++) {
+          const [x, y] = pt((R0 + R1) / 2, fracOf(list[i].ya) * 360);
+          el('circle', { cx: x, cy: y, r: list[i].kind === 'birth' ? 17 : 21, class: `dm dm-${list[i].kind}${REDUCE ? '' : ' new'}` }, gMarks);
+        }
+        drawn = list.length;
+      },
     };
   }
   function setClock(elm, text) {
@@ -771,9 +783,11 @@
     const box = $('p-opts'); box.textContent = '';
     node.opts.forEach((o) => {
       const b = document.createElement('button'); b.className = 'opt';
-      b.innerHTML = '<b></b><span></span><div class="chips"></div>';
+      b.innerHTML = '<b></b><span></span><div class="chips"></div><em class="fut"></em>';
       b.children[0].textContent = tr(o.label); b.children[1].textContent = o.desc;
       const fx = previewOption(P.L, o), chips = b.children[2];
+      const fut = futureHint(fx);
+      if (fut) b.children[3].textContent = T('この先：{t}', { t: fut }); else b.children[3].remove();
       const chip = (text, cls) => { const c = document.createElement('i'); c.className = cls; c.textContent = text; chips.appendChild(c); };
       if (fx.plan) chip(T('→ {p}', { p: evo.PLANS[fx.plan].name }), 'form');
       if (fx.hab) chip(T('暮らす場所 → {h}', { h: evo.HAB_LABEL[fx.hab] }), 'hab');
@@ -787,6 +801,18 @@
     $('ch-box').scrollTop = 0;
     box.firstChild.focus({ preventScroll: true });
     return true;
+  }
+  // 特徴の変化が、この先の生き残りにどう効くか（evo.rates と applyExtinction の効き方を一言で）
+  function futureHint(fx) {
+    const d = fx.d, v = (k) => d[k] || 0, out = [];
+    const ext = v('adapt') - v('size');                                // 大量絶滅：適応力は強く、大きさは弱く
+    if (ext >= 5) out.push(T('大量絶滅を生き延びやすくなる'));
+    else if (ext <= -5) out.push(v('size') > 0 && P.ya > 6.6e7 ? T('大量絶滅、特に隕石に弱くなる') : T('大量絶滅で消えやすくなる'));
+    if (v('armor') >= 5) out.push(T('食べられて減りにくくなる'));
+    else if (v('armor') <= -5) out.push(T('食べられて減りやすくなる'));
+    if (fx.n) out.push(T('種がすぐに増える'));
+    else if (v('speed') + v('brain') >= 5) out.push(T('数が増えやすくなる'));
+    return out.slice(0, 2).join(E.LANG === 'en' ? ' · ' : '・');
   }
   // 選んだらどう変わるかを、写しで試して調べる
   function previewOption(L, o) {
@@ -970,6 +996,7 @@
     const ya = P.ya, L = P.L;
     setClock($('p-clock'), T('地球時計 {c}', { c: fmtClock(ya, clockDecFor(ya)) }));
     pDial.set(fracOf(ya) * 360);
+    pDial.marks(P.log);
     $('p-ago').textContent = ya >= 1 ? T('{n}年前', { n: Math.round(ya).toLocaleString(E.LANG === 'en' ? 'en-US' : 'ja-JP') }) : T('今');   // 略さず1年単位で
     $('p-period').textContent = periodLabel(ya);
     const p = pAtYa(ya);
@@ -980,7 +1007,6 @@
     if (!force && now - lastSlow < 250) return;
     lastSlow = now;
     $('p-name').textContent = nameOf(L);
-    drawLineMap($('p-map'), P.log, P.ya0, ya);
     $('p-sub').textContent = `${evo.PLANS[L.plan].name}${SEP}${evo.HAB_LABEL[L.habitat] || ''}`;
     $('p-n').textContent = L.alive ? spc(L) : 0;
     const { lam, mu } = evo.rates(L, ya);
