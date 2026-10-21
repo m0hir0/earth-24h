@@ -82,6 +82,7 @@
   let evoScreen = 'birth';
   function show(name) {
     for (const k in SCREENS) $(SCREENS[k]).hidden = k !== name;
+    if (name !== 'birth') $('b-cert-modal').hidden = true;
     const tab = ['birth', 'play', 'result'].includes(name) ? 'evo' : name;
     if (tab === 'evo') evoScreen = name;
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === tab)));
@@ -517,6 +518,13 @@
   }
 
   $('b-spin').addEventListener('click', () => spinTo(Math.random() * S));
+  // 誕生の記録はポップアップ。閉じても「誕生の記録を見る」で開き直せる
+  const openCert = (v) => { $('b-cert-modal').hidden = !v; if (v) { $('b-cert').scrollTop = 0; $('b-start').focus({ preventScroll: true }); } };
+  $('b-close').addEventListener('click', () => openCert(false));
+  $('b-reopen').addEventListener('click', () => openCert(true));
+  $('b-cert-modal').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) openCert(false); });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('b-cert-modal').hidden) openCert(false); });
+  $('b-again').addEventListener('click', () => { openCert(false); spinTo(Math.random() * S); });
   $('b-now').addEventListener('click', () => spinTo(yaOfSec(E.clockSec())));
   function spinTo(t) {
     if (G.spinning) return;
@@ -525,6 +533,7 @@
     $('b-now').disabled = true;
     $('b-none').hidden = true;
     $('b-cert-wrap').hidden = true;
+    openCert(false);
     G.birth = null;
     const target = fracOf(t) * 360;
     const start = G.angle % 360;
@@ -545,7 +554,6 @@
       $('b-now').disabled = false;
       $('b-spin').textContent = T('もう一度生まれる');
       onBorn(t);
-      $('b-cert-wrap').hidden || $('b-cert-wrap').scrollIntoView({ block: 'start', behavior: REDUCE ? 'auto' : 'smooth' });
     };
     requestAnimationFrame(stepAnim);
   }
@@ -573,8 +581,7 @@
     G.birth = { t, player, rivals };
     const era = eraOf(t);
     $('b-no').textContent = `No. ${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
-    $('b-line1').textContent = T('あなたは');
-    $('b-who').textContent = T('{n}として生まれました', { n: nameOf(player) });
+    $('b-who').textContent = T('あなたは、{n}として生まれました', { n: nameOf(player) });
     $('b-about').textContent = evo.ABOUT[player.name] || '';
     $('b-about').hidden = !evo.ABOUT[player.name];
     $('b-line2').textContent = `${fmtAgo(t)} · ${T('地球時計 {c}', { c: fmtClock(t) })} · ${periodLabel(t)}`;
@@ -592,6 +599,7 @@
       ul.appendChild(li);
     });
     $('b-cert-wrap').hidden = false;
+    openCert(true);
   }
 
   /* ============================================================

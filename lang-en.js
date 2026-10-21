@@ -694,8 +694,7 @@
       'Your birth moment is picked evenly across 4.6 billion years. Over 99% of all species that ever lived are already extinct.',
     '生まれることができませんでした': 'You couldn\'t be born', '誕生の記録': 'Birth record', '体のつくり': 'Body plan', '暮らす場所': 'Habitat',
     'この時代を引く確率': 'Chance of this era', '今日まで': 'Time until today', 'この生き物で進化を始める': 'Start evolving as this creature',
-    '×1でおよそ10分。分かれ道や大量絶滅では時間が止まり、あなたの番を待ちます。始めてから×4・×16や「次の分かれ道へ」で速められます。':
-      'About 10 minutes at ×1. Time stops at each fork and mass extinction to wait for you. Once started, speed up with ×4, ×16 or "Next fork".',
+    '誕生の記録を見る': 'View birth record', 'あなたは、{n}として生まれました': 'You were born as {n}',
     '同じ瞬間に生まれた4つの系統': 'Four lineages born at the same moment', '結末の図鑑': 'Ending collection', 'あなたが生きた系統': 'Lineages you lived',
     'Xでシェア': 'Share on X', 'リンクをコピー': 'Copy link', '閉じる': 'Close',
     'まだ記録はありません。生まれて結末を迎えると、ここと図鑑に残ります。記録はこの端末のブラウザにだけ保存されます。':
