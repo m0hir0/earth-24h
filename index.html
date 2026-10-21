@@ -432,6 +432,8 @@
   .save-hint { font-size: 12px; color: var(--muted); text-align: center; margin: 6px 0 0; }
   footer.src { font-size: 11.5px; color: var(--muted); line-height: 1.7; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 12px; }
   footer.src a { color: var(--text-2); }
+  .site-nav { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 10px 0 8px; font-size: 13px; font-weight: 700; }
+  .hero-link { display: inline-block; margin-top: 8px; font-size: 13.5px; font-weight: 800; color: var(--accent); }
 
   .hero { padding: 6px 0 12px; }
   .hero .kicker { font-size: 12.5px; font-weight: 800; color: var(--muted); letter-spacing: .08em; }
@@ -687,6 +689,7 @@
       <div class="kicker" data-i18n>進化ガチャ</div>
       <h1 data-i18n="hero.h1">46億年のどこかに、<br>生まれる。</h1>
       <p data-i18n>どの時代に、何として生まれるかは選べません。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
+      <a class="hero-link" href="guide.html" data-i18n>遊び方を見る</a>
     </div>
     <div class="birth-actions">
       <button class="btn btn-primary" id="b-spin" data-i18n>生まれる</button>
@@ -884,7 +887,14 @@
   <footer class="src">
     <span data-i18n="footer.note">地球の年齢は46億年として計算しています。年代は国際年代層序表や研究で使われる代表的な推定値で、幅や諸説があります。
     酸素・1日の長さ・太陽の明るさは目安です。進化ガチャの淘汰は、実際の大量絶滅を手がかりにした、ゲームとしての単純化です。種の数は、その仲間がいちばん栄えたときの実際の種数（今わかっている数や推定）をもとにした目安です。</span>
-    <br><a href="v1/" data-i18n>前の版（46億年を1〜10分で流すタイプ）</a>
+    <nav class="site-nav">
+      <a href="guide.html" data-i18n>遊び方</a>
+      <a href="learn.html" data-i18n>地球史と進化の解説・出典</a>
+      <a href="about.html" data-i18n>運営者について</a>
+      <a href="contact.html" data-i18n>お問い合わせ</a>
+      <a href="privacy.html" data-i18n>プライバシーポリシー</a>
+    </nav>
+    <a href="v1/" data-i18n>前の版（46億年を1〜10分で流すタイプ）</a>
   </footer>
 </div>
 
