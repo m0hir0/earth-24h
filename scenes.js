@@ -1,4 +1,4 @@
-/* 地球の24時間 v2 — ドット絵の風景（192×64 で描いて拡大表示） */
+/* 地球の24時間 v2 — ドット絵の風景（192×64 の座標で、2倍の細かさ 384×128 に描いて拡大表示） */
 (function () {
   'use strict';
   const E = window.E24;
@@ -6,28 +6,45 @@
   /* ============================================================
      ドット絵の風景（192×64 で描いて拡大表示）
      ============================================================ */
-  const PW = 192, PH = 64;
+  const PW = 192, PH = 64;                        // 絵の座標（1マス＝「ふつうの点」）
+  const K = 2;                                    // 実際の点はその半分の大きさ（一段細かい）
 
   function painter(ctx, override = null) {
+    // 細かい点の単位で塗る
+    const raw = (x, y, w, h, c) => { ctx.fillStyle = override || c; ctx.fillRect(x, y, w, h); };
     const P = {
-      rect(x, y, w, h, c) { ctx.fillStyle = override || c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); },
+      K,
+      rect(x, y, w, h, c) {
+        const x0 = Math.round(x * K), y0 = Math.round(y * K);
+        raw(x0, y0, Math.round((x + w) * K) - x0, Math.round((y + h) * K) - y0, c);
+      },
+      raw,
+      // 丸。中心のマス (cx, cy) から半径 r マス。細かい点でなめらかに
       disc(cx, cy, r, c) {
-        for (let dy = -r; dy <= r; dy++) { const w = Math.floor(Math.sqrt(r * r - dy * dy)); P.rect(cx - w, cy + dy, 2 * w + 1, 1, c); }
+        const ox = (cx + 0.5) * K, oy = (cy + 0.5) * K, R = (r + 0.5) * K;
+        for (let j = Math.floor(oy - R); j < Math.ceil(oy + R); j++) {
+          const d = j + 0.5 - oy; if (Math.abs(d) > R) continue;
+          const w = Math.sqrt(R * R - d * d), a = Math.round(ox - w); raw(a, j, Math.round(ox + w) - a, 1, c);
+        }
       },
       dome(cx, by, r, c) {
-        for (let dy = 0; dy <= r; dy++) { const w = Math.floor(Math.sqrt(r * r - dy * dy)); P.rect(cx - w, by - dy, 2 * w + 1, 1, c); }
+        const ox = (cx + 0.5) * K, oy = (by + 1) * K, R = (r + 0.5) * K;
+        for (let j = Math.floor(oy - R); j < oy; j++) {
+          const d = j + 0.5 - oy, w = Math.sqrt(Math.max(0, R * R - d * d)), a = Math.round(ox - w); raw(a, j, Math.round(ox + w) - a, 1, c);
+        }
       },
       tri(cx, base, h, c, slope = 1) {           // 山・ピラミッド・屋根
-        for (let dy = 0; dy < h; dy++) { const w = Math.round((h - dy) * slope); P.rect(cx - w, base - dy, 2 * w + 1, 1, c); }
+        const ox = (cx + 0.5) * K, by = (base + 1) * K;
+        for (let j = 0; j < h * K; j++) { const w = ((h - j / K) * slope + 0.5) * K, a = Math.round(ox - w); raw(a, by - 1 - j, Math.round(ox + w) - a, 1, c); }
       },
       bands(colors, y0 = 0, y1 = PH) {
         const h = (y1 - y0) / colors.length;
         colors.forEach((c, i) => P.rect(0, y0 + Math.floor(i * h), PW, Math.ceil(h) + 1, c));
       },
       ridge(base, amp, seed, c, freq = 0.06, x0 = 0, x1 = PW) {
-        for (let x = x0; x < x1; x++) {
+        for (let x = x0; x < x1; x += 1 / K) {
           const h = amp * (0.55 + 0.3 * Math.sin(x * freq + seed) + 0.15 * Math.sin(x * freq * 3.7 + seed * 1.7));
-          P.rect(x, Math.round(base - h), 1, PH, c);
+          P.rect(x, Math.round((base - h) * K) / K, 1 / K, PH, c);
         }
       },
       ground(y, c, x0 = 0, x1 = PW) { P.rect(x0, y, x1 - x0, PH - y, c); },
@@ -44,12 +61,14 @@
       clouds(t, c, n = 3, y = 5, speed = 0.15) {
         for (let k = 0; k < n; k++) P.cloud(((k * 71 + t * speed) % (PW + 24)) - 20, y + (k % 2) * 6, c);
       },
-      sprite(rows, pal, x, y, flip = false, s = 1) {   // s: 拡大率（主役の生き物は2）
+      // s: 拡大率（主役の生き物は2）。細かい絵（{d:2, rows}）は1マスが s/2
+      sprite(spr, pal, x, y, flip = false, s = 1) {
+        const rows = spr.rows || spr, c = s / (spr.d || 1);
         for (let j = 0; j < rows.length; j++) {
           const row = rows[j];
           for (let i = 0; i < row.length; i++) {
             const ch = row[flip ? row.length - 1 - i : i];
-            if (ch !== '.') P.rect(x + i * s, y + j * s, s, s, pal[ch]);
+            if (ch !== '.') P.rect(x + i * c, y + j * c, c, c, pal[ch] || INK[ch] || pal.a);
           }
         }
       },
@@ -57,6 +76,7 @@
     return P;
   }
 
+  const INK = { k: '#1a1a1a', w: '#f4f0e6' };       // 目（k）と歯・白いところ（w）の色
   // 生き物と乗り物（右向き。flip で左向き）
   const SPR = {
     trilo:   ['.aaaaa.', 'abababa', '.aaaaa.', '..b.b..'],
@@ -529,33 +549,36 @@
      分かれ道で体のつくりや特徴が変わると、絵も変わる */
   const MICRO_PLANS = ['microbe', 'cyano', 'cell', 'colony'];
   const PLAYER_SPR = {
-    arthropod: ['trilo', { a: '#e0b04a', b: '#7a5a20' }, 2],
-    anomalo: ['anomalo', { a: '#e0805a', b: '#8a4a38' }, 2],
-    jawless: ['eel', { a: '#8a7a6a', b: '#3a3030' }, 2],
-    fish: ['fish', { a: '#f0c060' }, 3],
-    shark: ['shark', { a: '#7a92a6', b: '#e8eef2' }, 2],
-    armorfish: ['armorfish', { a: '#b0a070', b: '#6a6040' }, 2],
-    amphibian: ['amphib', { a: '#4f8a3a', b: '#f0e6c0' }, 2],
-    reptile: ['reptile', { a: '#b08a3e', b: '#2a2a1a' }, 2],
-    synapsid: ['dimetro', { a: '#b0603a', b: '#e0a060' }, 2],
-    marine_reptile: ['plesio', { a: '#4a8aa0', b: '#2a5a6a' }, 2],
+    arthropod: ['trilo', { a: '#d4a24c', b: '#7a5a20', c: '#ecc878', e: '#1a1a1a' }, 2],
+    insect: ['dragonfly', { a: '#2f6f9a', b: '#1f4f7a', k: '#18304a', w: 'rgba(235,248,255,0.85)' }, 2],
+    sponge: ['sponge', { a: '#e0a050', b: '#7a4a20', c: '#b07030' }, 2],
+    ediacaran: ['dickinsonia', { a: '#d89060', b: '#a05a3a', c: '#f0b080' }, 2],
+    anomalo: ['anomalo', { a: '#e0805a', b: '#c0603a', c: '#f0a888', d: '#c8684a', e: '#c86a48', f: '#a8482a', s: '#f8e8c8' }, 2],
+    jawless: ['eel', { a: '#8a7a6a', b: '#6a5a4a', c: '#b8a898' }, 2],
+    fish: ['fish', { a: '#f0c060', c: '#f8e4a8' }, 3],
+    shark: ['shark', { a: '#7a92a6', c: '#e8eef2', k: '#24303c' }, 2],
+    armorfish: ['armorfish', { a: '#8a8470', b: '#b0a070', c: '#d4cca8' }, 2],
+    amphibian: ['amphib', { a: '#4f8a3a', c: '#e0d8a0' }, 2],
+    reptile: ['reptile', { a: '#b08a3e', b: '#7a5a28' }, 2],
+    synapsid: ['dimetro', { a: '#b0603a', b: '#e0a060', c: '#d08a5a' }, 2],
+    marine_reptile: ['plesio', { a: '#4a8aa0', b: '#2a5a6a', c: '#a8d0dc' }, 2],
     pterosaur: ['pteroA', { a: '#b0704a' }, 2],
-    dino_small: ['raptor', { a: '#c06a3a', b: '#f4ead0' }, 2],
-    sauropod: ['sauro', { a: '#9a8a6a', b: '#6a5e48' }, 2],
-    theropod: ['thero', { a: '#c06a3a', b: '#7a3f28', e: '#f4ead0' }, 2],
+    dino_small: ['raptor', { a: '#c06a3a', c: '#2a2a2a' }, 2],
+    sauropod: ['sauro', { a: '#9a8a6a', b: '#6a5e48', c: '#c0b498' }, 2],
+    theropod: ['thero', { a: '#c06a3a', b: '#7a3f28', c: '#2a2a2a' }, 2],
     bird: ['bird', { a: '#4a6aa0', b: '#f0c040' }, 3],
-    mammal: ['mammal', { a: '#b07a4a' }, 2],
-    mammal_large: ['horse', { a: '#8a5a3a', b: '#4a3020' }, 2],
-    whale: ['whale', { a: '#4a6278', b: '#c8d4dc' }, 2],
-    primate: ['primate', { a: '#8a5a3a', b: '#c8a080' }, 2],
+    mammal: ['mammal', { a: '#b07a4a', b: '#f0b0a0' }, 2],
+    mammal_large: ['horse', { a: '#8a5a3a', b: '#3a2418' }, 2],
+    whale: ['whale', { a: '#4a6278', c: '#c8d4dc' }, 2],
+    primate: ['primate', { a: '#8a5a3a', c: '#d8b090' }, 2],
     hominin: ['homA', { a: '#7a4e34', b: '#4c3426' }, 2],
     human: ['hunter', { a: '#c08a66', b: '#3a6a9a', c: '#e0cfa0' }, 2],
   };
   const VARIANT_SPR = {
-    millipede: ['millipede', { a: '#8a5a3a', b: '#4a3020' }, 2],
-    horseshoe: ['horseshoe', { a: '#8a7a5a', b: '#4a3e2a' }, 2],
+    millipede: ['millipede', { a: '#8a5a3a', b: '#5a3820', c: '#4a3020' }, 2],
+    horseshoe: ['horseshoe', { a: '#8a7a5a', b: '#6a5a3e', c: '#4a3e2a' }, 2],
     turtle: ['turtle', { a: '#6a8a4a', b: '#3e5a2e', c: '#9ab07a' }, 2],
-    feather: ['raptor', { a: '#3a7ab0', b: '#f4ead0' }, 2],
+    feather: ['raptor', { a: '#3a7ab0', c: '#2a2a2a' }, 2],
   };
   Object.assign(SPR, {
     horseshoe: ['..aaaaaa......', '.aaaaaaaa.....', 'aaabbbbaaa....', 'aaaaaaaaaabbbb', '.a.a..a.a.....'],
@@ -563,6 +586,377 @@
     eel: ['..aaaaaaaaaaa.', 'aaaaaaaaaaaaab', '..aaaaaaaaaaa.'],
     turtle: ['...aaaaa....', '..aaabaaa...', '.aaabbbaaacc', 'aaaaaaaaaacc', '.c.c...c.c..'],
   });
+  // 細かいドットで描き直した生き物（1マス＝ふつうの点の半分）。a 体、b 濃いところ、c 明るいところ、k 目
+  const HI = {
+    trilo: [
+      '....aaaaaaaaa...',
+      '..aabababababaa.',
+      '.abababababaaeaa',
+      'abcbcbcbcbccccaa',
+      'abcbcbcbcbccccaa',
+      'abcbcbcbcbccccaa',
+      '.abababababaaeaa',
+      '..aabababababaa.',
+      '....aaaaaaaaa...',
+    ],
+    anomalo: [
+      '..........................kkk.........',
+      '..........................kwk.........',
+      '...........................a..........',
+      'bb....dd.dd.dd.dd.dd.dd.dd.a.....fff..',
+      '.bb..ddddddddddddddddddddd.a...ff.ssf.',
+      '...aaaaaaaaaaaaaaaaaaaaaaaaaaaffs...ff',
+      'bbaacacacacacacacacacacacaaaaa........',
+      'bbaaaaaaaaaaaaaaaaaaaaaaaaeeeek.......',
+      'bbaacacacacacacacacacacacaaaaa........',
+      '...aaaaaaaaaaaaaaaaaaaaaaaaaaaffs...ff',
+      '.bb..ddddddddddddddddddddd.a...ff.ssf.',
+      'bb....dd.dd.dd.dd.dd.dd.dd.a.....fff..',
+      '...........................a..........',
+      '..........................kwk.........',
+      '..........................kkk.........',
+    ],
+    eel: [
+      '.......................',
+      '..aaaaaaaaaaaaaaaaaaa..',
+      'aabcbcbcbcbcbcbcbcaakaa',
+      '.aaaaaaaaaaaaaaaaaaaaa.',
+      '..c.c..................',
+    ],
+    fish: [
+      '........aaa.....',
+      'a.....aaaaaaa...',
+      'aa...aaaaaaaaa..',
+      'aaa.aaaaaaaaakaa',
+      'aaaaaaaaaaabaaaa',
+      'aaa.cccccccbcccc',
+      'aa...cccccccccc.',
+      'a.......cc......',
+    ],
+    shark: [
+      '...............a...............',
+      '..............aa...............',
+      '.............aaa...............',
+      'a..........aaaaaaaaaaa.........',
+      'aa.....aaaaaaaaaaaaaaaaaa......',
+      'aaa.aaaaaaaaaaaaaaaaaaakaaa....',
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaa..',
+      'aaa.ccccccccccccccccccccccccccc',
+      'aa.....cccccaccccccccccc.kkkk..',
+      'a.........aa.....aa............',
+      '..........a.......a............',
+    ],
+    armorfish: [
+      '................bbbbbbb.....',
+      '............bbbbbbbbbbbbb...',
+      '..........bbbbbbbdbbbbkbbb..',
+      'a.....aaaabbbbbbbdbbbbbbbbb.',
+      'aa..aaaaaaabbbbbbdbbbbbbbbbb',
+      'aaaaaaaaaaabbbbbbdbbbbbwwww.',
+      'aa..aaaaaaaccccccbbbbbbbbbbb',
+      'a......aaaaccccccbbbbbbbbbb.',
+      '..........aa....bbb.........',
+    ],
+    amphib: [
+      '...........aaaaaa...',
+      '........aaaaaaaaaka.',
+      'a....aaaaaaaaaaaaaaa',
+      'aaaaaaaaaaaaaaaaccc.',
+      '.aaaaaccccccccccc...',
+      '....aa.......aa.....',
+      '...aa.......aa......',
+    ],
+    reptile: [
+      '............aaaa....',
+      '.........aaaaaakaa..',
+      'aaa...aaaaaaaaaaaaab',
+      '..aaaaaabababababa..',
+      '.....aa.......aa....',
+      '....a.a......a.a....',
+    ],
+    dimetro: [
+      '.......a.a.a.a.a..........',
+      '......abababababa.........',
+      '.....abbbbbbbbbbba........',
+      '.....abbbbbbbbbbbba.......',
+      '....abbbbbbbbbbbbba.......',
+      '....aaaaaaaaaaaaaaa..aaaa.',
+      'a..aaaaaaaaaaaaaaaaaaaaka.',
+      '.aaaaaaaaaaaaaaaaaaaaaaaaa',
+      '...cccccccccccccccccaawww.',
+      '....aa.aa.....aa.aa.......',
+      '...aa.aa.....aa.aa........',
+    ],
+    plesio: [
+      '.............................aaa.',
+      '............................aaaka',
+      '...........................aaaaaa',
+      '..........................aaa....',
+      '.........................aaa.....',
+      '....aaaaaaaaaaaaaaaa...aaa.......',
+      '.aaaaaaaaaaaaaaaaaaaaaaaa........',
+      'aaaaaaaaaaaaaaaaaaaaaaaa.........',
+      '..ccccccccccccccccccccc..........',
+      '.....bbb.........bbb.............',
+      '....bbb.........bbb..............',
+    ],
+    pteroA: [
+      'a......................a',
+      '.aa..................aa.',
+      '..aaa..............aaa..',
+      '...aaaa..........aaaa...',
+      '....aaaaa..aa..aaaaa....',
+      '.....aaaaaaaaaaaaaa.....',
+      '..........aaaaaakaaaa...',
+      '...........aaaa....aaa..',
+      '...........a.a..........',
+    ],
+    pteroB: [
+      '........................',
+      '........................',
+      '..........aaaaaa..aa....',
+      '.......aaaaaaaaaaaakaaa.',
+      '....aaaaaa.aaaa.aaaaa.aa',
+      '..aaaa.....a..a....aaaa.',
+      '.aaa................aaa.',
+      'aa....................aa',
+    ],
+    raptor: [
+      '..............aaaa..',
+      '.............aaakaa.',
+      '.............aaaaaaa',
+      '.............aawwww.',
+      '............aaaa....',
+      '...........aaaa.....',
+      'a.........aaaaa.....',
+      '.aa......aaaaaa.....',
+      '..aaaaaaaaaaaaa.....',
+      '...aaaaaaaaaaaa.c...',
+      '.....aaaaaaaa..c....',
+      '......aa..aa........',
+      '......a...a.........',
+      '.....aa...aa........',
+      '....aa...aa.........',
+    ],
+    sauro: [
+      '...........................................aaaa.',
+      '..........................................aaakaa',
+      '.........................................aaaaaaa',
+      '........................................aaa.....',
+      '.......................................aaa......',
+      '......................................aaa.......',
+      '.....................................aaa........',
+      '....................................aaa.........',
+      '...................................aaa..........',
+      '..................................aaa...........',
+      '.................aaaaaaaaaaaa....aaa............',
+      '............aaaaaaaaaaaaaaaaaaaaaaa.............',
+      '.........aaaaaaaaaaaaaaaaaaaaaaaaa..............',
+      '.......aaaaaaaaaaaaaaaaaaaaaaaaaa...............',
+      '.....aaaaaaaaaaaaaaaaaaaaaaaaaaa................',
+      '...aaaa..aaaaaaaaaaaaaaaaaaaaaa.................',
+      '.aaa.....cccccccccccccccccccc...................',
+      'aa..........bbbb.......bbbb.....................',
+      '............bbbb.......bbbb.....................',
+      '............bbbb.......bbbb.....................',
+      '............bbbb.......bbbb.....................',
+      '...........bbbbb......bbbbb.....................',
+    ],
+    thero: [
+      '................aaaaaaa.....',
+      '...............aaaaaaakaa...',
+      '...............aaaaaaaaaaaa.',
+      '...............aaaaaaawwwwa.',
+      '...............aaaaaaaaaaa..',
+      '..............aaaaa.wwww....',
+      '.............aaaaa..........',
+      '............aaaaaa.cc.......',
+      'a...........aaaaaa..c.......',
+      '.aa........aaaaaaa..........',
+      '..aaa....aaaaaaaaa..........',
+      '...aaaaaaaaaaaaaaa..........',
+      '....aaaaaaaaaaaaaa..........',
+      '......aaaaaaaaaaa...........',
+      '.........aaa..aaa...........',
+      '.........aa....aa...........',
+      '.........aa....aa...........',
+      '........aaa...aaa...........',
+      '.......bbb...bbb............',
+    ],
+    bird: [
+      '.......aaa..',
+      '......aaakbb',
+      '......aaaa..',
+      'aa..aaaaa...',
+      '.aaaaaaaa...',
+      '..aaaaaaa...',
+      '...aaaaa....',
+      '....b..b....',
+      '...bb.bb....',
+    ],
+    mammal: [
+      '..............aa....',
+      '.............aaaa...',
+      '.a.....aaaaaaaaaka..',
+      '..aaaaaaaaaaaaaaaaab',
+      '....aaaaaaaaaaaaaa..',
+      '.....aaaaaaaaaaa....',
+      '.....a.a.....a.a....',
+    ],
+    horse: [
+      '....................aa..',
+      '...................aaa..',
+      '..................aaaaa.',
+      '.................aaaakaa',
+      '...........aaa..aaaaaaab',
+      '.aaaaaaaaaaaaaaaaaa..aaa',
+      'aaaaaaaaaaaaaaaaaaa.....',
+      'a.aaaaaaaaaaaaaaaaa.....',
+      '..aaaaaaaaaaaaaaaa......',
+      '..aa.aa......aa.aa......',
+      '..a..a........a..a......',
+      '..a..a........a..a......',
+      '..a..a........a..a......',
+      '..b..b........b..b......',
+    ],
+    whale: [
+      '..........aaaaaaaaaaaaaaa...............',
+      '.......aaaaaaaaaaaaaaaaaaaaaaa..........',
+      '....aaaaaaaaaaaaaaaaaaaaaaaaaaaaa.......',
+      'a.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.....',
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaakaa...',
+      'aaa.cccccccccccccccccccccccccccccaaaaaaa',
+      'a.....ccccccccccccccccccccccccccc.......',
+      '...............aa.......................',
+      '................aa......................',
+    ],
+    primate: [
+      '.........aaa.',
+      '........aaccc',
+      '........aakca',
+      '........aaaaa',
+      '.......aaaa..',
+      'a.....aaaaaa.',
+      '.a...aaaaa.c.',
+      '..aaaaaaaa...',
+      '...aaaaaaa...',
+      '...aa...aa...',
+      '...a....a....',
+      '..aa...aa....',
+    ],
+    homA: [
+      '..aaa...',
+      '..aaaa..',
+      '..aaa...',
+      '...a....',
+      '..aaaa..',
+      '.aaaaaa.',
+      '.a.aa.a.',
+      '.a.aa.a.',
+      '...bb...',
+      '..bbbb..',
+      '..b..b..',
+      '.bb...b.',
+      '.b....b.',
+    ],
+    homB: [
+      '..aaa...',
+      '..aaaa..',
+      '..aaa...',
+      '...a....',
+      '..aaaa..',
+      '.aaaaaa.',
+      '.a.aa.a.',
+      '.a.aa.a.',
+      '...bb...',
+      '...bb...',
+      '...bb...',
+      '...bb...',
+      '...bb...',
+    ],
+    hunter: [
+      '.........c',
+      '...aa....c',
+      '..aaaa...c',
+      '..aaa....c',
+      '...a.....c',
+      '..bbbb..ac',
+      '.bbbbbbaac',
+      '.bbbbbb..c',
+      '.abbbb...c',
+      '..bbbb...c',
+      '..bbbb....',
+      '..b..b....',
+      '..b..b....',
+      '..a..a....',
+      '.aa.aa....',
+    ],
+    millipede: [
+      '..aaaaaaaaaaaaaaaaaaaaaa....',
+      '.aabababababababababababa...',
+      'aabababababababababababaaka.',
+      '.aaaaaaaaaaaaaaaaaaaaaaaaaa.',
+      '..c.c.c.c.c.c.c.c.c.c.c.c...',
+      '.c.c.c.c.c.c.c.c.c.c.c.c....',
+    ],
+    horseshoe: [
+      '..........aaaaaaaaaa........',
+      '.......aaaaaaaaaaaaaaaa.....',
+      '.....aaaaabbbbbbbaaakaaa....',
+      '....aaaabbbbbbbbbbaaaaaaa...',
+      'bbbbaaaaaaaaaaaaaaaaaaaaa...',
+      '...aaaaaaaaaaaaaaaaaaaaaa...',
+      '....c.c.c.c.c.c.c.c.c.......',
+    ],
+    turtle: [
+      '.......aaaaaaa...........',
+      '.....aabababababa........',
+      '....abbabbabbabbaa.......',
+      '...abbbbabbbbabbbba......',
+      '...aaaaaaaaaaaaaaaaa.ccc.',
+      '.ccbbbbbbbbbbbbbbbbbcckc.',
+      '..cc...cc.....cc..cccccc.',
+      '...c...cc.....cc.........',
+    ],
+    dragonfly: [
+      '..........wwww.wwww.....',
+      '.........wwwwwwwwwwww...',
+      '..........wwwwwwwwww....',
+      'aaaaaaaaaaaaaaabbbbkk...',
+      'aaaaaaaaaaaaaaabbbbkkk..',
+      '................b.b.b...',
+    ],
+    sponge: [
+      '..aaaaaaaa..',
+      '.ab......ba.',
+      '.abbbbbbbba.',
+      '.aaaaaaaaaa.',
+      '.acaaacaaaa.',
+      'aaaaaaaaacaa',
+      'aacaaaaaaaaa',
+      'aaaaacaaaaaa',
+      'aaaaaaaaacaa',
+      'acaaaaaaaaaa',
+      'aaaaacaaaaca',
+      'aaaaaaaaaaaa',
+      '.aacaaaaacaa',
+      '.aaaaaacaaa.',
+      '..aaaaaaaa..',
+      '..aaaaaaaa..',
+    ],
+    dickinsonia: [
+      '......aaaaaaaa......',
+      '...aaacacacacacaa...',
+      '.aacacacacacacacaca.',
+      'acacacacacacacacacac',
+      'bbbbbbbbbbbbbbbbbbbb',
+      'acacacacacacacacacac',
+      '.aacacacacacacacaca.',
+      '...aaacacacacacaa...',
+      '......aaaaaaaa......',
+    ],
+  };
+  for (const k in HI) SPR[k] = { d: 2, rows: HI[k] };
   const DEFAULT_V = { microbe: 'rod', cyano: 'cyano', cell: 'euk', colony: 'alga', arthropod: 'trilo' };
   const lookOf = (x) => (typeof x === 'string' ? { plan: x, v: DEFAULT_V[x] || '' } : { ...x, v: x.v || DEFAULT_V[x.plan] || '' });
   const specOf = (look) => VARIANT_SPR[look.v] || PLAYER_SPR[look.plan];
@@ -623,47 +1017,36 @@
     look = lookOf(look);
     const plan = look.plan, sz = look.size == null ? 45 : look.size;
     if (MICRO_PLANS.includes(plan)) { const r = card ? 22 : 20, cy = card ? 24 : 30; drawMicro(P, look.v, cx, cy, r, t, !card); return cy - r - 1; }
-    if (plan === 'sponge') {
-      const h = 8 + Math.round(sz / 6);
-      P.rect(cx - 3, ground - h, 7, h, '#e0a050'); P.rect(cx - 2, ground - h - 1, 5, 1, '#f0c070'); P.rect(cx - 1, ground - h, 3, 2, '#7a4a20');
-      for (let y = ground - h + 3; y < ground; y += 3) { P.rect(cx - 2, y, 1, 1, '#b07030'); P.rect(cx + 2, y + 1, 1, 1, '#b07030'); }
-      return ground - h - 2;
-    }
-    if (plan === 'ediacaran') {
-      const h = 10 + Math.round(sz / 5);
-      for (let y = 0; y < h; y++) { const sw = card ? 0 : Math.round(Math.sin(y * 0.3 + t * 0.2)); P.rect(cx + sw - 3 + (y % 2), ground - y, 3, 1, '#d08050'); P.rect(cx + sw, ground - y, 1, 1, '#a05a3a'); P.rect(cx + sw + 1, ground - y, 3 - (y % 2), 1, '#f0a070'); }
-      return ground - h - 1;
-    }
-    if (plan === 'soft') {                                   // ゴカイのような、くねる体
-      const n = 6 + Math.round(sz / 6), y0 = ground - 4;
-      for (let i = 0; i < n; i++) { const yy = y0 + Math.round(Math.sin(i * 0.7 + t * 0.4) * 2), x = cx - n + i * 2; P.rect(x, yy, 2, 2, i % 2 ? '#d0607a' : '#e07a8a'); if (i % 2 === 0) { P.rect(x, yy - 1, 1, 1, '#f0b0b8'); P.rect(x, yy + 2, 1, 1, '#f0b0b8'); } }
-      P.rect(cx + n, y0 - 1 + Math.round(Math.sin(n * 0.7 + t * 0.4) * 2), 3, 3, '#a03a50');
-      return y0 - 5;
-    }
-    if (plan === 'insect') {                                 // トンボのような昆虫
-      const s = sz > 25 ? 2 : 1, y = card ? ground - 14 : 22 + Math.round(Math.sin(t * 0.4) * 3);
-      P.rect(cx - 5 * s, y, 10 * s, s + 1, '#2f6f9a'); P.rect(cx + 5 * s, y - 1, 2 * s, s + 2, '#1f4f7a');
-      const wing = t % 2 ? 'rgba(240,250,255,0.95)' : 'rgba(240,250,255,0.55)';
-      P.rect(cx - 2 * s, y - 2 * s, 5 * s, 2 * s, wing); P.rect(cx - 2 * s, y + s + 1, 5 * s, 2 * s, wing);
-      return y - 2 * s - 2;
+    if (plan === 'soft') {                                   // ゴカイのような、くねる体（細かい点）
+      const n = 14 + Math.round(sz / 5), y0 = ground - 3, x0 = cx - Math.round(n / 2);
+      const yy = (i) => y0 + Math.round(Math.sin(i * 0.45 + t * 0.4) * 3) / 2;
+      for (let i = 0; i < n; i++) {
+        P.rect(x0 + i, yy(i), 1, 1.5, i % 2 ? '#d0607a' : '#e07a8a');
+        if (i % 2 === 0) { P.rect(x0 + i + 0.5, yy(i) - 0.5, 0.5, 0.5, '#f0b0b8'); P.rect(x0 + i + 0.5, yy(i) + 1.5, 0.5, 0.5, '#f0b0b8'); }
+      }
+      P.rect(x0 + n, yy(n) - 0.5, 2, 2, '#a03a50'); P.rect(x0 + n + 1, yy(n), 0.5, 0.5, '#1a1a1a');
+      P.rect(x0 + n + 2, yy(n) - 0.5, 1, 0.5, '#a03a50'); P.rect(x0 + n + 2, yy(n) + 1, 1, 0.5, '#a03a50');
+      return y0 - 4;
     }
     const spec = specOf(look);
     if (!spec) return ground;
     const [name, pal] = spec;
-    let rows = SPR[name];
+    let spr = SPR[name];
+    const rows = spr.rows || spr, d = spr.d || 1;
     let s = formScale(look, spec[2]);
-    if (card) s = Math.max(1, Math.min(4, Math.floor(56 / rows[0].length), Math.floor(38 / rows.length)));   // カードでは枠いっぱいに
-    const w = rows[0].length * s, h = rows.length * s;
+    if (card) s = Math.max(1, Math.min(2 * d, Math.floor(56 * d / rows[0].length), Math.floor(38 * d / rows.length)));   // カードでは大きく（細かさは保つ）
+    const cell = s / d, w = rows[0].length * cell, h = rows.length * cell;
     const swim = ['jawless', 'fish', 'shark', 'armorfish', 'marine_reptile', 'whale', 'anomalo'].includes(plan);
-    const fly = plan === 'pterosaur' || plan === 'bird';
+    const fly = plan === 'pterosaur' || plan === 'bird' || plan === 'insect';
     const y = card ? ground - h - (swim || fly ? 6 : 0) : fly ? 14 + Math.round(Math.sin(t * 0.2) * 3) : swim ? 30 - Math.round(h / 2) + Math.round(Math.sin(t * 0.15) * 2) : ground - h;
     const x = cx - Math.round(w / 2) + (card ? 0 : Math.round(Math.sin(t * 0.07) * 4));
-    if (fly && name === 'pteroA' && t % 4 >= 2) rows = SPR.pteroB;
-    P.sprite(rows, pal, x, y, false, s);
-    if ((look.armor || 0) >= 65 && !['arthropod', 'armorfish', 'turtle', 'horseshoe'].includes(look.v || plan) && plan !== 'arthropod' && plan !== 'armorfish') spikes(P, rows, x, y, s, '#5a4a3a');
-    if (look.feather && (plan === 'dino_small' || plan === 'theropod')) {    // 羽毛：頭の飾りと、しっぽの羽
-      P.rect(x + w - 3 * s, y - s, s, s, '#e0503a'); P.rect(x + w - 2 * s, y - 2 * s, s, s, '#f0c040');
-      P.rect(x, y + 3 * s, s, s, '#f0c040'); P.rect(x - s, y + 2 * s, s, s, '#e0503a');
+    if (fly && name === 'pteroA' && t % 4 >= 2 && !card) spr = SPR.pteroB;
+    P.sprite(spr, pal, x, y, false, s);
+    if ((look.armor || 0) >= 65 && !['arthropod', 'armorfish', 'turtle', 'horseshoe'].includes(look.v || plan) && plan !== 'arthropod' && plan !== 'armorfish') spikes(P, rows, x, y, cell, '#5a4a3a');
+    if (look.feather && (plan === 'dino_small' || plan === 'theropod')) {    // 羽毛：頭のとさかと、背中・しっぽの羽
+      const f = cell;
+      [[w - 4 * f, -f, '#e0503a'], [w - 3 * f, -2 * f, '#f0c040'], [w - 5 * f, 0, '#e0503a']].forEach(([dx, dy, c]) => P.rect(x + dx, y + dy, f * 2, f, c));
+      for (let i = 0; i < 4; i++) P.rect(x - f * (i % 2), y + (6 + i) * f, f * 3, f, i % 2 ? '#e0503a' : '#f0c040');
     }
     return y - 1;
   }
@@ -677,7 +1060,7 @@
   }
   // 生き物だけを小さなキャンバス（64×48）に。silhouette で白一色（進化の演出用）
   function drawCreatureCard(ctx, look, t = 0, silhouette = null) {
-    ctx.clearRect(0, 0, 64, 48);
+    ctx.clearRect(0, 0, 64 * K, 48 * K);
     const P = painter(ctx, silhouette);
     drawForm(P, look, t, 32, 44, true);
   }
@@ -686,7 +1069,7 @@
      結末の場面：今日の子孫の暮らし／化石が眠る地層
      ============================================================ */
   function oval(P, cx, cy, rx, ry, c) {
-    for (let dy = -ry; dy <= ry; dy++) { const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy / ry) ** 2))); P.rect(cx - w, cy + dy, 2 * w + 1, 1, c); }
+    for (let dy = -ry; dy <= ry; dy += 1 / K) { const w = rx * Math.sqrt(Math.max(0, 1 - (dy / (ry + 0.5)) ** 2)) + 0.5; P.rect(cx + 0.5 - w, cy + dy, 2 * w, 1 / K, c); }
   }
   function flowers(P, y0, y1, t, n, seed) {
     const cols = ['#f06a8a', '#ffd84a', '#ffffff', '#b07ae0', '#ff9a3a'];
@@ -943,11 +1326,12 @@
     if (plan === 'insect') { P.rect(88, fy, 14, 2, bone); P.rect(90, fy - 3, 6, 3, '#d8ccb0'); P.rect(90, fy + 2, 6, 3, '#d8ccb0'); return; }
     const spec = specOf(lookOf(look || plan));
     if (!spec) return;
-    const rows = SPR[spec[0]], s = 2;
-    const w = rows[0].length * s, h = rows.length * s;
+    const spr = SPR[spec[0]], rows = spr.rows || spr, s = 2, cell = s / (spr.d || 1);
+    const w = rows[0].length * cell, h = rows.length * cell;
     const x0 = 96 - Math.round(w / 2), y0 = fy + 2 - Math.round(h / 2);
-    P.sprite(rows, Object.fromEntries(Object.keys(spec[1]).map((k) => [k, shade])), x0 + 1, y0 + 1, true, s);
-    P.sprite(rows, Object.fromEntries(Object.keys(spec[1]).map((k) => [k, bone])), x0, y0, true, s);
+    const mono = (c) => Object.fromEntries([...'abcdefksw'].map((k) => [k, c]));
+    P.sprite(spr, mono(shade), x0 + 1, y0 + 1, true, s);
+    P.sprite(spr, mono(bone), x0, y0, true, s);
   }
 
   function drawEnding(P, e, t) {
@@ -962,7 +1346,7 @@
 
   function drawScene(ctx, ya, t, opts = {}) {
     const P = painter(ctx);
-    ctx.clearRect(0, 0, PW, PH);
+    ctx.clearRect(0, 0, PW * K, PH * K);
     if (opts.ending) { drawEnding(P, opts.ending, t); return; }
     const { fx, habitat, plan } = opts;
     const micro = plan === 'microbe' || plan === 'cyano' || plan === 'cell' || plan === 'colony';
@@ -1036,7 +1420,7 @@
   // 表示中のキャンバスを 8コマ/秒 で描き直す
   const views = [];
   function sceneView(canvas, getState) {
-    canvas.width = PW; canvas.height = PH;
+    canvas.width = PW * K; canvas.height = PH * K;
     views.push({ canvas, ctx: canvas.getContext('2d'), getState, key: '' });
   }
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1055,5 +1439,5 @@
   }
   requestAnimationFrame(loop);
 
-  E.scenes = { PW, PH, drawScene, sceneCaption, sceneView, FX_CAPTION, drawCreatureCard };
+  E.scenes = { PW, PH, K, CW: PW * K, CH: PH * K, CARD_W: 64 * K, CARD_H: 48 * K, drawScene, sceneCaption, sceneView, FX_CAPTION, drawCreatureCard };
 })();

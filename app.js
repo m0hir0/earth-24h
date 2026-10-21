@@ -7,7 +7,7 @@
     S, DAY, ago, fmtYears, fmtAgo, fmtSec, fmtCountdown, fmtClock, clockDecFor, fmtOneIn, fmtProb,
     fracOf, ERAS, eraOf, periodLabel, EVENTS, status, AI_STORY,
   } = E;
-  const { sceneView, sceneCaption, drawScene, drawCreatureCard, PW, PH } = E.scenes;
+  const { sceneView, sceneCaption, drawScene, drawCreatureCard, PW, PH, CW, CH, CARD_W, CARD_H } = E.scenes;
   const { yaOfSec, fmtSpan } = E;
   const evo = E.evo;
   const $ = (id) => document.getElementById(id);
@@ -473,7 +473,7 @@
     (g || []).forEach((f, i) => {
       if (i) { const a = document.createElement('span'); a.className = 'arrow'; a.textContent = '→'; box.appendChild(a); }
       const w = document.createElement('div'); w.className = 'form';
-      const cv = document.createElement('canvas'); cv.width = 64; cv.height = 48;
+      const cv = document.createElement('canvas'); cv.width = CARD_W; cv.height = CARD_H;
       drawCreatureCard(cv.getContext('2d'), lookOfG(f), 3);
       const n = document.createElement('span'); n.className = 'fn'; n.textContent = tr(f[2]);
       w.append(cv, n); box.appendChild(w);
@@ -819,7 +819,7 @@
         last = now;
         if (k < 0.15) drawCreatureCard(ctx, fromLook, Math.floor(now / 125));
         else if (k < 0.9) { const q = (k - 0.15) / 0.75; drawCreatureCard(ctx, Math.sin(q * q * 70) > 0 ? toLook : fromLook, 0, '#ffffff'); }
-        else { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 64, 48); }
+        else { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, CARD_W, CARD_H); }
       }
       requestAnimationFrame(frame);
     }
@@ -1031,7 +1031,7 @@
     const cv = document.createElement('canvas'); cv.width = 1200; cv.height = 630;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#0c111b'; ctx.fillRect(0, 0, 1200, 630);
-    const sc = document.createElement('canvas'); sc.width = PW; sc.height = PH;
+    const sc = document.createElement('canvas'); sc.width = CW; sc.height = CH;
     const es = endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L));
     drawScene(sc.getContext('2d'), es.ya, 3, es);
     ctx.imageSmoothingEnabled = false;
@@ -1181,7 +1181,7 @@
       b.className = 'zk';
       const has = found.has(e.id);
       if (has) {
-        const cv = document.createElement('canvas'); cv.width = PW; cv.height = PH;
+        const cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
         const last = list.find((h) => evo.endingOf(h).id === e.id);
         const st = sceneOfData(last);
         drawScene(cv.getContext('2d'), st.ya, 3, st);

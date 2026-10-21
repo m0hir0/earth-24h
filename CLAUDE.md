@@ -12,7 +12,7 @@
 
 1. `i18n.js` — 言語（ja/en）の選択、`E.T(日本語テンプレ, {vars})` / `E.tr(日本語)`、現地時間 `E.clockSec()`、HTMLの `data-i18n` 置換 `E.applyStatic()`
 2. `data.js` — 定数（S=46億年, DAY）、書式（fmtYears/fmtAgo/fmtSec/fmtClock/fmtProb…、英語版あり）、ERAS・PERIODS（地質年代）・EVENTS（約170件、`key` は日本語名で不変）・status（酸素/1日の長さ/太陽）・AI_STORY
-3. `scenes.js` — ドット絵（192×64 を拡大）。`drawScene(ctx, ya, t, opts)`、opts は `{fx, habitat, plan, look, ending}`。`sceneView(canvas, getState)` が 8コマ/秒で描き直す。生き物の姿は `drawForm(P, look, …)`（微生物は `drawMicro` で変種ごとに描き分け）、`drawCreatureCard`（64×48、白い影も描ける）。結末用 `TODAY`（今日の暮らし）と `sceneFossil`（化石の地層）もここ
+3. `scenes.js` — ドット絵。座標は 192×64 だが、実際は2倍の細かさ（`K=2`、キャンバスは 384×128、カードは 128×96）で描く。`P.rect` は小数（0.5 単位）も使え、丸・山・楕円は細かい点でなめらか。`drawScene(ctx, ya, t, opts)`、opts は `{fx, habitat, plan, look, ending}`。`sceneView(canvas, getState)` が 8コマ/秒で描き直す。生き物の姿は `drawForm(P, look, …)`（微生物は `drawMicro` で変種ごとに描き分け）、`drawCreatureCard`（64×48、白い影も描ける）。結末用 `TODAY`（今日の暮らし）と `sceneFossil`（化石の地層）もここ
 4. `globe.js` — 「いまの地球」ダイヤル中央の回る地球（時代で姿が変わる）
 5. `evo.js` — 進化ガチャの中身：PLANS（体のつくり、base 特徴値）、birthOptions（時代ごとの生まれる生き物）、NODES（分かれ道、最後に地質年代ごとの汎用 age0〜11）、EXTINCTIONS（淘汰）、種の数の増減 `step`、`applyExtinction`、ENDINGS（40種類、No.40は誕生前）、LIFE（暮らしの出来事）と `endingOf(d)`
 6. `lang-en.js` — 英語の文章。英語のときだけ内容を置きかえ、UI 辞書を `E.addDict` する
@@ -56,4 +56,6 @@
 - 誕生の記録に生き物の説明（`evo.ABOUT`、birthOptions の名前がキー。英訳は lang-en.js の `ABOUT`）。生まれる生き物を足したら説明も足す。
 - 特徴の表（`.traits.compact`、5列、変わると ▲▼ が浮かぶ）とタイムラインは1枚の系統カードに統合。タイムラインの分かれ道・暮らしには特徴の増減チップ（`plog(ya, text, kind, d)`）。
 - 微生物から昆虫への道：酸素の分かれ道（o2）の時期を26億〜15億年前に広げ、24億年前より後に生まれた微生物も 酸素→取り込み→多細胞→体→殻とあし→陸→空 と進める。
+- ドットを一段細かく（ユーザーの要望：「荒くて生き物を認識しづらい」）。主役の生き物は `HI`（`{d:2, rows}`、1マス＝ふつうの点の半分）で描き直した。文字は a 体・b 濃い所・c 明るい所・d/e/f/s 部位、k 目・w 白（パレットになければ `INK`、それ以外は a）。アノマロカリスは上から見た姿（ひれ・柄の先の目・巻いた2本の腕）、三葉虫も上から。海綿・ディッキンソニア・昆虫（トンボ）も絵に。カードは1マス最大2点（細かさを保つ）。
+- 絵の確認用に `.claude/gallery.html`（git 管理外）。`?l=plan:変種,...&s=年前,plan,habitat;...&z=倍率`。ブラウザが古い scenes.js をキャッシュしやすいので、ページ内で `fetch(ファイル, {cache:'reload'})` してから再読み込みする。
 - 広告（AdSense）は保留中。やるなら独自ドメイン必須、Cloudflare Pages への移行、プライバシーポリシー等が必要（ユーザーに説明済み）。
