@@ -742,7 +742,6 @@
     'あと{t}': 'in {t}', 'あなたの系統が、数を減らし続けて絶滅した': 'Your lineage dwindled and died out', 'あなたの系統：{b}種 → 0種。ここで絶滅しました。': 'Your lineage: {b} → 0 species. It died out here.',
     'あなたの系統：{b}種 → {a}種。なんとか生き延びた。': 'Your lineage: {b} → {a} species. You made it through.',
     'あなたは': 'You were', 'いちばん多いときの種の数': 'Most species at once', 'いまの地球時計の時代（{a}）に生まれる': 'Be born in the era on Earth\'s clock now ({a})',
-    'いまの地球時計の風景（{a}）：{c}': 'Earth\'s clock right now ({a}): {c}',
     'これまで{n}回生まれ、{a}回は今日まで生き残りました（生存率{p}%）。いちばん長く続いたのは「{f}」からの系統（{y}）。':
       'Born {n} times, survived to today {a} times (survival rate {p}%). Longest-lasting lineage: the one that began as "{f}" ({y}).',
     'すでに絶滅': 'Already extinct', 'たった今': 'just now', 'ほぼ0%': 'nearly 0%', 'もう一度押すと、すべての記録を消します': 'Press again to delete all records',

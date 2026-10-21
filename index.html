@@ -334,6 +334,8 @@
   .ch-box .chips .up { background: rgba(127, 224, 168, .15); color: #7fe0a8; }
   .ch-box .chips .down { background: rgba(255, 138, 120, .15); color: #ff8a78; }
   .ch-box .chips .hab { background: #222b3c; color: #b8c4d6; }
+  .b-pic { display: block; width: min(100%, 256px); height: auto; aspect-ratio: 4 / 3; margin: 8px auto 4px; image-rendering: crisp-edges; image-rendering: pixelated;
+    border-radius: 12px; background: radial-gradient(circle, #24365c 0%, #0c111b 75%); }
   .cert .about { font-size: 13.5px; line-height: 1.65; color: var(--text-2); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; margin: 6px 0 4px; }
   .ev-box .fact { font-size: 13.5px; color: #b8c4d6; margin: 0 0 10px; }
   .ev-box .you { font-size: 15px; font-weight: 900; margin-bottom: 8px; }
@@ -646,8 +648,6 @@
       <h1 data-i18n="hero.h1">46億年のどこかに、<br>生まれる。</h1>
       <p data-i18n>どの時代に、何として生まれるかは選べません。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
     </div>
-    <canvas class="scene" id="b-scene" aria-hidden="true"></canvas>
-    <p class="scene-cap" id="b-cap"></p>
     <div class="birth-actions">
       <button class="btn btn-primary" id="b-spin" data-i18n>生まれる</button>
       <button class="btn" id="b-now" data-i18n>いまの地球時計の時代に生まれる</button>
@@ -674,6 +674,7 @@
         <div class="cert-body">
           <div class="line" id="b-line1"></div>
           <div class="who" id="b-who"></div>
+          <canvas class="b-pic" id="b-pic" width="128" height="96" aria-hidden="true"></canvas>
           <p class="about" id="b-about"></p>
           <div class="line" id="b-line2"></div>
           <dl>
@@ -682,7 +683,6 @@
             <div><dt data-i18n>この時代を引く確率</dt><dd id="b-prob" class="num"></dd></div>
             <div><dt data-i18n>今日まで</dt><dd id="b-left" class="num"></dd></div>
           </dl>
-          <div class="traits" id="b-traits"></div>
           <div class="start-box">
             <button class="btn btn-primary" id="b-start" data-i18n>この生き物で進化を始める</button>
             <p data-i18n>×1でおよそ10分。分かれ道や大量絶滅では時間が止まり、あなたの番を待ちます。始めてから×4・×16や「次の分かれ道へ」で速められます。</p>

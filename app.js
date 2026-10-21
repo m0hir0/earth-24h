@@ -206,10 +206,6 @@
     $('live-ago').textContent = fmtAgo(ya);
     $('live-era').textContent = `${E.LANG === 'en' ? '· ' : '・'}${periodLabel(ya)}`;
     if (!G.spinning) $('b-now').textContent = T('いまの地球時計の時代（{a}）に生まれる', { a: fmtAgo(ya) });
-    if (!G.touched) {                                              // まだ回していなければ、いまの地球の風景を見せる
-      G.viewYa = ya;
-      $('b-cap').textContent = T('いまの地球時計の風景（{a}）：{c}', { a: fmtAgo(ya), c: sceneCaption(ya) });
-    }
   }
   let lastHomeTick = 0;
   function homeLoop() {
@@ -486,8 +482,7 @@
      ============================================================ */
   const bDial = buildDial($('b-dial'), { reveal: false });
   bDial.set(0);
-  const G = { angle: 0, spinning: false, viewYa: null, birth: null };
-  sceneView($('b-scene'), () => (G.viewYa == null ? null : { ya: G.viewYa, plan: G.birth ? G.birth.player.plan : null, habitat: G.birth ? G.birth.player.habitat : null, look: G.birth ? lookOfL(G.birth.player) : null }));
+  const G = { angle: 0, spinning: false, birth: null };
 
   const DUP = ['', '', '②', '③', '④', '⑤'];
   const nameOf = (L) => tr(L.name) + (L.dup ? ` ${DUP[L.dup] || ''}` : '');
@@ -526,7 +521,6 @@
   function spinTo(t) {
     if (G.spinning) return;
     G.spinning = true;
-    G.touched = true;
     $('b-spin').disabled = true;
     $('b-now').disabled = true;
     $('b-none').hidden = true;
@@ -541,11 +535,9 @@
       const deg = start + (end - start) * e;
       bDial.set(deg);
       const ya = Math.max(1, (1 - (deg % 360) / 360) * S);
-      G.viewYa = ya;
       setClock($('b-clock'), fmtClock(ya));
       $('b-ago').textContent = fmtAgo(ya);
       $('b-era').textContent = eraOf(ya).name;
-      $('b-cap').textContent = sceneCaption(ya);
       if (k < 1) { requestAnimationFrame(stepAnim); return; }
       G.angle = target; bDial.set(target);
       G.spinning = false;
@@ -559,11 +551,9 @@
   }
 
   function onBorn(t) {
-    G.viewYa = t;
     setClock($('b-clock'), fmtClock(t));
     $('b-ago').textContent = fmtAgo(t);
     $('b-era').textContent = eraOf(t).name;
-    $('b-cap').textContent = sceneCaption(t);
     const options = evo.birthOptions(t);
     if (!options.length) {
       $('b-none').hidden = false;
@@ -592,8 +582,7 @@
     $('b-hab').textContent = evo.HAB_LABEL[player.habitat] || '';
     $('b-prob').textContent = fmtProb((era.from - era.to) / S);
     $('b-left').textContent = T('{y}（地球時計で{t}）', { y: fmtSpan(t), t: fmtSec(t / S * DAY) });
-    $('b-traits').textContent = '';
-    traitBars($('b-traits'), player);
+    drawCreatureCard($('b-pic').getContext('2d'), lookOfL(player), 3);
     const ul = $('b-rivals'); ul.textContent = '';
     rivals.forEach((r) => {
       const li = document.createElement('li');
