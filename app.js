@@ -1119,6 +1119,7 @@
     $('r-hint').hidden = !EMBEDDED;
     const data = resultData(L, alive, endYa);
     const firstLife = !zoomUnlocked();
+    const before = foundLoad();
     histAdd(data);
     $('r-unlock').hidden = !firstLife;
     if (firstLife) unlockZoom();
@@ -1128,6 +1129,10 @@
     $('r-copy').hidden = !R.share.url;
     $('r-copy-ok').textContent = '';
     show('result');
+    // はじめての結末・生き物があれば、図鑑に登録の演出
+    const newE = before.e[R.ending.id] ? null : R.ending.id;
+    const newF = [...new Set(data.g.map((g) => `${g[0]}:${g[1]}`))].filter((k) => !before.f[k] && DEX.includes(k));
+    if (newE || newF.length) setTimeout(() => dexNew(before, newE, newF), REDUCE ? 0 : 500);
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -1395,6 +1400,87 @@
     $('dex-detail').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
   }
   function closeDex() { DX.k = null; $('dex-detail').hidden = true; }
+
+  // 図鑑に登録の演出：プレイの後、結末の図鑑 → 生き物の図鑑の順に、埋まっていなかったマスが光って埋まる
+  const DN = { stages: [], timers: [], finish: null };
+  function dnCell(kind, k, F, filled) {
+    const c = document.createElement('div'); c.className = 'dn-cell';
+    if (kind === 'e' && !filled) { c.textContent = '？'; return c; }
+    const cv = document.createElement('canvas');
+    if (kind === 'e') {
+      cv.width = CW; cv.height = CH;
+      const st = sceneOfData(F.e[k]);
+      drawScene(cv.getContext('2d'), st.ya, 3, st);
+    } else {
+      cv.width = CARD_W; cv.height = CARD_H; c.classList.add('form');
+      drawCreatureCard(cv.getContext('2d'), dexLook(k), 3, filled ? null : '#56607a');
+      if (!filled) c.classList.add('locked');
+    }
+    c.appendChild(cv);
+    return c;
+  }
+  function dexNew(before, newE, newF) {
+    const F = foundLoad();
+    DN.stages = [];
+    if (newE) DN.stages.push({ kind: 'e', keys: evo.ENDINGS.map((e) => e.id), had: before.e, news: [newE] });
+    if (newF.length) DN.stages.push({ kind: 'f', keys: DEX, had: before.f, news: newF });
+    DN.F = F;
+    $('dexnew').hidden = false;
+    dnStage(0);
+  }
+  function dnStage(i) {
+    const S0 = DN.stages[i], F = DN.F, grid = $('dn-grid');
+    DN.i = i;
+    DN.timers.forEach(clearTimeout); DN.timers = [];
+    grid.textContent = '';
+    grid.className = `dn-grid ${S0.kind === 'e' ? 'ends' : 'forms'}`;
+    const cells = {};
+    S0.keys.forEach((k) => { const c = dnCell(S0.kind, k, F, !!S0.had[k]); cells[k] = c; grid.appendChild(c); });
+    let n = S0.keys.filter((k) => S0.had[k]).length;
+    const all = S0.keys.length;
+    $('dn-ttl').textContent = S0.kind === 'e' ? T('結末の図鑑に登録！') : T('生き物の図鑑に登録！');
+    $('dn-count').textContent = `${n} / ${all}`;
+    $('dn-cap').textContent = '';
+    const last = i === DN.stages.length - 1;
+    $('dn-ok').textContent = last ? T('OK') : T('つぎへ');
+    $('dn-ok').hidden = true;
+    const names = [];
+    const fill = (k) => {
+      const c = dnCell(S0.kind, k, F, true);
+      c.classList.add('new', 'fill');
+      cells[k].replaceWith(c); cells[k] = c;
+      n++;
+      $('dn-count').textContent = `${n} / ${all}`;
+      names.push(S0.kind === 'e' ? endingLabel(evo.ENDINGS.find((e) => e.id === k)) : tr(dexName(k)));
+      $('dn-cap').textContent = names.join('、');
+    };
+    let done = false;
+    DN.finish = () => {
+      if (done) return;
+      done = true;
+      DN.timers.forEach(clearTimeout); DN.timers = [];
+      S0.news.forEach((k) => { if (!cells[k].classList.contains('new')) fill(k); });
+      $('dn-ok').hidden = false;
+      $('dn-ok').focus();
+    };
+    if (REDUCE) { DN.finish(); return; }
+    // 1つずつ：光って（1.2秒）→ 埋まる
+    S0.news.forEach((k, j) => {
+      const t = 500 + j * 1700;
+      DN.timers.push(setTimeout(() => cells[k].classList.add('glow'), t));
+      DN.timers.push(setTimeout(() => fill(k), t + 1200));
+    });
+    DN.timers.push(setTimeout(DN.finish, 500 + S0.news.length * 1700));
+  }
+  $('dexnew').addEventListener('click', (ev) => {
+    if (ev.target.closest('#dn-ok')) return;
+    if (DN.finish) DN.finish();
+  });
+  $('dn-ok').addEventListener('click', () => {
+    if (DN.i + 1 < DN.stages.length) { dnStage(DN.i + 1); return; }
+    DN.timers.forEach(clearTimeout); DN.timers = [];
+    $('dexnew').hidden = true;
+  });
   $('dx-cv').width = CARD_W; $('dx-cv').height = CARD_H;
   $('dx-close').addEventListener('click', closeDex);
   $('dx-open').addEventListener('click', () => { const x = DX.k && dexFound().get(DX.k); if (x) openHist(x.d); });
