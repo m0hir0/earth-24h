@@ -10,6 +10,7 @@
   const { sceneView, sceneCaption, drawScene, drawCreatureCard, PW, PH, CW, CH, CARD_W, CARD_H } = E.scenes;
   const { yaOfSec, fmtSpan } = E;
   const evo = E.evo;
+  const { lookOfG, mid, fmtCount, endScene, sceneOfData, endingLabel, cleanData, storyParts, storyOf } = E.story;
   const $ = (id) => document.getElementById(id);
   const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -479,8 +480,6 @@
     euk: '核を持つ細胞', para: 'ゾウリムシの仲間', volvox: 'ボルボックスの仲間', alga: '藻類の祖先',
     trilo: '三葉虫の仲間', horseshoe: 'カブトガニの仲間', millipede: '陸の節足動物', turtle: 'カメの仲間', feather: '羽毛恐竜',
   };
-  // 記録（g: [[体のつくり, 変種, 名前], ...]）から姿へ
-  const lookOfG = (g) => ({ plan: g[0], v: g[1] });
   function renderChain(box, g) {
     box.textContent = '';
     (g || []).forEach((f, i) => {
@@ -565,16 +564,9 @@
   const DUP = ['', '', '②', '③', '④', '⑤'];
   const nameOf = (L) => tr(L.name) + (L.dup ? ` ${DUP[L.dup] || ''}` : '');
   const SEP = E.LANG === 'en' ? ' · ' : '・';
-  const mid = (s) => (E.LANG === 'en' ? s.replace(/^The /, 'the ') : s);      // 文の途中に入れるとき
   function dedupeNames(list) {
     const seen = {};
     list.forEach((L) => { seen[L.name] = (seen[L.name] || 0) + 1; if (seen[L.name] > 1) L.dup = seen[L.name]; });
-  }
-  // 種の数は、その仲間の実際の種数の目安に合わせて見せる（evo.realCount）
-  function fmtCount(n) {
-    if (E.LANG === 'en') return n.toLocaleString('en-US');
-    if (n >= 10000) return `${E.trim((n / 10000).toFixed(n >= 100000 ? 0 : 1))}万`;
-    return n.toLocaleString('ja-JP');
   }
   const spc = (L, n) => fmtCount(evo.realCount(L, n));
   function traitBars(box, L) {
@@ -1129,13 +1121,6 @@
     delegate: T('多くをAIに任せた世界。その先がどうなるかは、まだ誰にもわかりません。'),
     careful: T('ルールをつくりながら、AIとの付き合い方を探しています。'),
   };
-  // 結末の場面：生き残れば今日の子孫の暮らし、絶滅すればその化石が眠る地層
-  function endScene(alive, endYa, plan, habitat, cause, look) {
-    const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause });
-    return { ya: alive ? 0.3 : Math.max(endYa, 1), ending: { ...e, plan, look: look || { plan } } };
-  }
-  const sceneOfData = (d) => (d.u ? { ya: d.b, ending: { ...evo.endingOf(d), ya: d.b } } : endScene(d.a, d.e, d.p, d.h, d.c, d.g && d.g.length ? lookOfG(d.g[d.g.length - 1]) : null));
-  const endingLabel = (e) => T('結末 No.{no}「{t}」', { no: String(e.no).padStart(2, '0'), t: e.title });
   const foundEndings = () => new Set(Object.keys(foundLoad().e));
   function rivalStatus(Rv) {
     return Rv.alive ? T('今も生きている（{n}種）', { n: spc(Rv) }) : T('{a}に絶滅', { a: fmtAgo(Rv.deathYa) });
@@ -1190,6 +1175,10 @@
     const data = resultData(L, alive, endYa);
     $('r-story').textContent = storyOf(data);
     renderMe(data);
+    R.data = data;
+    $('r-exhibit').disabled = false;
+    $('r-exhibit').textContent = T('この系統を化石の博物館に展示する');
+    $('r-exhibit-note').textContent = T('展示されるのは系統の記録と物語だけです。名前や連絡先は載りません。');
     $('r-daily').hidden = !data.y;
     if (data.y) $('r-daily').textContent = T('今日の地球 No.{n}', { n: data.y });
     if (data.y && !dailyDone(data.y)) dailySave({ no: data.y, a: data.a, id: R.ending.id });
@@ -1265,53 +1254,6 @@
   function resultData(L, alive, endYa) {
     return { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause,
       g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name, Math.round(f.ya)]), x: (L.xs || []).slice(-6), y: P.daily || 0 };
-  }
-  function cleanData(d) {
-    if (!d || d.v !== 1 || !evo.PLANS[d.p] || !(d.b > 0 && d.b <= S) || !(d.e >= 0 && d.e <= d.b)) return null;
-    const str = (x, n) => String(x || '').slice(0, n);
-    const num = (x) => (Number.isFinite(+x) && +x >= 0 ? Math.round(+x) : null);
-    const g = (Array.isArray(d.g) ? d.g : []).filter((f) => Array.isArray(f) && evo.PLANS[f[0]]).slice(0, 12).map((f) => (num(f[3]) == null ? [f[0], str(f[1], 12), str(f[2], 40)] : [f[0], str(f[1], 12), str(f[2], 40), num(f[3])]));
-    const x = (Array.isArray(d.x) ? d.x : []).filter((v) => Array.isArray(v) && num(v[1]) != null && num(v[2]) != null).slice(0, 6).map((v) => [str(v[0], 60), num(v[1]), num(v[2])]);
-    return { v: 1, u: d.u ? 1 : 0, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)), g, x, y: num(d.y) || 0 };
-  }
-  /* ---------- 系統の一生を、ひとつの物語に ----------
-     保存した記録（d）だけから作るので、結末・履歴・シェアされたリンクのどれでも同じ文章になる */
-  const LIST = () => (E.LANG === 'en' ? ', ' : '、');
-  const storyOf = (d) => storyParts(d).join(E.LANG === 'en' ? ' ' : '');
-  function storyParts(d) {
-    if (d.u) return [T('{a}、生まれようとしたその時代の地球は、まだマグマと隕石の星でした。生命が現れるのは、それから{y}もあとのことです。', { a: fmtAgo(d.b), y: fmtSpan(d.b - 3.8e9) })];
-    const per = E.periodOf(d.b), where = per.name || per.era;
-    const out = [T('{a}、{p}の地球に、「{f}」として生まれました。', { a: fmtAgo(d.b), p: where, f: tr(d.f) })];
-    // 進化：姿が変わったところ（多ければまとめる）
-    const evos = (d.g || []).slice(1);
-    if (evos.length && evos.length <= 2) {
-      let prev = (d.g[0] && d.g[0][2]) || d.f;
-      for (const f of evos) {
-        out.push(f[3] != null ? T('{a}、{x}は{y}に進化しました。', { a: fmtAgo(f[3]), x: tr(prev), y: tr(f[2]) }) : T('{x}は{y}に進化しました。', { x: tr(prev), y: tr(f[2]) }));
-        prev = f[2];
-      }
-    } else if (evos.length > 2) {
-      out.push(T('それから{l}へと、{n}回姿を変えていきました。', { l: evos.map((f) => tr(f[2])).join(LIST()), n: evos.length }));
-    } else if (d.k.length) {
-      out.push(T('{n}回の分かれ道で、{l}を選びました。', { n: d.k.length, l: d.k.slice(-2).map((x) => `「${tr(x)}」`).join(LIST()) }));
-    }
-    // 淘汰：いちばん大きく減ったものを2つまで（死因の出来事は結末で書く）
-    const yaOf = (name) => (evo.EXTINCTIONS.find((x) => x.name === name) || {}).ya || 0;
-    const hits = (d.x || []).filter((x) => x[2] > 0).sort((a, b) => b[1] / Math.max(b[2], 1) - a[1] / Math.max(a[2], 1)).slice(0, 2).sort((a, b) => yaOf(b[0]) - yaOf(a[0]));
-    for (const [name, b, a] of hits) out.push(T('{e}では、{b}種のうち{a}種だけが生き延びました。', { e: mid(tr(name)), b: fmtCount(b), a: fmtCount(a) }));
-    // 結末
-    const span = fmtSpan(d.b - d.e);
-    if (d.a) {
-      out.push(T('そして{y}にわたって系統をつなぎ、今日まで生き残りました。今の子孫は、{t}。', { y: span, t: evo.PLANS[d.p].today }));
-      out.push(T('地球に現れた種の99%以上が消えたなかで、あなたの系統は残りました。'));
-    } else {
-      const fatal = (d.x || []).find((x) => x[2] === 0 && x[0] === d.c);
-      if (d.c.includes('背景')) out.push(T('{a}、数を減らし続けて、最後の種が消えました。{y}続いた系統でした。', { a: fmtAgo(d.e), y: span }));
-      else if (fatal) out.push(T('{a}、{e}で、残っていた{b}種がすべて消えました。{y}続いた系統でした。', { a: fmtAgo(d.e), e: mid(tr(d.c)), b: fmtCount(fatal[1]), y: span }));
-      else out.push(T('{a}、{e}で姿を消しました。{y}続いた系統でした。', { a: fmtAgo(d.e), e: mid(tr(d.c)), y: span }));
-      out.push(T('地球に現れた種の99%以上と同じように、あなたの系統も、地層の中で眠っています。'));
-    }
-    return out;
   }
   function shareTextFrom(d) {
     const e = evo.endingOf(d);
@@ -1593,6 +1535,31 @@
     spinTo(Math.random() * S);
   });
   $('r-again').addEventListener('click', () => { show('birth'); spinTo(Math.random() * S); });
+  // 化石の博物館に展示する（サーバーは functions/api/exhibits.js）
+  $('r-exhibit').addEventListener('click', async () => {
+    const b = $('r-exhibit'), note = $('r-exhibit-note');
+    if (!R.data) return;
+    b.disabled = true; b.textContent = T('展示しています…');
+    try {
+      const r = await fetch('/api/exhibits', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(R.data) });
+      const j = await r.json();
+      if (!r.ok || !j.id) throw new Error(j.error || r.status);
+      b.textContent = T('展示しました');
+      note.textContent = '';
+      const a = document.createElement('a'); a.href = `museum.html?id=${encodeURIComponent(j.id)}`; a.textContent = T('化石の博物館で見る ›');
+      note.appendChild(a);
+      museumCount();
+    } catch (e) {
+      b.disabled = false; b.textContent = T('この系統を化石の博物館に展示する');
+      note.textContent = String(e.message) === 'limit' ? T('今日はもう展示できません。また明日どうぞ。') : T('展示できませんでした。少し時間をおいて、もう一度押してください。');
+    }
+  });
+  // 博物館の入口に、展示の数を出す（サーバーがないとき＝手元の確認では何もしない）
+  function museumCount() {
+    fetch('/api/exhibits?limit=1').then((r) => (r.ok ? r.json() : null)).then((j) => {
+      if (j && j.total) $('b-museum-s').textContent = T('いま{n}系統が展示されています', { n: j.total.toLocaleString() });
+    }).catch(() => {});
+  }
   $('r-home').addEventListener('click', () => show('home'));
   $('r-hist').addEventListener('click', () => {
     show('birth');
@@ -1636,6 +1603,7 @@
   renderHist();
   updateZoomLock();
   renderDaily();
+  museumCount();
   G.ready = true;
   const shared = readShared();
   if (shared) showShared(shared);

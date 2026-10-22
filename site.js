@@ -9,6 +9,7 @@
   const CONTACT_FORM_URL = '';
 
   const NAV = [
+    ['museum.html', '化石の博物館', 'Fossil Museum'],
     ['guide.html', '遊び方', 'How to play'],
     ['learn.html', '地球史と進化の解説・出典', 'Earth history & sources'],
     ['about.html', '運営者について', 'About'],

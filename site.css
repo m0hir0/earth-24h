@@ -78,3 +78,31 @@ dl.faq dd { margin: 4px 0 0; color: var(--text-2); }
 .foot nav { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; }
 .foot nav a { color: var(--text-2); }
 .foot p { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+
+/* 化石の博物館 */
+.mu-stat { color: var(--accent); font-weight: 800; font-size: 14px; margin: 0 0 10px; }
+.mu-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 14px; }
+.mu-seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 3px; gap: 2px; }
+.mu-seg button { border: none; background: none; color: var(--text-2); font: inherit; font-size: 13px; font-weight: 800; padding: 6px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.mu-seg.small button { font-size: 12px; padding: 5px 10px; }
+@media (max-width: 420px) { .mu-seg { max-width: 100%; } .mu-seg button { font-size: 12px; padding: 6px 9px; } .mu-seg.small button { font-size: 11.5px; padding: 5px 8px; } }
+.mu-seg button[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.mu-list { display: grid; gap: 14px; }
+.mu-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px 12px; }
+.mu-card.focus { border: 2px solid var(--accent); margin-bottom: 14px; }
+.mu-scene { display: block; width: 100%; height: auto; aspect-ratio: 3 / 1; border-radius: 10px; image-rendering: crisp-edges; image-rendering: pixelated; background: var(--surface-2); }
+.mu-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 8px 0 4px; }
+.mu-head b { font-size: 15px; }
+.mu-tag { font-size: 11px; font-weight: 900; color: #fff; border-radius: 6px; padding: 1px 7px; }
+.mu-tag.dead { background: #8a7a66; }
+.mu-tag.alive { background: #2f8a5a; }
+.mu-tag.day { background: var(--accent); color: var(--accent-ink); }
+.mu-story { font-size: 14px; line-height: 1.8; color: var(--text-2); margin: 0 0 8px; }
+.mu-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.mu-heart { border: 1px solid var(--line); background: var(--surface); color: var(--text-2); border-radius: 999px; font: inherit; font-size: 13px; font-weight: 800; padding: 5px 12px; cursor: pointer; white-space: nowrap; }
+.mu-heart:hover { border-color: var(--accent); color: var(--accent); }
+.mu-heart.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; cursor: default; }
+.mu-note { color: var(--text-2); text-align: center; margin: 20px 0; }
+.mu-more { text-align: center; margin: 16px 0 0; }
+.btn.mu-btn { background: var(--surface); color: var(--text); border: 1px solid var(--line); }
+.mu-cta { text-align: center; margin: 26px 0 0; }

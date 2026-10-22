@@ -4,7 +4,7 @@
 
 - 公開：**https://earth24h.com/**（Cloudflare Pages のプロジェクト `earth-24h`、GitHub の `main` に入ると自動で反映。www.earth24h.com も同じ）。ドメインは Cloudflare で購入（2026/10/22）。
 - 古い住所 https://m0hir0.github.io/earth-24h/（GitHub Pages）と earth-24h.pages.dev は、`move.js` が earth24h.com へ送る（端末の記録 earth24.* を # に乗せて運び、新しい側で合わせる。シェアのリンク #r= もそのまま）。GitHub Pages は止めずに残している（古いリンクの受け口）。プレビュー用の xxx.earth-24h.pages.dev は送らない。
-- 同じ Cloudflare アカウントに「行きつけ」の Worker（ikitsuke）もあるが、触らない。
+- 同じ Cloudflare アカウントに「行きつけ」の Worker（ikitsuke）もあるが、触らない（wrangler を使うときは、必ず earth-24h / earth24-museum を名指しする）。
 - リポジトリ：https://github.com/m0hir0/earth-24h （public）
 - ユーザーとのやりとりは日本語。説明は専門用語を避け、平易に。
 
@@ -18,9 +18,18 @@
 4. `globe.js` — 「いまの地球」ダイヤル中央の回る地球（時代で姿が変わる）
 5. `evo.js` — 進化ガチャの中身：PLANS（体のつくり、base 特徴値）、birthOptions（時代ごとの生まれる生き物）、NODES（分かれ道、最後に地質年代ごとの汎用 age0〜11）、EXTINCTIONS（淘汰）、種の数の増減 `step`、`applyExtinction`、ENDINGS（40種類、No.40は誕生前）、LIFE（暮らしの出来事）と `endingOf(d)`
 6. `lang-en.js` — 英語の文章。英語のときだけ内容を置きかえ、UI 辞書を `E.addDict` する
-7. `app.js` — 画面と動き（タブ、いまの地球、今を拡大、ガチャ、プレイ、結末、シェア、履歴、図鑑）
+7. `story.js` — 記録から作るもの（`E.story`）：系統の物語 `storyParts/storyOf`、結末の場面 `endScene/sceneOfData`、記録の検証 `cleanData`、`fmtCount` など。ゲームと博物館で共通
+8. `app.js` — 画面と動き（タブ、いまの地球、今を拡大、ガチャ、プレイ、結末、シェア、履歴、図鑑）
 
 各ページの `<head>` の最初に `move.js`（引っ越し）と canonical（earth24h.com の住所）。`robots.txt`（/tools/ は除外）と `sitemap.xml` は earth24h.com 向け。Cloudflare は `/guide.html` を `/guide` に転送する。
+
+**化石の博物館**（みんなの系統の展示室）：`museum.html` + `museum.js`（ページ）と `functions/`（Cloudflare Pages Functions のサーバー）。
+- 展示は結末画面の「この系統を化石の博物館に展示する」を押したときだけ（`R.data` を POST）。自由な文章はなく、反応は「心に留める」だけ。
+- API：`GET /api/exhibits?sort=new|loved|random&kind=all|dead|alive`、`POST /api/exhibits`、`GET /api/exhibits/<id>`、`POST /api/exhibits/<id>/heart`。
+- 保存は D1 データベース `earth24-museum`（`wrangler.toml` の `DB`、表は `migrations/`）。IP は保存せず、日ごとに変わるハッシュ（秘密の値 `SALT` は Pages のシークレット）で回数を制限（展示20/日・心に留める300/日・全体の展示5000/日）。
+- サーバーは `functions/_lib/names.json` にある言葉（生き物の名前・選んだ道・絶滅の原因）だけを通す。**生き物・分かれ道・淘汰を足したら `node tools/build-names.js` を実行して一緒にコミット**（しないと新しい名前の展示が弾かれる）。
+- 手元で試すときは `.claude/launch.json` の `earth24-pages`（`wrangler pages dev`、手元の D1 は `npx wrangler d1 migrations apply earth24-museum --local`）。python のサーバー（earth24）では博物館は開けない。
+- 本番の表を変えるときは migrations/ に新しいファイルを足して `npx wrangler d1 migrations apply earth24-museum --remote`。展示の取り下げは `npx wrangler d1 execute earth24-museum --remote --command "DELETE FROM exhibits WHERE id='…'"`。
 
 説明ページ（一般公開・AdSense審査向け）：`guide.html`（遊び方・FAQ）、`learn.html`（地球史と進化の解説・出典）、`about.html`（運営者・免責・著作権）、`contact.html`（Googleフォームへ）、`privacy.html`（端末保存・広告Cookie・解析・問い合わせ）。共通は `site.css` と `site.js`（上の帯・下のリンク・言語切替）。本文は各ページに `<div data-l="ja">` と `<div data-l="en">` を両方書く。ゲームの下のリンクと見出しの「遊び方を見る」からつながる。
 - **問い合わせフォームのURLは `site.js` の `CONTACT_FORM_URL`**（空のあいだは「準備中」と出る）。

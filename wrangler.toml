@@ -1,0 +1,13 @@
+# 地球の24時間（Cloudflare Pages プロジェクト earth-24h）の設定
+#   静的なファイルはリポジトリの直下をそのまま配る。functions/ が化石の博物館のサーバー（Pages Functions）
+#   ※ 同じアカウントの「行きつけ」（Worker: ikitsuke）とは別のもの。こちらの設定で触らない
+name = "earth-24h"
+pages_build_output_dir = "."
+compatibility_date = "2026-10-01"
+
+# 化石の博物館の展示（D1）。表の作り方は migrations/
+[[d1_databases]]
+binding = "DB"
+database_name = "earth24-museum"
+database_id = "c2a2df35-0892-4ee1-abb5-342332f9ddc3"
+migrations_dir = "migrations"
