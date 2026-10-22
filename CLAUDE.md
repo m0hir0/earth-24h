@@ -2,7 +2,9 @@
 
 46億年の地球史を「1日＝24時間」として体感するウェブページ。メイン機能は「進化ガチャ」（ランダムな時代に生まれ、分かれ道で進化を選び、大量絶滅を越えて今日まで系統をつなぐRPG）。「80億分の1」（1in8b.life）に着想を得ている。
 
-- 公開：https://m0hir0.github.io/earth-24h/ （GitHub Pages、`main` の push で1〜2分後に反映）
+- 公開：**https://earth24h.com/**（Cloudflare Pages のプロジェクト `earth-24h`、GitHub の `main` に入ると自動で反映。www.earth24h.com も同じ）。ドメインは Cloudflare で購入（2026/10/22）。
+- 古い住所 https://m0hir0.github.io/earth-24h/（GitHub Pages）と earth-24h.pages.dev は、`move.js` が earth24h.com へ送る（端末の記録 earth24.* を # に乗せて運び、新しい側で合わせる。シェアのリンク #r= もそのまま）。GitHub Pages は止めずに残している（古いリンクの受け口）。プレビュー用の xxx.earth-24h.pages.dev は送らない。
+- 同じ Cloudflare アカウントに「行きつけ」の Worker（ikitsuke）もあるが、触らない。
 - リポジトリ：https://github.com/m0hir0/earth-24h （public）
 - ユーザーとのやりとりは日本語。説明は専門用語を避け、平易に。
 
@@ -17,6 +19,8 @@
 5. `evo.js` — 進化ガチャの中身：PLANS（体のつくり、base 特徴値）、birthOptions（時代ごとの生まれる生き物）、NODES（分かれ道、最後に地質年代ごとの汎用 age0〜11）、EXTINCTIONS（淘汰）、種の数の増減 `step`、`applyExtinction`、ENDINGS（40種類、No.40は誕生前）、LIFE（暮らしの出来事）と `endingOf(d)`
 6. `lang-en.js` — 英語の文章。英語のときだけ内容を置きかえ、UI 辞書を `E.addDict` する
 7. `app.js` — 画面と動き（タブ、いまの地球、今を拡大、ガチャ、プレイ、結末、シェア、履歴、図鑑）
+
+各ページの `<head>` の最初に `move.js`（引っ越し）と canonical（earth24h.com の住所）。`robots.txt`（/tools/ は除外）と `sitemap.xml` は earth24h.com 向け。Cloudflare は `/guide.html` を `/guide` に転送する。
 
 説明ページ（一般公開・AdSense審査向け）：`guide.html`（遊び方・FAQ）、`learn.html`（地球史と進化の解説・出典）、`about.html`（運営者・免責・著作権）、`contact.html`（Googleフォームへ）、`privacy.html`（端末保存・広告Cookie・解析・問い合わせ）。共通は `site.css` と `site.js`（上の帯・下のリンク・言語切替）。本文は各ページに `<div data-l="ja">` と `<div data-l="en">` を両方書く。ゲームの下のリンクと見出しの「遊び方を見る」からつながる。
 - **問い合わせフォームのURLは `site.js` の `CONTACT_FORM_URL`**（空のあいだは「準備中」と出る）。
@@ -57,7 +61,7 @@
   - `python3 tools/bump-version.py`：push の前に（下の項目）。
 - クラウドのセッションで作業するときは、作業ブランチ → プルリクエスト → main にマージ、で公開される（GitHub Pages は main から配信）。内蔵ブラウザでの見た目の確認ができない場合は、公開後にスマホで確かめてもらう。
 - **push の前に `python3 tools/bump-version.py`**：各ページが読み込む .js/.css に `?v=日時` を付け直す。GitHub Pages はファイルを約10分キャッシュさせるので、付け忘れると「新しいページ＋古いJS」になって表示が欠ける（実際に `#b-odds` の文が消えた）。
-- コミットは日本語、末尾に `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`。push 後に `gh api repos/m0hir0/earth-24h/pages/builds/latest` で反映を確認。
+- コミットは日本語、末尾に `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`。push 後は `curl -s https://earth24h.com/ | grep 'app.js?v='` で新しい版の印になったかを確認（Cloudflare Pages は1分ほど）。古い住所の側は `gh api repos/m0hir0/earth-24h/pages/builds/latest`。
 
 ## これまでの経緯（決めたこと）
 
@@ -89,4 +93,4 @@
 - **図鑑はずっと残る**：見つけた結末と姿は履歴（100件）とは別に localStorage `earth24.found`（`{e:{結末id:最新の記録}, f:{plan:変種:{n,names,d}}}`）。はじめて読むときに今までの履歴から作る。「記録をすべて消す」では消えず、「図鑑をすべて消す」（`#dex-clear`、2度押し）で消す。
 - 生き物の図鑑（`#dex`、結末の図鑑の下）：履歴の系譜 `g` に出てきた姿（`plan:変種`）を集める。全38種類は app.js の `DEX`（並びはおおよそ現れた順。theropod:feather は小型の恐竜になるので出てこず、外してある）。まだの姿は灰色の影、タップで説明（`ABOUT`・今の子孫・その姿になった回数）と「出会った記録を見る」。系譜は最後の12段階だけ残るので、それより前の姿は載らない。体のつくりや変種を足したら `DEX` にも足す。
 - 絵の確認は `tools/gallery.html`（上の「開発用の道具」）。ブラウザが古い scenes.js をキャッシュしやすいので、ゲーム本体で確かめるときは `fetch(ファイル, {cache:'reload'})` してから再読み込みする。
-- 広告（AdSense）は保留中。やるなら独自ドメイン必須、Cloudflare Pages への移行、プライバシーポリシー等が必要（ユーザーに説明済み）。
+- 広告（AdSense）は保留中。独自ドメイン（earth24h.com）と Cloudflare Pages への移行は済んだ。申し込むときは ads.txt を置き、プライバシーポリシーを「利用しています」に書き直す。
