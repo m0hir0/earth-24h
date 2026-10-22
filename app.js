@@ -1118,6 +1118,7 @@
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
     const data = resultData(L, alive, endYa);
+    lifeScale($('r-scale'), data);
     const firstLife = !zoomUnlocked();
     const before = foundLoad();
     histAdd(data);
@@ -1185,13 +1186,28 @@
     const g = (Array.isArray(d.g) ? d.g : []).filter((f) => Array.isArray(f) && evo.PLANS[f[0]]).slice(0, 12).map((f) => [f[0], str(f[1], 12), str(f[2], 40)]);
     return { v: 1, u: d.u ? 1 : 0, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)), g };
   }
+  // あなたの一生のものさし：系統の長さを、人の一生（100年）で数える。結論は書かず、数字だけ
+  const LIFE_YEARS = 100;
+  function lifeScale(box, d) {
+    box.textContent = '';
+    if (!d || d.u) return;
+    const span = d.b - d.e, n = span / LIFE_YEARS;
+    const add = (tag, cls, text) => { const x = document.createElement(tag); x.className = cls; x.textContent = text; box.appendChild(x); };
+    add('p', 'ls-h', T('あなたの一生のものさし'));
+    add('p', 'ls-lead', T('あなたの系統が続いた{y}は', { y: fmtSpan(span) }));
+    add('p', 'ls-big', n < 1 ? T('人の一生の1回分にも満たない') : T('人の一生の{n}回分', { n: fmtYears(n) }));
+    add('p', 'ls-note', T('人が100年生きたとしても、地球時計では約{s}秒。', { s: (LIFE_YEARS / S * DAY).toFixed(3) }));
+    if (d.p === 'hominin' || d.p === 'human') add('p', 'ls-note', T('ホモ・サピエンスの歴史（約30万年）でさえ、24:00の約{s}秒前から。', { s: Math.round(3e5 / S * DAY) }));
+  }
+  const lifeTimes = (d) => { const n = (d.b - d.e) / LIFE_YEARS; return n < 1 ? '' : T('それは人の一生の{n}回分。', { n: fmtYears(n) }); };
   function shareTextFrom(d) {
     const e = evo.endingOf(d);
     if (d.u) return `${T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) })}\n${endingLabel(e)}\n${T('#地球の24時間 #進化ガチャ')}`;
     const body = d.a
       ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残った。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅した。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n) });
-    return `${body}\n${endingLabel(e)}\n${T('#地球の24時間 #進化ガチャ')}`;
+    const lt = lifeTimes(d);
+    return `${body}${lt ? (E.LANG === 'en' ? ' ' : '') + lt : ''}\n${endingLabel(e)}\n${T('#地球の24時間 #進化ガチャ')}`;
   }
   // 結果をリンクに埋め込む（#r=...）。開いた人には、この結果と「あなたも生まれてみる」が出る
   const b64 = (str) => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -1452,7 +1468,7 @@
       n++;
       $('dn-count').textContent = `${n} / ${all}`;
       names.push(S0.kind === 'e' ? endingLabel(evo.ENDINGS.find((e) => e.id === k)) : tr(dexName(k)));
-      $('dn-cap').textContent = names.join('、');
+      $('dn-cap').textContent = names.join(E.LANG === 'en' ? ', ' : '、');
     };
     let done = false;
     DN.finish = () => {
@@ -1495,6 +1511,7 @@
     $('hd-text').textContent = d.u ? T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) }) : d.a
       ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。今の子孫：{d}。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n), d: evo.PLANS[d.p].today })
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。続いた期間は{y}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c), y: fmtSpan(d.b - d.e) });
+    lifeScale($('hd-scale'), d);
     const ol = $('hd-path'); ol.textContent = '';
     d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     const url = shareUrlFrom(d);

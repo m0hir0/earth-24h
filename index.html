@@ -439,6 +439,12 @@
   .share-box .copy-ok { min-height: 0; margin: 4px 0 0; }
   .share-box .copy-ok:empty { display: none; }
   .next-row { display: flex; gap: 6px; align-items: center; }
+  .lifescale { border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); padding: 12px 14px; margin: 12px 0; }
+  .lifescale:empty { display: none; }
+  .lifescale .ls-h { font-size: 12px; font-weight: 800; color: var(--muted); margin: 0 0 4px; }
+  .lifescale .ls-lead { font-size: 14px; color: var(--text-2); margin: 0; }
+  .lifescale .ls-big { font-size: 22px; font-weight: 900; color: var(--accent); line-height: 1.3; margin: 0 0 6px; }
+  .lifescale p.ls-note { font-size: 13.5px; color: var(--text-2); margin: 0 0 2px; }
   .next-row .btn-primary { flex: 1.4 1 auto; }
   .next-row .btn { padding: 10px 12px; font-size: 14px; white-space: nowrap; }
   .btn-ghost { background: transparent; border-color: transparent; color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
@@ -804,6 +810,7 @@
         <div class="ttl" id="hd-ttl"></div>
         <p class="end-desc" id="hd-ending"></p>
         <p id="hd-text"></p>
+        <div class="lifescale" id="hd-scale"></div>
         <div class="chain" id="hd-chain"></div>
         <ol id="hd-path"></ol>
         <div class="share-row">
@@ -891,6 +898,7 @@
         <button class="btn btn-ghost" id="r-home" data-i18n>いまの地球へ</button>
       </div>
     </div>
+    <div class="lifescale" id="r-scale"></div>
     <div class="unlock" id="r-unlock" hidden>
       <span data-i18n>「今を拡大」が見られるようになりました</span>
       <button class="btn" id="r-zoom" data-i18n>今を拡大を見る</button>
@@ -995,12 +1003,12 @@
   </footer>
 </div>
 
-<script src="i18n.js?v=202610221036"></script>
-<script src="data.js?v=202610221036"></script>
-<script src="scenes.js?v=202610221036"></script>
-<script src="globe.js?v=202610221036"></script>
-<script src="evo.js?v=202610221036"></script>
-<script src="lang-en.js?v=202610221036"></script>
-<script src="app.js?v=202610221036"></script>
+<script src="i18n.js?v=202610221913"></script>
+<script src="data.js?v=202610221913"></script>
+<script src="scenes.js?v=202610221913"></script>
+<script src="globe.js?v=202610221913"></script>
+<script src="evo.js?v=202610221913"></script>
+<script src="lang-en.js?v=202610221913"></script>
+<script src="app.js?v=202610221913"></script>
 </body>
 </html>
