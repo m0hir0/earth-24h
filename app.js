@@ -221,6 +221,7 @@
     $('live-ago').textContent = fmtAgo(ya);
     $('live-era').textContent = `${E.LANG === 'en' ? '· ' : '・'}${periodLabel(ya)}`;
     if (!G.spinning) $('b-now').textContent = T('いまの地球時計の時代（{a}）に生まれる', { a: fmtAgo(ya) });
+    if (G.day !== new Date().getDate()) { G.day = new Date().getDate(); if (G.ready) renderDaily(); }   // 日付が変わったら今日のお題も変わる
   }
   let lastHomeTick = 0;
   function homeLoop() {
@@ -621,11 +622,36 @@
   $('b-none').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) $('b-none').hidden = true; });
   $('b-none-again').addEventListener('click', () => { $('b-none').hidden = true; spinTo(Math.random() * S); });
   $('b-now').addEventListener('click', () => spinTo(yaOfSec(E.clockSec())));
-  function spinTo(t) {
+
+  /* ---------- 今日の地球：その日（端末の日付）は、全員が同じ時代・同じ生き物・同じ4つの系統で生まれる ---------- */
+  const DAILY_KEY = 'earth24.daily';
+  function dailyInfo(now = new Date()) {
+    const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+    const no = Math.round((Date.UTC(y, m, d) - Date.UTC(2026, 9, 22)) / 864e5) + 1;     // 2026年10月22日が No.1
+    let h = 2166136261;                                                                    // 日付から決まる種（FNV-1a）
+    for (const c of `earth24-${y}-${m + 1}-${d}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    const rnd = evo.rng(h >>> 0);
+    // 2割は微生物や細胞の時代、8割は動物の時代から（生命のいない時代は出さない）
+    const t = rnd() < 0.2 ? 5.4e8 + rnd() * (3.7e9 - 5.4e8) : 2e6 + rnd() * (5.38e8 - 2e6);
+    return { no, t, rnd };
+  }
+  const dailyLoad = () => { try { return JSON.parse(localStorage.getItem(DAILY_KEY)) || {}; } catch (e) { return {}; } };
+  const dailyDone = (no) => dailyLoad().no === no;
+  const dailySave = (v) => { try { localStorage.setItem(DAILY_KEY, JSON.stringify(v)); } catch (e) { /* 保存できなくても遊べる */ } renderDaily(); };
+  function renderDaily() {
+    const di = dailyInfo(), done = dailyLoad();
+    $('b-daily-t').textContent = T('今日の地球 No.{n}', { n: di.no });
+    $('b-daily-s').textContent = done.no === di.no
+      ? T('挑戦ずみ：{r}「{t}」。もう一度遊べますが、記録は最初の1回です。', { r: done.a ? T('今も生きている') : T('絶滅'), t: done.t || '' })
+      : T('今日は全員が、同じ時代に同じ生き物として生まれます。');
+  }
+  $('b-daily').addEventListener('click', () => spinTo(dailyInfo().t, dailyInfo()));
+  function spinTo(t, daily = null) {
     if (G.spinning) return;
     G.spinning = true;
     $('b-spin').disabled = true;
     $('b-now').disabled = true;
+    $('b-daily').disabled = true;
     $('b-none').hidden = true;
     $('b-cert-wrap').hidden = true;
     openCert(false);
@@ -647,13 +673,15 @@
       G.spinning = false;
       $('b-spin').disabled = false;
       $('b-now').disabled = false;
+      $('b-daily').disabled = false;
       $('b-spin').textContent = T('もう一度生まれる');
-      onBorn(t);
+      onBorn(t, daily);
+      renderDaily();
     };
     requestAnimationFrame(stepAnim);
   }
 
-  function onBorn(t) {
+  function onBorn(t, daily = null) {
     setClock($('b-clock'), fmtClock(t));
     $('b-ago').textContent = fmtAgo(t);
     $('b-era').textContent = eraOf(t).name;
@@ -669,13 +697,16 @@
       $('b-none-t').textContent = T('{a}（地球時計 {c}）。地球はまだ熱く、生命が生まれる前でした。この時代を引く確率は{p}。生命が生まれるのは、地球時計の4:10ごろです。', { a: fmtAgo(t), c: fmtClock(t), p: fmtProb((S - 3.8e9) / S) });
       return;
     }
-    const pick = () => options[Math.floor(Math.random() * options.length)];
+    const rand = daily ? daily.rnd : Math.random;                     // 今日の地球は、日付から決まる乱数で選ぶ
+    const pick = () => options[Math.floor(rand() * options.length)];
     const player = evo.makeLineage(pick(), t, true);
     const rivals = [0, 1, 2, 3].map(() => evo.makeLineage(pick(), t, false));
     dedupeNames([player, ...rivals]);
     player.firstName = player.name;
     rivals.forEach((r) => (r.firstName = r.name));
-    G.birth = { t, player, rivals };
+    G.birth = { t, player, rivals, daily: daily ? daily.no : 0 };
+    $('b-daily-tag').hidden = !daily;
+    if (daily) $('b-daily-tag').textContent = T('今日の地球 No.{n}', { n: daily.no });
     const era = eraOf(t);
     $('b-no').textContent = `No. ${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
     $('b-who').textContent = T('あなたは、{n}として生まれました', { n: nameOf(player) });
@@ -712,11 +743,11 @@
   $('b-start').addEventListener('click', () => {
     if (!G.birth) return;
     const PLAY_SEC = 600;                                          // ×1でおよそ10分（分かれ道で止まる時間は含まない）
-    const { t, player, rivals } = G.birth;
+    const { t, player, rivals, daily } = G.birth;
     Object.assign(P, {
       on: true, L: player, rivals, ya0: t, ya: t, T: PLAY_SEC, elapsed: 0, speed: 1, paused: false, skipping: false,
       pending: null, last: 0, fx: null, fxUntil: 0, rnd: evo.rng(Math.floor(Math.random() * 2 ** 31)),
-      done: new Set(), log: [], startedAt: t, lifeT: 0, lifeNext: 4, lifeRecent: [],
+      done: new Set(), log: [], startedAt: t, lifeT: 0, lifeNext: 4, lifeRecent: [], daily,
     });
     $('p-log').textContent = '';
     player.forms = [{ ya: t, look: lookOfL(player), name: player.name }];
@@ -1115,6 +1146,9 @@
     P.log.forEach((e) => rl.appendChild(logItem(e)));
     const data = resultData(L, alive, endYa);
     $('r-story').textContent = storyOf(data);
+    $('r-daily').hidden = !data.y;
+    if (data.y) $('r-daily').textContent = T('今日の地球 No.{n}', { n: data.y });
+    if (data.y && !dailyDone(data.y)) dailySave({ no: data.y, a: data.a, t: R.ending.title });
     const card = drawCard(L, alive, endYa, data);
     $('r-img').src = card.toDataURL('image/png');
     $('r-save').hidden = EMBEDDED;
@@ -1186,7 +1220,7 @@
   // 1回の人生（系統）の記録。シェアのリンクにも、履歴にも同じ形で使う
   function resultData(L, alive, endYa) {
     return { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause,
-      g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name, Math.round(f.ya)]), x: (L.xs || []).slice(-6) };
+      g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name, Math.round(f.ya)]), x: (L.xs || []).slice(-6), y: P.daily || 0 };
   }
   function cleanData(d) {
     if (!d || d.v !== 1 || !evo.PLANS[d.p] || !(d.b > 0 && d.b <= S) || !(d.e >= 0 && d.e <= d.b)) return null;
@@ -1194,7 +1228,7 @@
     const num = (x) => (Number.isFinite(+x) && +x >= 0 ? Math.round(+x) : null);
     const g = (Array.isArray(d.g) ? d.g : []).filter((f) => Array.isArray(f) && evo.PLANS[f[0]]).slice(0, 12).map((f) => (num(f[3]) == null ? [f[0], str(f[1], 12), str(f[2], 40)] : [f[0], str(f[1], 12), str(f[2], 40), num(f[3])]));
     const x = (Array.isArray(d.x) ? d.x : []).filter((v) => Array.isArray(v) && num(v[1]) != null && num(v[2]) != null).slice(0, 6).map((v) => [str(v[0], 60), num(v[1]), num(v[2])]);
-    return { v: 1, u: d.u ? 1 : 0, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)), g, x };
+    return { v: 1, u: d.u ? 1 : 0, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)), g, x, y: num(d.y) || 0 };
   }
   /* ---------- 系統の一生を、ひとつの物語に ----------
      保存した記録（d）だけから作るので、結末・履歴・シェアされたリンクのどれでも同じ文章になる */
@@ -1241,15 +1275,16 @@
     const body = d.a
       ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残った。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅した。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n) });
-    return `${body}\n${endingLabel(e)}\n${T('#地球の24時間 #進化ガチャ')}`;
+    const day = d.y ? `${T('今日の地球 No.{n}', { n: d.y })}\n` : '';
+    return `${day}${body}\n${endingLabel(e)}\n${d.y ? T('#地球の24時間 #今日の地球') : T('#地球の24時間 #進化ガチャ')}`;
   }
   // 結果をリンクに埋め込む（#r=...）。開いた人には、この結果と「あなたも生まれてみる」が出る
   const b64 = (str) => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64 = (str) => decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))));
   function shareUrlFrom(d) {
     if (EMBEDDED || !/^https?:/.test(location.protocol)) return '';
-    const { v, u, b, f, n, p, h, a, e, k, c, g, x } = d;
-    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, u, b, f, n, p, h, a, e, k, c, g, x }))}`;
+    const { v, u, b, f, n, p, h, a, e, k, c, g, x, y } = d;
+    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, u, b, f, n, p, h, a, e, k, c, g, x, y }))}`;
   }
   function readShared() {
     const m = location.hash.match(/^#r=([A-Za-z0-9_-]+)$/);
@@ -1503,7 +1538,7 @@
     const t = $('s-ttl');
     t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.u ? '' : d.a ? 'live' : 'dead'}`;
-    $('s-text').textContent = storyOf(d);
+    $('s-text').textContent = (d.y ? `${T('今日の地球 No.{n}', { n: d.y })}${E.LANG === 'en' ? ' — ' : '｜'}` : '') + storyOf(d);
     const ol = $('s-path'); ol.textContent = '';
     d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     $('shared').hidden = false;
@@ -1556,6 +1591,8 @@
   requestAnimationFrame(homeLoop);
   renderHist();
   updateZoomLock();
+  renderDaily();
+  G.ready = true;
   const shared = readShared();
   if (shared) showShared(shared);
   if (location.hash === '#clock') show('home');
