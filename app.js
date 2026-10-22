@@ -1255,6 +1255,7 @@
     $('hist-empty').hidden = list.length > 0;
     $('hist-clear').hidden = list.length === 0;
     renderZukan();
+    renderDex();
     if (!list.length) { $('hist-sum').textContent = ''; return; }
     const born = list.filter((d) => !d.u), unborn = list.length - born.length;
     const alive = born.filter((d) => d.a).length;
@@ -1308,6 +1309,67 @@
       box.appendChild(b);
     });
   }
+  // 生き物の図鑑：記録の系譜（g）に出てきた姿（体のつくり：変種）。まだの姿は灰色の影
+  //   並びはおおよそ現れた順。羽毛の大型肉食恐竜（theropod:feather）は小型の恐竜になるので出てこない
+  const DEX = ['microbe:archaea', 'microbe:rod', 'cyano:cyano', 'microbe:oxy', 'microbe:hunter', 'cell:euk', 'cell:para', 'colony:alga', 'colony:volvox',
+    'sponge:', 'ediacaran:', 'soft:', 'arthropod:trilo', 'anomalo:', 'arthropod:horseshoe', 'jawless:', 'fish:', 'shark:', 'armorfish:',
+    'arthropod:millipede', 'insect:', 'amphibian:', 'reptile:', 'reptile:turtle', 'synapsid:', 'marine_reptile:', 'pterosaur:',
+    'dino_small:', 'dino_small:feather', 'sauropod:', 'theropod:', 'bird:', 'mammal:', 'mammal_large:', 'whale:', 'primate:', 'hominin:', 'human:'];
+  const dexLook = (k) => { const [plan, v] = k.split(':'); return { plan, v }; };
+  const dexName = (k) => { const { plan, v } = dexLook(k); return VARIANT_NAMES[v] || evo.PLANS[plan].ja; };
+  // 姿ごとに、出会った記録（新しい順）と、記録に残った名前
+  function dexFound() {
+    const m = new Map();
+    histLoad().forEach((d) => (d.g || []).forEach((f) => {
+      const k = `${f[0]}:${f[1]}`;
+      if (!m.has(k)) m.set(k, { list: [], names: [] });
+      const x = m.get(k);
+      if (x.list[x.list.length - 1] !== d) x.list.push(d);
+      if (!x.names.includes(f[2])) x.names.push(f[2]);
+    }));
+    return m;
+  }
+  const DX = { k: null };
+  function renderDex() {
+    const found = dexFound();
+    const box = $('dex'); box.textContent = '';
+    $('dex-n').textContent = `${DEX.filter((k) => found.has(k)).length} / ${DEX.length}`;
+    DEX.forEach((k, i) => {
+      const b = document.createElement('button');
+      b.className = 'zk';
+      const has = found.has(k);
+      const cv = document.createElement('canvas'); cv.width = CARD_W; cv.height = CARD_H;
+      drawCreatureCard(cv.getContext('2d'), dexLook(k), 3, has ? null : '#7d8590');
+      b.appendChild(cv);
+      if (has) b.addEventListener('click', () => openDex(k));
+      else b.disabled = true;
+      const cap = document.createElement('span');
+      cap.textContent = `${String(i + 1).padStart(2, '0')} ${has ? tr(dexName(k)) : '？？？'}`;
+      b.appendChild(cap);
+      box.appendChild(b);
+    });
+    if (DX.k && !found.has(DX.k)) closeDex();
+  }
+  function openDex(k) {
+    const x = dexFound().get(k);
+    if (!x) return;
+    DX.k = k;
+    const { plan } = dexLook(k), name = dexName(k);
+    drawCreatureCard($('dx-cv').getContext('2d'), dexLook(k), 3);
+    $('dx-name').textContent = tr(name);
+    $('dx-group').textContent = evo.PLANS[plan].name;
+    const about = [name, ...x.names].map((n) => evo.ABOUT[n]).find(Boolean) || '';
+    $('dx-about').textContent = about;
+    $('dx-about').hidden = !about;
+    $('dx-today').textContent = T('今の子孫：{d}', { d: evo.PLANS[plan].today });
+    $('dx-count').textContent = T('この姿になった系統：{n}回', { n: x.list.length });
+    $('dex-detail').hidden = false;
+    $('dex-detail').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
+  }
+  function closeDex() { DX.k = null; $('dex-detail').hidden = true; }
+  $('dx-cv').width = CARD_W; $('dx-cv').height = CARD_H;
+  $('dx-close').addEventListener('click', closeDex);
+  $('dx-open').addEventListener('click', () => { const x = DX.k && dexFound().get(DX.k); if (x) openHist(x.list[0]); });
   function openHist(d) {
     HD.d = d;
     HD.st = sceneOfData(d);
