@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"><title>gallery</title>
+<!-- 絵の確認ページ：生き物のカードと場面をまとめて描く（開発用。ゲームからはリンクしない）
+  python3 -m http.server 8124 で起動して http://localhost:8124/tools/gallery.html
+  ?l=plan:変種,...   カードにする生き物（省略すると全部）  例 ?l=anomalo,arthropod:trilo,reptile:turtle
+  &s=年前,plan,habitat,変種,大きさ;...   場面（;で区切る）   例 &s=5.2e8,anomalo,sea;1.5e8,theropod,land
+  &z=倍率   カードの表示倍率（既定 1.5）
+  &e=1      結末40種類の場面をすべて描く（化石の絵の確認に。生き物は数種類を順に当てる）
+  &e=plan,plan,...   結末の場面を、その生き物で描く（例 &e=arthropod,theropod,anomalo）
+  ブラウザのキャッシュを避けるため、scenes.js などは毎回 ?v=時刻 付きで読む -->
+<style>body{background:#e8e4dc;font:12px sans-serif;margin:8px} .g{display:flex;flex-wrap:wrap;gap:6px} .g div{text-align:center} canvas{image-rendering:pixelated;background:#cfd8e0;display:block} .s canvas{width:384px;height:128px}</style>
+<div class="g" id="cards"></div><div class="g s" id="scenes"></div>
+<script>for(const f of ["i18n","data","scenes","evo"]) document.write(`<script src="../${f}.js?v=${Date.now()}"><\/script>`);</script>
+<script>
+const S=E24.scenes;
+const looks=(new URLSearchParams(location.search).get('l')||'microbe:rod,microbe:archaea,microbe:oxy,microbe:hunter,cyano,cell:euk,cell:para,colony:volvox,colony:alga,sponge,ediacaran,soft,arthropod:trilo,arthropod:horseshoe,arthropod:millipede,insect,anomalo,jawless,fish,shark,armorfish,amphibian,reptile,reptile:turtle,synapsid,marine_reptile,pterosaur,dino_small,dino_small:feather,sauropod,theropod,bird,mammal,mammal_large,whale,primate,hominin,human').split(',');
+for(const l of looks){const [plan,v]=l.split(':');const d=document.createElement('div');const c=document.createElement('canvas');c.width=S.CARD_W;c.height=S.CARD_H;const z=+(new URLSearchParams(location.search).get('z')||1.5);c.style.width=128*z+'px';c.style.height=96*z+'px';S.drawCreatureCard(c.getContext('2d'),{plan,v,size:45},3);d.append(c,l);cards.append(d);}
+const sc=(new URLSearchParams(location.search).get('s')||'');
+const ep=new URLSearchParams(location.search).get('e');
+if(ep){const plans=ep==='1'?['microbe','soft','arthropod','anomalo','fish','amphibian','reptile','theropod','sauropod','bird','mammal','whale','primate','hominin','insect','shark','armorfish','pterosaur','marine_reptile','synapsid']:ep.split(',');
+  let i=0;for(const e of E24.evo.ENDINGS){const [plan,v]=plans[i++%plans.length].split(':');const c=document.createElement('canvas');c.width=S.CW;c.height=S.CH;
+    S.drawScene(c.getContext('2d'),1,3,{ya:1,ending:{...e,plan,look:{plan,v}}});const d=document.createElement('div');d.append(c,`No.${e.no} ${e.title}（${plan}）`);scenes.append(d);}}
+for(const x of sc.split(';').filter(Boolean)){const [ya,plan,hab,v,size]=x.split(',');const c=document.createElement('canvas');c.width=S.CW;c.height=S.CH;S.drawScene(c.getContext('2d'),+ya,3,{plan,habitat:hab,look:{plan,v,size:+(size||45)}});const d=document.createElement('div');d.append(c,x);scenes.append(d);}
+</script>
