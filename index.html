@@ -549,6 +549,14 @@
   .zk:disabled span { color: var(--muted); }
   .zk.alt canvas, .zk.alt .zk-lock { border-color: #7a5ae0; }
   .zk:not(:disabled):hover span { color: var(--accent); }
+  .zukan.dex canvas, .zukan.dex .zk-lock { aspect-ratio: 4 / 3; background: var(--surface-2); }
+  .zukan.dex .zk:disabled canvas { opacity: .45; }
+  .dex-detail { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px; margin: 8px 0 4px; }
+  .dex-detail .dx-head { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; }
+  .dex-detail canvas { flex: none; width: 96px; height: 72px; image-rendering: crisp-edges; image-rendering: pixelated; background: var(--surface-2); border-radius: 8px; }
+  .dex-detail .ttl { font-size: 17px; font-weight: 900; margin: 0; }
+  .dex-detail p { margin: 2px 0 6px; font-size: 13px; color: var(--text-2); }
+  .dex-detail .share-row { justify-content: flex-start; margin: 6px 0 0; }
   .hist-sum { font-size: 13px; color: var(--text-2); margin: -4px 0 10px; }
   .hist-list { list-style: none; margin: 0; padding: 0; }
   .hist-list button {
@@ -758,6 +766,24 @@
     <div class="card" id="hist">
       <h3><span data-i18n>結末の図鑑</span> <span class="num muted" id="zukan-n"></span></h3>
       <div class="zukan" id="zukan"></div>
+      <h3 style="margin-top:16px"><span data-i18n>生き物の図鑑</span> <span class="num muted" id="dex-n"></span></h3>
+      <div class="zukan dex" id="dex"></div>
+      <div class="dex-detail" id="dex-detail" hidden>
+        <div class="dx-head">
+          <canvas id="dx-cv" aria-hidden="true"></canvas>
+          <div>
+            <div class="ttl" id="dx-name"></div>
+            <p class="muted small" id="dx-group"></p>
+          </div>
+        </div>
+        <p id="dx-about"></p>
+        <p id="dx-today"></p>
+        <p class="muted small num" id="dx-count"></p>
+        <div class="share-row">
+          <button class="btn" id="dx-open" data-i18n>出会った記録を見る</button>
+          <button class="btn" id="dx-close" data-i18n>閉じる</button>
+        </div>
+      </div>
       <h3 style="margin-top:16px" data-i18n>あなたが生きた系統</h3>
       <p class="hist-sum num" id="hist-sum"></p>
       <div class="hist-detail" id="hist-detail" hidden>
@@ -776,7 +802,7 @@
       </div>
       <p class="muted small" id="hist-empty" data-i18n>まだ記録はありません。生まれて結末を迎えると、ここと図鑑に残ります。記録はこの端末のブラウザにだけ保存されます。</p>
       <ul class="hist-list" id="hist-list"></ul>
-      <div class="hist-foot"><button class="btn-link" id="hist-clear" hidden data-i18n>記録をすべて消す</button></div>
+      <div class="hist-foot"><button class="btn-link" id="hist-clear" hidden data-i18n>記録をすべて消す</button> <button class="btn-link" id="dex-clear" hidden data-i18n>図鑑をすべて消す</button></div>
     </div>
   </section>
 
@@ -946,12 +972,12 @@
   </footer>
 </div>
 
-<script src="i18n.js?v=202610211507"></script>
-<script src="data.js?v=202610211507"></script>
-<script src="scenes.js?v=202610211507"></script>
-<script src="globe.js?v=202610211507"></script>
-<script src="evo.js?v=202610211507"></script>
-<script src="lang-en.js?v=202610211507"></script>
-<script src="app.js?v=202610211507"></script>
+<script src="i18n.js?v=202610220626"></script>
+<script src="data.js?v=202610220626"></script>
+<script src="scenes.js?v=202610220626"></script>
+<script src="globe.js?v=202610220626"></script>
+<script src="evo.js?v=202610220626"></script>
+<script src="lang-en.js?v=202610220626"></script>
+<script src="app.js?v=202610220626"></script>
 </body>
 </html>
