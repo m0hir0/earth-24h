@@ -2,7 +2,9 @@
 
 46億年の地球史を「1日＝24時間」として体感するウェブページ。メイン機能は「進化ガチャ」（ランダムな時代に生まれ、分かれ道で進化を選び、大量絶滅を越えて今日まで系統をつなぐRPG）。「80億分の1」（1in8b.life）に着想を得ている。
 
-- 公開：https://m0hir0.github.io/earth-24h/ （GitHub Pages、`main` の push で1〜2分後に反映）
+- 公開：**https://earth24h.com/**（Cloudflare Pages のプロジェクト `earth-24h`、GitHub の `main` に入ると自動で反映。www.earth24h.com も同じ）。ドメインは Cloudflare で購入（2026/10/22）。
+- 古い住所 https://m0hir0.github.io/earth-24h/（GitHub Pages）と earth-24h.pages.dev は、`move.js` が earth24h.com へ送る（端末の記録 earth24.* を # に乗せて運び、新しい側で合わせる。シェアのリンク #r= もそのまま）。GitHub Pages は止めずに残している（古いリンクの受け口）。プレビュー用の xxx.earth-24h.pages.dev は送らない。
+- 同じ Cloudflare アカウントに「行きつけ」の Worker（ikitsuke）もあるが、触らない（wrangler を使うときは、必ず earth-24h / earth24-museum を名指しする）。
 - リポジトリ：https://github.com/m0hir0/earth-24h （public）
 - ユーザーとのやりとりは日本語。説明は専門用語を避け、平易に。
 
@@ -16,7 +18,18 @@
 4. `globe.js` — 「いまの地球」ダイヤル中央の回る地球（時代で姿が変わる）
 5. `evo.js` — 進化ガチャの中身：PLANS（体のつくり、base 特徴値）、birthOptions（時代ごとの生まれる生き物）、NODES（分かれ道、最後に地質年代ごとの汎用 age0〜11）、EXTINCTIONS（淘汰）、種の数の増減 `step`、`applyExtinction`、ENDINGS（40種類、No.40は誕生前）、LIFE（暮らしの出来事）と `endingOf(d)`
 6. `lang-en.js` — 英語の文章。英語のときだけ内容を置きかえ、UI 辞書を `E.addDict` する
-7. `app.js` — 画面と動き（タブ、いまの地球、今を拡大、ガチャ、プレイ、結末、シェア、履歴、図鑑）
+7. `story.js` — 記録から作るもの（`E.story`）：系統の物語 `storyParts/storyOf`、結末の場面 `endScene/sceneOfData`、記録の検証 `cleanData`、`fmtCount` など。ゲームと博物館で共通
+8. `app.js` — 画面と動き（タブ、いまの地球、今を拡大、ガチャ、プレイ、結末、シェア、履歴、図鑑）
+
+各ページの `<head>` の最初に `move.js`（引っ越し）と canonical（earth24h.com の住所）。`robots.txt`（/tools/ は除外）と `sitemap.xml` は earth24h.com 向け。Cloudflare は `/guide.html` を `/guide` に転送する。
+
+**化石の博物館**（みんなの系統の展示室）：`museum.html` + `museum.js`（ページ）と `functions/`（Cloudflare Pages Functions のサーバー）。
+- 展示は結末画面の「この系統を化石の博物館に展示する」を押したときだけ（`R.data` を POST）。自由な文章はなく、反応は「心に留める」だけ。
+- API：`GET /api/exhibits?sort=new|loved|random&kind=all|dead|alive`、`POST /api/exhibits`、`GET /api/exhibits/<id>`、`POST /api/exhibits/<id>/heart`。
+- 保存は D1 データベース `earth24-museum`（`wrangler.toml` の `DB`、表は `migrations/`）。IP は保存せず、日ごとに変わるハッシュ（秘密の値 `SALT` は Pages のシークレット）で回数を制限（展示20/日・心に留める300/日・全体の展示5000/日）。
+- サーバーは `functions/_lib/names.json` にある言葉（生き物の名前・選んだ道・絶滅の原因）だけを通す。**生き物・分かれ道・淘汰を足したら `node tools/build-names.js` を実行して一緒にコミット**（しないと新しい名前の展示が弾かれる）。
+- 手元で試すときは `.claude/launch.json` の `earth24-pages`（`wrangler pages dev`、手元の D1 は `npx wrangler d1 migrations apply earth24-museum --local`）。python のサーバー（earth24）では博物館は開けない。
+- 本番の表を変えるときは migrations/ に新しいファイルを足して `npx wrangler d1 migrations apply earth24-museum --remote`。展示の取り下げは `npx wrangler d1 execute earth24-museum --remote --command "DELETE FROM exhibits WHERE id='…'"`。
 
 説明ページ（一般公開・AdSense審査向け）：`guide.html`（遊び方・FAQ）、`learn.html`（地球史と進化の解説・出典）、`about.html`（運営者・免責・著作権）、`contact.html`（Googleフォームへ）、`privacy.html`（端末保存・広告Cookie・解析・問い合わせ）。共通は `site.css` と `site.js`（上の帯・下のリンク・言語切替）。本文は各ページに `<div data-l="ja">` と `<div data-l="en">` を両方書く。ゲームの下のリンクと見出しの「遊び方を見る」からつながる。
 - **問い合わせフォームのURLは `site.js` の `CONTACT_FORM_URL`**（空のあいだは「準備中」と出る）。
@@ -30,7 +43,7 @@
 
 - **翻訳**：日本語の文章そのものがキー。新しい文言は `T('日本語 {x}', {x})` で書き、`lang-en.js` の `UI` に英語を足す。HTML の文は `data-i18n`（空ならテキストがキー）か `data-i18n="キー"`。
 - **保存される値は日本語のまま**：生き物の名前（`L.name` / `firstName`）、選んだ道のラベル（`path[].label`）、絶滅の原因（`deathCause` ＝ EXTINCTIONS の日本語名）。表示時に `tr()`。英語版でも保存値は日本語なので、言語を切り替えても履歴・シェアが読める。
-- **シェア／履歴の形式**：`{v:1, u:誕生前1/0, b:生まれた年前, e:終わった年前, a:生存1/0, f:最初の名前, n:最後の名前, p:plan, h:habitat, k:[選んだ道], c:原因, g:[[plan, 変種, 名前], …]（進化の系譜）}`。`cleanData()` で検証。リンクは `#r=base64url(JSON)`。履歴は localStorage `earth24.history`（最大100件）、図鑑は `earth24.found`、言語は `earth24.lang`。
+- **シェア／履歴の形式**：`{v:1, u:誕生前1/0, b:生まれた年前, e:終わった年前, a:生存1/0, f:最初の名前, n:最後の名前, p:plan, h:habitat, k:[選んだ道], c:原因, y:今日の地球の番号（0はふつう）, g:[[plan, 変種, 名前, 年前], …]（進化の系譜。年前は新しい記録だけ）, x:[[淘汰の名前, 前の種数, 後の種数], …]（実際の種数の目安、0は絶滅）}`。`cleanData()` で検証。リンクは `#r=base64url(JSON)`。履歴は localStorage `earth24.history`（最大100件）、図鑑は `earth24.found`、言語は `earth24.lang`。
 - **時刻**：時計は端末の現地時間（ja かつ Asia/Tokyo なら「日本時間」表示）。
 - **姿（look）**：`{plan, v:変種, size, armor, feather}`。変種は app.js の `variantOf()` が flags と habitat から決める（例：microbe→rod/archaea/oxy/hunter、cell→euk/para、colony→alga/volvox、arthropod→trilo/horseshoe/millipede、reptile→turtle（守り70以上）、羽毛→feather）。大きさで絵の拡大率、守り65以上で背中にとげ。
 - **進化の演出**：分かれ道で `plan:変種` が変わると `playEvolution()`（白い影が入れ替わる→新しい姿）。名前が変わらない選択肢なら `VARIANT_NAMES` か PLANS の `ja` 名を付ける。`L.forms` が系譜。
@@ -57,7 +70,7 @@
   - `python3 tools/bump-version.py`：push の前に（下の項目）。
 - クラウドのセッションで作業するときは、作業ブランチ → プルリクエスト → main にマージ、で公開される（GitHub Pages は main から配信）。内蔵ブラウザでの見た目の確認ができない場合は、公開後にスマホで確かめてもらう。
 - **push の前に `python3 tools/bump-version.py`**：各ページが読み込む .js/.css に `?v=日時` を付け直す。GitHub Pages はファイルを約10分キャッシュさせるので、付け忘れると「新しいページ＋古いJS」になって表示が欠ける（実際に `#b-odds` の文が消えた）。
-- コミットは日本語、末尾に `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`。push 後に `gh api repos/m0hir0/earth-24h/pages/builds/latest` で反映を確認。
+- コミットは日本語、末尾に `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`。push 後は `curl -s https://earth24h.com/ | grep 'app.js?v='` で新しい版の印になったかを確認（Cloudflare Pages は1分ほど）。古い住所の側は `gh api repos/m0hir0/earth-24h/pages/builds/latest`。
 
 ## これまでの経緯（決めたこと）
 
@@ -75,6 +88,9 @@
 - 「生まれる」画面の並び：見出し（左に「進化ガチャ」、右端に「遊び方を見る」）→ 説明文 → 円の時計 → 生まれるボタン → `#b-odds`（ホモ・サピエンスとして生まれる確率。birthOptions の候補の数から計算、約0.0024%＝約4.1万分の1）。「99%以上が絶滅」の文はこの画面から外した（結末画面には残る）。
 - 「生まれる」画面の円の時計は、色をタップするとその時代の吹き出し（時計の中央に重ねて表示し、下のボタンは動かさない。しっぽはタップした色の側へ。外をタップで閉じる。生き物は6つまで＋「など」。「色をタップすると…」の説明文は置かない）。中身（`#b-era-info`：時計の時刻・何年前・説明 `ERA_NOTE`・生まれる可能性のある生き物・引く確率）。人類の祖先の時代から先（`LATE`）は細すぎるので、24:00の直前をタップすると4つまとめて出す。
 - 生まれられなかったとき（生命誕生前を引いた）も同じ形のポップアップ（`#b-none`、その時代の地球の絵・説明・図鑑の記録・「もう一度生まれる」）。
+- **自分ごと**：「生まれる」画面に `#b-since`（このページを開いてから流れた地球時計の時間、`sinceTick()` を毎秒）。結末で生まれた年を入れて比べる `#r-me` は廃止（入力する人はいない、ユーザー判断。前の値 `earth24.birthYear` は起動時に消す）。人生との比較は「あなたの一生のものさし」に一本化。
+- **今日の地球**（日替わりのお題）：`dailyInfo()` が端末の日付から種（FNV-1a）を作り、生まれる時代（2割は微生物・細胞の時代、8割は動物の時代）・生き物・4つの系統を決める。2026/10/22 が No.1。画面の速さで展開が変わるので「同じ運」までは保証しない（同じ時代・生き物・ライバルまで）。記録の `y` に番号、localStorage `earth24.daily` に最初の1回の結果（`{no, a, id}`、結末名は表示のときに id から引く）。シェア文は「今日の地球 No.N」と #今日の地球。日付が変わるとボタンも切り替わる。
+- **系統の物語**：`storyParts(d)` が保存した記録だけから一段落の文章を作る（誕生 → 進化（3回以上はまとめる）→ 大きく減った淘汰2つ → 結末 → 99%の一文）。結末画面の「あなたの系統の物語」、履歴、シェアされたリンク、シェア画像（誕生と結末の2文）で同じ文章。古い記録（g の年・x がない）でも短い物語になる。
 - 誕生の記録はポップアップ（`#b-cert-modal`）。375×667 でもスクロールなしで収まるように詰めてある（説明文が長いアノマロカリスで約540px）。「この生き物で進化を始める」の下に「もう一度生まれる」（`#b-again`）、×で閉じるとページに「誕生の記録を見る」（`#b-reopen`）と4つの系統。×1の説明文は廃止。
 - 誕生の記録には特徴の数値（大きさ〜）を出さず、生き物の絵（`#b-pic`、`drawCreatureCard`）を出す。「生まれる」画面の、いまの地球時計の風景（旧 `#b-scene`）は「いまの地球」と重なるので廃止。
 - 誕生の記録に生き物の説明（`evo.ABOUT`、birthOptions の名前がキー。英訳は lang-en.js の `ABOUT`）。生まれる生き物を足したら説明も足す。
@@ -90,4 +106,4 @@
 - 図鑑に登録の演出（`#dexnew`、`dexNew()`）：プレイの結末画面が出て0.5秒後、はじめての結末・姿があれば暗いポップアップに図鑑の全マス（1行8つ）を並べ、まだだったマスが光って（1.2秒）絵で埋まる。結末 → 生き物の順、生き物が複数なら1つずつ。タップで飛ばせる、動きを減らす設定では即座に埋まった状態。生まれる前の地球（`#b-none`）は対象外（ポップアップが2枚続くのを避けた、ユーザー判断）。
 - 生き物の図鑑（`#dex`、結末の図鑑の下）：履歴の系譜 `g` に出てきた姿（`plan:変種`）を集める。全38種類は app.js の `DEX`（並びはおおよそ現れた順。theropod:feather は小型の恐竜になるので出てこず、外してある）。まだの姿は灰色の影、タップで説明（`ABOUT`・今の子孫・その姿になった回数）と「出会った記録を見る」。系譜は最後の12段階だけ残るので、それより前の姿は載らない。体のつくりや変種を足したら `DEX` にも足す。
 - 絵の確認は `tools/gallery.html`（上の「開発用の道具」）。ブラウザが古い scenes.js をキャッシュしやすいので、ゲーム本体で確かめるときは `fetch(ファイル, {cache:'reload'})` してから再読み込みする。
-- 広告（AdSense）は保留中。やるなら独自ドメイン必須、Cloudflare Pages への移行、プライバシーポリシー等が必要（ユーザーに説明済み）。
+- 広告（AdSense）は保留中。独自ドメイン（earth24h.com）と Cloudflare Pages への移行は済んだ。申し込むときは ads.txt を置き、プライバシーポリシーを「利用しています」に書き直す。

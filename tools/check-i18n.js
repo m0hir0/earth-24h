@@ -1,4 +1,4 @@
-// 英語の訳し漏れを探す：app.js の T('日本語…')、index.html の data-i18n、暮らしの出来事・生き物の説明
+// 英語の訳し漏れを探す：app.js・story.js・museum.js の T('日本語…')、index.html の data-i18n、暮らしの出来事・生き物の説明
 //   node tools/check-i18n.js      … 漏れがなければ「all covered」
 // 説明ページ（guide.html など）は本文を日英両方で書いているので対象外
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -18,10 +18,13 @@ const D = ctx.E24.DICT, evo = ctx.E24.evo;
 const ja = /[ぁ-んァ-ン一-龥]/;
 const miss = new Set();
 
-const app = fs.readFileSync(path.join(dir, 'app.js'), 'utf8');
-for (const m of app.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)) {
-  const k = m[1].replace(/\\n/g, '\n').replace(/\\'/g, "'");
-  if (ja.test(k) && D[k] === undefined) miss.add(`app.js: ${k}`);
+for (const f of ['app.js', 'story.js', 'museum.js']) {
+  if (!fs.existsSync(path.join(dir, f))) continue;
+  const src = fs.readFileSync(path.join(dir, f), 'utf8');
+  for (const m of src.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)) {
+    const k = m[1].replace(/\\n/g, '\n').replace(/\\'/g, "'");
+    if (ja.test(k) && D[k] === undefined) miss.add(`${f}: ${k}`);
+  }
 }
 // data-i18n（中にタグを含まない要素の文章、または data-i18n="キー"）
 const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');

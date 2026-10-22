@@ -10,6 +10,7 @@
   const { sceneView, sceneCaption, drawScene, drawCreatureCard, PW, PH, CW, CH, CARD_W, CARD_H } = E.scenes;
   const { yaOfSec, fmtSpan } = E;
   const evo = E.evo;
+  const { lookOfG, mid, fmtCount, endScene, sceneOfData, endingLabel, cleanData, storyParts, storyOf } = E.story;
   const $ = (id) => document.getElementById(id);
   const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -221,6 +222,8 @@
     $('live-ago').textContent = fmtAgo(ya);
     $('live-era').textContent = `${E.LANG === 'en' ? '· ' : '・'}${periodLabel(ya)}`;
     if (!G.spinning) $('b-now').textContent = T('いまの地球時計の時代（{a}）に生まれる', { a: fmtAgo(ya) });
+    sinceTick();
+    if (G.day !== new Date().getDate()) { G.day = new Date().getDate(); if (G.ready) renderDaily(); }   // 日付が変わったら今日のお題も変わる
   }
   let lastHomeTick = 0;
   function homeLoop() {
@@ -477,8 +480,6 @@
     euk: '核を持つ細胞', para: 'ゾウリムシの仲間', volvox: 'ボルボックスの仲間', alga: '藻類の祖先',
     trilo: '三葉虫の仲間', horseshoe: 'カブトガニの仲間', millipede: '陸の節足動物', turtle: 'カメの仲間', feather: '羽毛恐竜',
   };
-  // 記録（g: [[体のつくり, 変種, 名前], ...]）から姿へ
-  const lookOfG = (g) => ({ plan: g[0], v: g[1] });
   function renderChain(box, g) {
     box.textContent = '';
     (g || []).forEach((f, i) => {
@@ -563,17 +564,9 @@
   const DUP = ['', '', '②', '③', '④', '⑤'];
   const nameOf = (L) => tr(L.name) + (L.dup ? ` ${DUP[L.dup] || ''}` : '');
   const SEP = E.LANG === 'en' ? ' · ' : '・';
-  const mid = (s) => (E.LANG === 'en' ? s.replace(/^The /, 'the ') : s);      // 文の途中に入れるとき
-  const causeNote = (c) => (c && !c.includes('背景') ? T('（{c}）', { c: tr(c) }) : '');
   function dedupeNames(list) {
     const seen = {};
     list.forEach((L) => { seen[L.name] = (seen[L.name] || 0) + 1; if (seen[L.name] > 1) L.dup = seen[L.name]; });
-  }
-  // 種の数は、その仲間の実際の種数の目安に合わせて見せる（evo.realCount）
-  function fmtCount(n) {
-    if (E.LANG === 'en') return n.toLocaleString('en-US');
-    if (n >= 10000) return `${E.trim((n / 10000).toFixed(n >= 100000 ? 0 : 1))}万`;
-    return n.toLocaleString('ja-JP');
   }
   const spc = (L, n) => fmtCount(evo.realCount(L, n));
   function traitBars(box, L) {
@@ -622,11 +615,44 @@
   $('b-none').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) $('b-none').hidden = true; });
   $('b-none-again').addEventListener('click', () => { $('b-none').hidden = true; spinTo(Math.random() * S); });
   $('b-now').addEventListener('click', () => spinTo(yaOfSec(E.clockSec())));
-  function spinTo(t) {
+
+  /* ---------- 自分ごとにする：開いてから流れた地球の時間 ---------- */
+  const OPENED = Date.now();
+  function sinceTick() {
+    const s = Math.max(1, Math.floor((Date.now() - OPENED) / 1000));
+    $('b-since').textContent = T('このページを開いてから{t}。そのあいだに地球時計では、約{y}年が流れました。', { t: fmtSec(s), y: fmtYears(s / DAY * S) });
+  }
+  try { localStorage.removeItem('earth24.birthYear'); } catch (e) { /* 生まれた年の比較は廃止。前に入れた値を消す */ }
+
+  /* ---------- 今日の地球：その日（端末の日付）は、全員が同じ時代・同じ生き物・同じ4つの系統で生まれる ---------- */
+  const DAILY_KEY = 'earth24.daily';
+  function dailyInfo(now = new Date()) {
+    const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+    const no = Math.round((Date.UTC(y, m, d) - Date.UTC(2026, 9, 22)) / 864e5) + 1;     // 2026年10月22日が No.1
+    let h = 2166136261;                                                                    // 日付から決まる種（FNV-1a）
+    for (const c of `earth24-${y}-${m + 1}-${d}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    const rnd = evo.rng(h >>> 0);
+    // 2割は微生物や細胞の時代、8割は動物の時代から（生命のいない時代は出さない）
+    const t = rnd() < 0.2 ? 5.4e8 + rnd() * (3.7e9 - 5.4e8) : 2e6 + rnd() * (5.38e8 - 2e6);
+    return { no, t, rnd };
+  }
+  const dailyLoad = () => { try { return JSON.parse(localStorage.getItem(DAILY_KEY)) || {}; } catch (e) { return {}; } };
+  const dailyDone = (no) => dailyLoad().no === no;
+  const dailySave = (v) => { try { localStorage.setItem(DAILY_KEY, JSON.stringify(v)); } catch (e) { /* 保存できなくても遊べる */ } renderDaily(); };
+  function renderDaily() {
+    const di = dailyInfo(), done = dailyLoad();
+    $('b-daily-t').textContent = T('今日の地球 No.{n}', { n: di.no });
+    $('b-daily-s').textContent = done.no === di.no
+      ? T('挑戦ずみ：{r}「{t}」。もう一度遊べますが、記録は最初の1回です。', { r: done.a ? T('今も生きている') : T('絶滅'), t: (evo.ENDINGS.find((e) => e.id === done.id) || {}).title || done.t || '' })
+      : T('今日は全員が、同じ時代に同じ生き物として生まれます。');
+  }
+  $('b-daily').addEventListener('click', () => spinTo(dailyInfo().t, dailyInfo()));
+  function spinTo(t, daily = null) {
     if (G.spinning) return;
     G.spinning = true;
     $('b-spin').disabled = true;
     $('b-now').disabled = true;
+    $('b-daily').disabled = true;
     $('b-none').hidden = true;
     $('b-cert-wrap').hidden = true;
     openCert(false);
@@ -648,13 +674,15 @@
       G.spinning = false;
       $('b-spin').disabled = false;
       $('b-now').disabled = false;
+      $('b-daily').disabled = false;
       $('b-spin').textContent = T('もう一度生まれる');
-      onBorn(t);
+      onBorn(t, daily);
+      renderDaily();
     };
     requestAnimationFrame(stepAnim);
   }
 
-  function onBorn(t) {
+  function onBorn(t, daily = null) {
     setClock($('b-clock'), fmtClock(t));
     $('b-ago').textContent = fmtAgo(t);
     $('b-era').textContent = eraOf(t).name;
@@ -670,13 +698,16 @@
       $('b-none-t').textContent = T('{a}（地球時計 {c}）。地球はまだ熱く、生命が生まれる前でした。この時代を引く確率は{p}。生命が生まれるのは、地球時計の4:10ごろです。', { a: fmtAgo(t), c: fmtClock(t), p: fmtProb((S - 3.8e9) / S) });
       return;
     }
-    const pick = () => options[Math.floor(Math.random() * options.length)];
+    const rand = daily ? daily.rnd : Math.random;                     // 今日の地球は、日付から決まる乱数で選ぶ
+    const pick = () => options[Math.floor(rand() * options.length)];
     const player = evo.makeLineage(pick(), t, true);
     const rivals = [0, 1, 2, 3].map(() => evo.makeLineage(pick(), t, false));
     dedupeNames([player, ...rivals]);
     player.firstName = player.name;
     rivals.forEach((r) => (r.firstName = r.name));
-    G.birth = { t, player, rivals };
+    G.birth = { t, player, rivals, daily: daily ? daily.no : 0 };
+    $('b-daily-tag').hidden = !daily;
+    if (daily) $('b-daily-tag').textContent = T('今日の地球 No.{n}', { n: daily.no });
     const era = eraOf(t);
     $('b-no').textContent = `No. ${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
     $('b-who').textContent = T('あなたは、{n}として生まれました', { n: nameOf(player) });
@@ -713,11 +744,11 @@
   $('b-start').addEventListener('click', () => {
     if (!G.birth) return;
     const PLAY_SEC = 600;                                          // ×1でおよそ10分（分かれ道で止まる時間は含まない）
-    const { t, player, rivals } = G.birth;
+    const { t, player, rivals, daily } = G.birth;
     Object.assign(P, {
       on: true, L: player, rivals, ya0: t, ya: t, T: PLAY_SEC, elapsed: 0, speed: 1, paused: false, skipping: false,
       pending: null, last: 0, fx: null, fxUntil: 0, rnd: evo.rng(Math.floor(Math.random() * 2 ** 31)),
-      done: new Set(), log: [], startedAt: t, lifeT: 0, lifeNext: 4, lifeRecent: [],
+      done: new Set(), log: [], startedAt: t, lifeT: 0, lifeNext: 4, lifeRecent: [], daily,
     });
     $('p-log').textContent = '';
     player.forms = [{ ya: t, look: lookOfL(player), name: player.name }];
@@ -858,6 +889,7 @@
     const others = P.rivals.map((R) => ({ R, res: evo.applyExtinction(R, ev, P.rnd) }));
     if (!me) return;
     const dead = !P.L.alive;
+    if (me.p >= 0.05 || dead) (P.L.xs = P.L.xs || []).push([ev.name, evo.realCount(P.L, me.before), dead ? 0 : evo.realCount(P.L, me.after)]);   // 物語用
     plog(ev.ya, T('{e}：{b}種 → {a}種', { e: tr(ev.name), b: spc(P.L, me.before), a: spc(P.L, me.after) }) + (dead ? T('。系統が絶滅した') : ''), dead ? 'dead' : me.p >= 0.05 ? 'event' : 'info');
     others.forEach(({ R, res }) => { if (res && !R.alive) plog(ev.ya, T('{n}の系統が、{e}で絶滅した', { n: nameOf(R), e: mid(tr(ev.name)) }), 'rival'); });
     if (me.p < 0.05 && !dead) return;                              // ほとんど影響のない出来事は記録だけ
@@ -1055,13 +1087,6 @@
     delegate: T('多くをAIに任せた世界。その先がどうなるかは、まだ誰にもわかりません。'),
     careful: T('ルールをつくりながら、AIとの付き合い方を探しています。'),
   };
-  // 結末の場面：生き残れば今日の子孫の暮らし、絶滅すればその化石が眠る地層
-  function endScene(alive, endYa, plan, habitat, cause, look) {
-    const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause });
-    return { ya: alive ? 0.3 : Math.max(endYa, 1), ending: { ...e, plan, look: look || { plan } } };
-  }
-  const sceneOfData = (d) => (d.u ? { ya: d.b, ending: { ...evo.endingOf(d), ya: d.b } } : endScene(d.a, d.e, d.p, d.h, d.c, d.g && d.g.length ? lookOfG(d.g[d.g.length - 1]) : null));
-  const endingLabel = (e) => T('結末 No.{no}「{t}」', { no: String(e.no).padStart(2, '0'), t: e.title });
   const foundEndings = () => new Set(Object.keys(foundLoad().e));
   function rivalStatus(Rv) {
     return Rv.alive ? T('今も生きている（{n}種）', { n: spc(Rv) }) : T('{a}に絶滅', { a: fmtAgo(Rv.deathYa) });
@@ -1113,11 +1138,19 @@
     drawLineMap($('r-map'), P.log, P.ya0, null);
     const rl = $('r-log'); rl.textContent = '';
     P.log.forEach((e) => rl.appendChild(logItem(e)));
-    const card = drawCard(L, alive, endYa);
+    const data = resultData(L, alive, endYa);
+    $('r-story').textContent = storyOf(data);
+    R.data = data;
+    $('r-exhibit').disabled = false;
+    $('r-exhibit').textContent = T('この系統を化石の博物館に展示する');
+    $('r-exhibit-note').textContent = T('展示されるのは系統の記録と物語だけです。名前や連絡先は載りません。');
+    $('r-daily').hidden = !data.y;
+    if (data.y) $('r-daily').textContent = T('今日の地球 No.{n}', { n: data.y });
+    if (data.y && !dailyDone(data.y)) dailySave({ no: data.y, a: data.a, id: R.ending.id });
+    const card = drawCard(L, alive, endYa, data);
     $('r-img').src = card.toDataURL('image/png');
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
-    const data = resultData(L, alive, endYa);
     lifeScale($('r-scale'), data);
     const firstLife = !zoomUnlocked();
     const before = foundLoad();
@@ -1142,7 +1175,20 @@
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
   const FONT = '"Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif';
-  function drawCard(L, alive, endYa) {
+  // 文章を幅に合わせて折り返す（日本語は1文字ずつ、英語は単語ごと）
+  function wrapLines(ctx, text, maxW, maxLines) {
+    const units = E.LANG === 'en' ? text.split(/(?<= )/) : [...text];
+    const lines = [];
+    let cur = '';
+    for (const u of units) {
+      if (ctx.measureText(cur + u).width > maxW && cur) { lines.push(cur.trimEnd()); cur = u.trimStart(); if (lines.length === maxLines) break; }
+      else cur += u;
+    }
+    if (lines.length < maxLines && cur) lines.push(cur.trimEnd());
+    else if (lines.length === maxLines) lines[maxLines - 1] = lines[maxLines - 1].replace(/.$/, '…');
+    return lines;
+  }
+  function drawCard(L, alive, endYa, data) {
     const cv = document.createElement('canvas'); cv.width = 1200; cv.height = 630;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#0c111b'; ctx.fillRect(0, 0, 1200, 630);
@@ -1166,25 +1212,19 @@
     const main = `「${es.ending.title}」`;
     fit(main, 900, 48, 28, 1150 - bw - 20);
     ctx.fillText(main, 28 + bw + 10, 511);
-    const sub = alive
-      ? T('{a}に「{f}」として生まれ、{n}として今日まで', { a: fmtAgo(L.bornYa), f: tr(L.firstName), n: tr(L.name) })
-      : T('{a}に「{f}」として生まれ、{e}に{n}として絶滅', { a: fmtAgo(L.bornYa), f: tr(L.firstName), e: fmtAgo(endYa), n: tr(L.name) });
-    ctx.fillStyle = '#ffb48f'; fit(sub, 800, 26, 18, 1150);
-    ctx.fillText(sub, 28, 560);
-    ctx.fillStyle = '#7f8ea6'; ctx.font = `700 20px ${FONT}`;
-    ctx.fillText(T('地球の24時間  #地球の24時間 #進化ガチャ'), 28, 604);
+    // 物語の、生まれたときと結末の2文
+    const parts = storyParts(data);
+    const sub = E.LANG === 'en' ? `${parts[0]} ${parts[parts.length - 2]}` : parts[0] + parts[parts.length - 2];
+    ctx.fillStyle = '#ffb48f'; ctx.font = `700 22px ${FONT}`;
+    wrapLines(ctx, sub, 1144, 2).forEach((ln, i) => ctx.fillText(ln, 28, 548 + i * 30));
+    ctx.fillStyle = '#7f8ea6'; ctx.font = `700 19px ${FONT}`;
+    ctx.fillText(T('地球の24時間  #地球の24時間 #進化ガチャ'), 28, 614);
     return cv;
   }
   // 1回の人生（系統）の記録。シェアのリンクにも、履歴にも同じ形で使う
   function resultData(L, alive, endYa) {
     return { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause,
-      g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name]) };
-  }
-  function cleanData(d) {
-    if (!d || d.v !== 1 || !evo.PLANS[d.p] || !(d.b > 0 && d.b <= S) || !(d.e >= 0 && d.e <= d.b)) return null;
-    const str = (x, n) => String(x || '').slice(0, n);
-    const g = (Array.isArray(d.g) ? d.g : []).filter((f) => Array.isArray(f) && evo.PLANS[f[0]]).slice(0, 12).map((f) => [f[0], str(f[1], 12), str(f[2], 40)]);
-    return { v: 1, u: d.u ? 1 : 0, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)), g };
+      g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name, Math.round(f.ya)]), x: (L.xs || []).slice(-6), y: P.daily || 0 };
   }
   // あなたの一生のものさし：系統の長さを、人の一生（100年）で数える。結論は書かず、数字だけ
   const LIFE_YEARS = 100;
@@ -1206,16 +1246,17 @@
     const body = d.a
       ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残った。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅した。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n) });
+    const day = d.y ? `${T('今日の地球 No.{n}', { n: d.y })}\n` : '';
     const lt = lifeTimes(d);
-    return `${body}${lt ? (E.LANG === 'en' ? ' ' : '') + lt : ''}\n${endingLabel(e)}\n${T('#地球の24時間 #進化ガチャ')}`;
+    return `${day}${body}${lt ? (E.LANG === 'en' ? ' ' : '') + lt : ''}\n${endingLabel(e)}\n${d.y ? T('#地球の24時間 #今日の地球') : T('#地球の24時間 #進化ガチャ')}`;
   }
   // 結果をリンクに埋め込む（#r=...）。開いた人には、この結果と「あなたも生まれてみる」が出る
   const b64 = (str) => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   const unb64 = (str) => decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))));
   function shareUrlFrom(d) {
     if (EMBEDDED || !/^https?:/.test(location.protocol)) return '';
-    const { v, u, b, f, n, p, h, a, e, k, c, g } = d;
-    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, u, b, f, n, p, h, a, e, k, c, g }))}`;
+    const { v, u, b, f, n, p, h, a, e, k, c, g, x, y } = d;
+    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, u, b, f, n, p, h, a, e, k, c, g, x, y }))}`;
   }
   function readShared() {
     const m = location.hash.match(/^#r=([A-Za-z0-9_-]+)$/);
@@ -1508,9 +1549,7 @@
     const t = $('hd-ttl');
     t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.u ? '' : d.a ? 'alive' : 'dead'}`;
-    $('hd-text').textContent = d.u ? T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) }) : d.a
-      ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。今の子孫：{d}。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n), d: evo.PLANS[d.p].today })
-      : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。続いた期間は{y}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c), y: fmtSpan(d.b - d.e) });
+    $('hd-text').textContent = storyOf(d);
     lifeScale($('hd-scale'), d);
     const ol = $('hd-path'); ol.textContent = '';
     d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
@@ -1553,9 +1592,7 @@
     const t = $('s-ttl');
     t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.u ? '' : d.a ? 'live' : 'dead'}`;
-    $('s-text').textContent = d.u ? T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) }) : d.a
-      ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
-      : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c) });
+    $('s-text').textContent = (d.y ? `${T('今日の地球 No.{n}', { n: d.y })}${E.LANG === 'en' ? ' — ' : '｜'}` : '') + storyOf(d);
     const ol = $('s-path'); ol.textContent = '';
     d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     $('shared').hidden = false;
@@ -1566,6 +1603,31 @@
     spinTo(Math.random() * S);
   });
   $('r-again').addEventListener('click', () => { show('birth'); spinTo(Math.random() * S); });
+  // 化石の博物館に展示する（サーバーは functions/api/exhibits.js）
+  $('r-exhibit').addEventListener('click', async () => {
+    const b = $('r-exhibit'), note = $('r-exhibit-note');
+    if (!R.data) return;
+    b.disabled = true; b.textContent = T('展示しています…');
+    try {
+      const r = await fetch('/api/exhibits', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(R.data) });
+      const j = await r.json();
+      if (!r.ok || !j.id) throw new Error(j.error || r.status);
+      b.textContent = T('展示しました');
+      note.textContent = '';
+      const a = document.createElement('a'); a.href = `museum.html?id=${encodeURIComponent(j.id)}`; a.textContent = T('化石の博物館で見る ›');
+      note.appendChild(a);
+      museumCount();
+    } catch (e) {
+      b.disabled = false; b.textContent = T('この系統を化石の博物館に展示する');
+      note.textContent = String(e.message) === 'limit' ? T('今日はもう展示できません。また明日どうぞ。') : T('展示できませんでした。少し時間をおいて、もう一度押してください。');
+    }
+  });
+  // 博物館の入口に、展示の数を出す（サーバーがないとき＝手元の確認では何もしない）
+  function museumCount() {
+    fetch('/api/exhibits?limit=1').then((r) => (r.ok ? r.json() : null)).then((j) => {
+      if (j && j.total) $('b-museum-s').textContent = T('いま{n}系統が展示されています', { n: j.total.toLocaleString() });
+    }).catch(() => {});
+  }
   $('r-home').addEventListener('click', () => show('home'));
   $('r-hist').addEventListener('click', () => {
     show('birth');
@@ -1608,6 +1670,9 @@
   requestAnimationFrame(homeLoop);
   renderHist();
   updateZoomLock();
+  renderDaily();
+  museumCount();
+  G.ready = true;
   const shared = readShared();
   if (shared) showShared(shared);
   if (location.hash === '#clock') show('home');
