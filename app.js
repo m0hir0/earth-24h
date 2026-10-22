@@ -221,6 +221,7 @@
     $('live-ago').textContent = fmtAgo(ya);
     $('live-era').textContent = `${E.LANG === 'en' ? '· ' : '・'}${periodLabel(ya)}`;
     if (!G.spinning) $('b-now').textContent = T('いまの地球時計の時代（{a}）に生まれる', { a: fmtAgo(ya) });
+    sinceTick();
     if (G.day !== new Date().getDate()) { G.day = new Date().getDate(); if (G.ready) renderDaily(); }   // 日付が変わったら今日のお題も変わる
   }
   let lastHomeTick = 0;
@@ -623,6 +624,48 @@
   $('b-none-again').addEventListener('click', () => { $('b-none').hidden = true; spinTo(Math.random() * S); });
   $('b-now').addEventListener('click', () => spinTo(yaOfSec(E.clockSec())));
 
+  /* ---------- 自分ごとにする：開いてから流れた地球の時間、あなたの人生との比較 ---------- */
+  const OPENED = Date.now();
+  function sinceTick() {
+    const s = Math.max(1, Math.floor((Date.now() - OPENED) / 1000));
+    $('b-since').textContent = T('このページを開いてから{t}。そのあいだに地球時計では、約{y}年が流れました。', { t: fmtSec(s), y: fmtYears(s / DAY * S) });
+  }
+  const BY_KEY = 'earth24.birthYear';
+  const byLoad = () => { try { const y = Number(localStorage.getItem(BY_KEY)); return y >= 1900 && y <= new Date().getFullYear() ? y : 0; } catch (e) { return 0; } };
+  // 大きな倍率（「約2.3億倍」「230 million times」）
+  function fmtBig(n) {
+    if (E.LANG === 'en') return n >= 1e9 ? `${E.trim((n / 1e9).toFixed(1))} billion` : n >= 1e6 ? `${E.trim((n / 1e6).toFixed(1))} million` : Math.round(n).toLocaleString('en-US');
+    return n >= 1e8 ? `${E.trim((n / 1e8).toFixed(1))}億` : n >= 1e4 ? `${E.trim((n / 1e4).toFixed(n >= 1e5 ? 0 : 1))}万` : Math.round(n).toLocaleString('ja-JP');
+  }
+  function renderMe(d) {
+    const box = $('r-me'); box.textContent = '';
+    const y = byLoad(), nowY = new Date().getFullYear();
+    if (!y) {
+      const f = document.createElement('form');
+      f.innerHTML = '<label><span></span> <input type="number" inputmode="numeric" min="1900" placeholder="1990"></label><button class="btn" type="submit"></button><small></small>';
+      f.querySelector('span').textContent = T('あなたが生まれた年');
+      f.querySelector('input').max = nowY;
+      f.querySelector('button').textContent = T('比べる');
+      f.querySelector('small').textContent = T('入れると、あなたの人生とこの系統を比べます（この端末にだけ保存）。');
+      f.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        const v = Number(f.querySelector('input').value);
+        if (!(v >= 1900 && v <= nowY)) return;
+        try { localStorage.setItem(BY_KEY, String(v)); } catch (e) { /* */ }
+        renderMe(d);
+      });
+      box.appendChild(f);
+      return;
+    }
+    const age = Math.max(1, nowY - y);
+    const p = document.createElement('p');
+    p.textContent = T('あなたの人生（{a}年）は、地球時計でわずか{s}。', { a: age, s: fmtSec(age / S * DAY) })
+      + (d.u ? '' : T('この系統が続いた{y}は、あなたの人生の約{n}倍です。', { y: fmtSpan(d.b - d.e), n: fmtBig((d.b - d.e) / age) }));
+    const re = document.createElement('button'); re.className = 'btn-link'; re.type = 'button'; re.textContent = T('生まれた年を変える');
+    re.addEventListener('click', () => { try { localStorage.removeItem(BY_KEY); } catch (e) { /* */ } renderMe(d); });
+    box.append(p, re);
+  }
+
   /* ---------- 今日の地球：その日（端末の日付）は、全員が同じ時代・同じ生き物・同じ4つの系統で生まれる ---------- */
   const DAILY_KEY = 'earth24.daily';
   function dailyInfo(now = new Date()) {
@@ -642,7 +685,7 @@
     const di = dailyInfo(), done = dailyLoad();
     $('b-daily-t').textContent = T('今日の地球 No.{n}', { n: di.no });
     $('b-daily-s').textContent = done.no === di.no
-      ? T('挑戦ずみ：{r}「{t}」。もう一度遊べますが、記録は最初の1回です。', { r: done.a ? T('今も生きている') : T('絶滅'), t: done.t || '' })
+      ? T('挑戦ずみ：{r}「{t}」。もう一度遊べますが、記録は最初の1回です。', { r: done.a ? T('今も生きている') : T('絶滅'), t: (evo.ENDINGS.find((e) => e.id === done.id) || {}).title || done.t || '' })
       : T('今日は全員が、同じ時代に同じ生き物として生まれます。');
   }
   $('b-daily').addEventListener('click', () => spinTo(dailyInfo().t, dailyInfo()));
@@ -1146,9 +1189,10 @@
     P.log.forEach((e) => rl.appendChild(logItem(e)));
     const data = resultData(L, alive, endYa);
     $('r-story').textContent = storyOf(data);
+    renderMe(data);
     $('r-daily').hidden = !data.y;
     if (data.y) $('r-daily').textContent = T('今日の地球 No.{n}', { n: data.y });
-    if (data.y && !dailyDone(data.y)) dailySave({ no: data.y, a: data.a, t: R.ending.title });
+    if (data.y && !dailyDone(data.y)) dailySave({ no: data.y, a: data.a, id: R.ending.id });
     const card = drawCard(L, alive, endYa, data);
     $('r-img').src = card.toDataURL('image/png');
     $('r-save').hidden = EMBEDDED;
