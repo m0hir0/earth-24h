@@ -1062,7 +1062,7 @@
   }
   const sceneOfData = (d) => (d.u ? { ya: d.b, ending: { ...evo.endingOf(d), ya: d.b } } : endScene(d.a, d.e, d.p, d.h, d.c, d.g && d.g.length ? lookOfG(d.g[d.g.length - 1]) : null));
   const endingLabel = (e) => T('結末 No.{no}「{t}」', { no: String(e.no).padStart(2, '0'), t: e.title });
-  const foundEndings = () => new Set(histLoad().map((h) => evo.endingOf(h).id));
+  const foundEndings = () => new Set(Object.keys(foundLoad().e));
   function rivalStatus(Rv) {
     return Rv.alive ? T('今も生きている（{n}種）', { n: spc(Rv) }) : T('{a}に絶滅', { a: fmtAgo(Rv.deathYa) });
   }
@@ -1241,10 +1241,48 @@
     try { localStorage.setItem(HKEY, JSON.stringify(list)); } catch (e) { /* 保存できなくても、このページの間は残る */ }
   }
   function histAdd(d) {
-    const list = histLoad();
+    const list = histLoad(), F = foundLoad();   // 図鑑は先に読む（はじめてのときは今までの履歴から作られる）
     list.unshift({ ...d, t: Date.now(), id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6) });
     histSave(list.slice(0, 100));
+    foundRecord(F, list[0]); foundSave(F);
     renderHist();
+  }
+  /* ---------- 図鑑（見つけた結末と生き物）。履歴は100件で古いものから消えるので、別にずっと残す ---------- */
+  //   { e: {結末のid: いちばん新しい記録}, f: {'plan:変種': {n: なった回数, names: [名前], d: いちばん新しい記録}} }
+  const FKEY = 'earth24.found';
+  let memFound = null;
+  const cleanRec = (x) => { const d = cleanData(x); return d ? { ...d, t: Number(x.t) || 0, id: String(x.id || '') } : null; };
+  function foundRecord(F, d) {
+    F.e[evo.endingOf(d).id] = d;
+    new Set((d.g || []).map((g) => `${g[0]}:${g[1]}`)).forEach((k) => {
+      const x = F.f[k] || (F.f[k] = { n: 0, names: [], d });
+      x.n++; x.d = d;
+      (d.g || []).forEach((g) => { if (`${g[0]}:${g[1]}` === k && !x.names.includes(g[2])) x.names.push(g[2]); });
+      x.names = x.names.slice(-12);
+    });
+  }
+  function foundLoad() {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(FKEY)); } catch (e) { raw = memFound; }
+    if (!raw || typeof raw !== 'object') {
+      // はじめて：これまでの履歴から作る（古い順に入れて、新しい記録が残るように）
+      const F = { e: {}, f: {} };
+      histLoad().slice().reverse().forEach((d) => foundRecord(F, d));
+      foundSave(F);
+      return F;
+    }
+    const F = { e: {}, f: {} };
+    const ids = new Set(evo.ENDINGS.map((e) => e.id));
+    for (const id in raw.e || {}) { const d = cleanRec(raw.e[id]); if (d && ids.has(id)) F.e[id] = d; }
+    for (const k in raw.f || {}) {
+      const x = raw.f[k], d = x && cleanRec(x.d);
+      if (d && DEX.includes(k)) F.f[k] = { n: Math.max(1, Math.floor(Number(x.n)) || 1), names: (Array.isArray(x.names) ? x.names : []).slice(-12).map((n) => String(n).slice(0, 40)), d };
+    }
+    return F;
+  }
+  function foundSave(F) {
+    memFound = F;
+    try { localStorage.setItem(FKEY, JSON.stringify(F)); } catch (e) { /* 保存できなくても、このページの間は残る */ }
   }
   const HD = { st: null, d: null };
   sceneView($('hd-scene'), () => HD.st);
@@ -1256,6 +1294,8 @@
     $('hist-clear').hidden = list.length === 0;
     renderZukan();
     renderDex();
+    const F = foundLoad();
+    $('dex-clear').hidden = !Object.keys(F.e).length && !Object.keys(F.f).length;
     if (!list.length) { $('hist-sum').textContent = ''; return; }
     const born = list.filter((d) => !d.u), unborn = list.length - born.length;
     const alive = born.filter((d) => d.a).length;
@@ -1282,17 +1322,15 @@
   }
   // 結末の図鑑：見つけた結末は風景つき、まだの結末は「？」
   function renderZukan() {
-    const found = foundEndings();
+    const found = foundLoad().e;
     const box = $('zukan'); box.textContent = '';
-    $('zukan-n').textContent = `${found.size} / ${evo.ENDINGS.length}`;
-    const list = histLoad();
+    $('zukan-n').textContent = `${Object.keys(found).length} / ${evo.ENDINGS.length}`;
     evo.ENDINGS.forEach((e) => {
       const b = document.createElement('button');
       b.className = 'zk';
-      const has = found.has(e.id);
+      const last = found[e.id], has = !!last;
       if (has) {
         const cv = document.createElement('canvas'); cv.width = CW; cv.height = CH;
-        const last = list.find((h) => evo.endingOf(h).id === e.id);
         const st = sceneOfData(last);
         drawScene(cv.getContext('2d'), st.ya, 3, st);
         b.appendChild(cv);
@@ -1317,18 +1355,8 @@
     'dino_small:', 'dino_small:feather', 'sauropod:', 'theropod:', 'bird:', 'mammal:', 'mammal_large:', 'whale:', 'primate:', 'hominin:', 'human:'];
   const dexLook = (k) => { const [plan, v] = k.split(':'); return { plan, v }; };
   const dexName = (k) => { const { plan, v } = dexLook(k); return VARIANT_NAMES[v] || evo.PLANS[plan].ja; };
-  // 姿ごとに、出会った記録（新しい順）と、記録に残った名前
-  function dexFound() {
-    const m = new Map();
-    histLoad().forEach((d) => (d.g || []).forEach((f) => {
-      const k = `${f[0]}:${f[1]}`;
-      if (!m.has(k)) m.set(k, { list: [], names: [] });
-      const x = m.get(k);
-      if (x.list[x.list.length - 1] !== d) x.list.push(d);
-      if (!x.names.includes(f[2])) x.names.push(f[2]);
-    }));
-    return m;
-  }
+  // 姿ごとに、なった回数・名前・いちばん新しい記録
+  const dexFound = () => new Map(Object.entries(foundLoad().f));
   const DX = { k: null };
   function renderDex() {
     const found = dexFound();
@@ -1362,14 +1390,14 @@
     $('dx-about').textContent = about;
     $('dx-about').hidden = !about;
     $('dx-today').textContent = T('今の子孫：{d}', { d: evo.PLANS[plan].today });
-    $('dx-count').textContent = T('この姿になった系統：{n}回', { n: x.list.length });
+    $('dx-count').textContent = T('この姿になった系統：{n}回', { n: x.n });
     $('dex-detail').hidden = false;
     $('dex-detail').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
   }
   function closeDex() { DX.k = null; $('dex-detail').hidden = true; }
   $('dx-cv').width = CARD_W; $('dx-cv').height = CARD_H;
   $('dx-close').addEventListener('click', closeDex);
-  $('dx-open').addEventListener('click', () => { const x = DX.k && dexFound().get(DX.k); if (x) openHist(x.list[0]); });
+  $('dx-open').addEventListener('click', () => { const x = DX.k && dexFound().get(DX.k); if (x) openHist(x.d); });
   function openHist(d) {
     HD.d = d;
     HD.st = sceneOfData(d);
@@ -1401,6 +1429,14 @@
     if (Date.now() - clearArmed > 4000) { clearArmed = Date.now(); $('hist-clear').textContent = T('もう一度押すと、すべての記録を消します'); return; }
     histSave([]); clearArmed = 0; $('hist-clear').textContent = T('記録をすべて消す');
     $('hist-detail').hidden = true; HD.st = null;
+    renderHist();
+  });
+  // 図鑑は記録を消しても残る。図鑑だけを消すボタン
+  let dexClearArmed = 0;
+  $('dex-clear').addEventListener('click', () => {
+    if (Date.now() - dexClearArmed > 4000) { dexClearArmed = Date.now(); $('dex-clear').textContent = T('もう一度押すと、図鑑をすべて消します'); return; }
+    foundSave({ e: {}, f: {} }); dexClearArmed = 0; $('dex-clear').textContent = T('図鑑をすべて消す');
+    closeDex();
     renderHist();
   });
 
