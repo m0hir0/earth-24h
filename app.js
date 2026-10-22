@@ -616,47 +616,13 @@
   $('b-none-again').addEventListener('click', () => { $('b-none').hidden = true; spinTo(Math.random() * S); });
   $('b-now').addEventListener('click', () => spinTo(yaOfSec(E.clockSec())));
 
-  /* ---------- 自分ごとにする：開いてから流れた地球の時間、あなたの人生との比較 ---------- */
+  /* ---------- 自分ごとにする：開いてから流れた地球の時間 ---------- */
   const OPENED = Date.now();
   function sinceTick() {
     const s = Math.max(1, Math.floor((Date.now() - OPENED) / 1000));
     $('b-since').textContent = T('このページを開いてから{t}。そのあいだに地球時計では、約{y}年が流れました。', { t: fmtSec(s), y: fmtYears(s / DAY * S) });
   }
-  const BY_KEY = 'earth24.birthYear';
-  const byLoad = () => { try { const y = Number(localStorage.getItem(BY_KEY)); return y >= 1900 && y <= new Date().getFullYear() ? y : 0; } catch (e) { return 0; } };
-  // 大きな倍率（「約2.3億倍」「230 million times」）
-  function fmtBig(n) {
-    if (E.LANG === 'en') return n >= 1e9 ? `${E.trim((n / 1e9).toFixed(1))} billion` : n >= 1e6 ? `${E.trim((n / 1e6).toFixed(1))} million` : Math.round(n).toLocaleString('en-US');
-    return n >= 1e8 ? `${E.trim((n / 1e8).toFixed(1))}億` : n >= 1e4 ? `${E.trim((n / 1e4).toFixed(n >= 1e5 ? 0 : 1))}万` : Math.round(n).toLocaleString('ja-JP');
-  }
-  function renderMe(d) {
-    const box = $('r-me'); box.textContent = '';
-    const y = byLoad(), nowY = new Date().getFullYear();
-    if (!y) {
-      const f = document.createElement('form');
-      f.innerHTML = '<label><span></span> <input type="number" inputmode="numeric" min="1900" placeholder="1990"></label><button class="btn" type="submit"></button><small></small>';
-      f.querySelector('span').textContent = T('あなたが生まれた年');
-      f.querySelector('input').max = nowY;
-      f.querySelector('button').textContent = T('比べる');
-      f.querySelector('small').textContent = T('入れると、あなたの人生とこの系統を比べます（この端末にだけ保存）。');
-      f.addEventListener('submit', (ev) => {
-        ev.preventDefault();
-        const v = Number(f.querySelector('input').value);
-        if (!(v >= 1900 && v <= nowY)) return;
-        try { localStorage.setItem(BY_KEY, String(v)); } catch (e) { /* */ }
-        renderMe(d);
-      });
-      box.appendChild(f);
-      return;
-    }
-    const age = Math.max(1, nowY - y);
-    const p = document.createElement('p');
-    p.textContent = T('あなたの人生（{a}年）は、地球時計でわずか{s}。', { a: age, s: fmtSec(age / S * DAY) })
-      + (d.u ? '' : T('この系統が続いた{y}は、あなたの人生の約{n}倍です。', { y: fmtSpan(d.b - d.e), n: fmtBig((d.b - d.e) / age) }));
-    const re = document.createElement('button'); re.className = 'btn-link'; re.type = 'button'; re.textContent = T('生まれた年を変える');
-    re.addEventListener('click', () => { try { localStorage.removeItem(BY_KEY); } catch (e) { /* */ } renderMe(d); });
-    box.append(p, re);
-  }
+  try { localStorage.removeItem('earth24.birthYear'); } catch (e) { /* 生まれた年の比較は廃止。前に入れた値を消す */ }
 
   /* ---------- 今日の地球：その日（端末の日付）は、全員が同じ時代・同じ生き物・同じ4つの系統で生まれる ---------- */
   const DAILY_KEY = 'earth24.daily';
@@ -1174,7 +1140,6 @@
     P.log.forEach((e) => rl.appendChild(logItem(e)));
     const data = resultData(L, alive, endYa);
     $('r-story').textContent = storyOf(data);
-    renderMe(data);
     R.data = data;
     $('r-exhibit').disabled = false;
     $('r-exhibit').textContent = T('この系統を化石の博物館に展示する');
@@ -1186,7 +1151,9 @@
     $('r-img').src = card.toDataURL('image/png');
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
+    lifeScale($('r-scale'), data);
     const firstLife = !zoomUnlocked();
+    const before = foundLoad();
     histAdd(data);
     $('r-unlock').hidden = !firstLife;
     if (firstLife) unlockZoom();
@@ -1196,6 +1163,10 @@
     $('r-copy').hidden = !R.share.url;
     $('r-copy-ok').textContent = '';
     show('result');
+    // はじめての結末・生き物があれば、図鑑に登録の演出
+    const newE = before.e[R.ending.id] ? null : R.ending.id;
+    const newF = [...new Set(data.g.map((g) => `${g[0]}:${g[1]}`))].filter((k) => !before.f[k] && DEX.includes(k));
+    if (newE || newF.length) setTimeout(() => dexNew(before, newE, newF), REDUCE ? 0 : 500);
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -1255,6 +1226,20 @@
     return { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause,
       g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name, Math.round(f.ya)]), x: (L.xs || []).slice(-6), y: P.daily || 0 };
   }
+  // あなたの一生のものさし：系統の長さを、人の一生（100年）で数える。結論は書かず、数字だけ
+  const LIFE_YEARS = 100;
+  function lifeScale(box, d) {
+    box.textContent = '';
+    if (!d || d.u) return;
+    const span = d.b - d.e, n = span / LIFE_YEARS;
+    const add = (tag, cls, text) => { const x = document.createElement(tag); x.className = cls; x.textContent = text; box.appendChild(x); };
+    add('p', 'ls-h', T('あなたの一生のものさし'));
+    add('p', 'ls-lead', T('あなたの系統が続いた{y}は', { y: fmtSpan(span) }));
+    add('p', 'ls-big', n < 1 ? T('人の一生の1回分にも満たない') : T('人の一生の{n}回分', { n: fmtYears(n) }));
+    add('p', 'ls-note', T('人が100年生きたとしても、地球時計では約{s}秒。', { s: (LIFE_YEARS / S * DAY).toFixed(3) }));
+    if (d.p === 'hominin' || d.p === 'human') add('p', 'ls-note', T('ホモ・サピエンスの歴史（約30万年）でさえ、24:00の約{s}秒前から。', { s: Math.round(3e5 / S * DAY) }));
+  }
+  const lifeTimes = (d) => { const n = (d.b - d.e) / LIFE_YEARS; return n < 1 ? '' : T('それは人の一生の{n}回分。', { n: fmtYears(n) }); };
   function shareTextFrom(d) {
     const e = evo.endingOf(d);
     if (d.u) return `${T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) })}\n${endingLabel(e)}\n${T('#地球の24時間 #進化ガチャ')}`;
@@ -1262,7 +1247,8 @@
       ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残った。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅した。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n) });
     const day = d.y ? `${T('今日の地球 No.{n}', { n: d.y })}\n` : '';
-    return `${day}${body}\n${endingLabel(e)}\n${d.y ? T('#地球の24時間 #今日の地球') : T('#地球の24時間 #進化ガチャ')}`;
+    const lt = lifeTimes(d);
+    return `${day}${body}${lt ? (E.LANG === 'en' ? ' ' : '') + lt : ''}\n${endingLabel(e)}\n${d.y ? T('#地球の24時間 #今日の地球') : T('#地球の24時間 #進化ガチャ')}`;
   }
   // 結果をリンクに埋め込む（#r=...）。開いた人には、この結果と「あなたも生まれてみる」が出る
   const b64 = (str) => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -1471,6 +1457,87 @@
     $('dex-detail').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });
   }
   function closeDex() { DX.k = null; $('dex-detail').hidden = true; }
+
+  // 図鑑に登録の演出：プレイの後、結末の図鑑 → 生き物の図鑑の順に、埋まっていなかったマスが光って埋まる
+  const DN = { stages: [], timers: [], finish: null };
+  function dnCell(kind, k, F, filled) {
+    const c = document.createElement('div'); c.className = 'dn-cell';
+    if (kind === 'e' && !filled) { c.textContent = '？'; return c; }
+    const cv = document.createElement('canvas');
+    if (kind === 'e') {
+      cv.width = CW; cv.height = CH;
+      const st = sceneOfData(F.e[k]);
+      drawScene(cv.getContext('2d'), st.ya, 3, st);
+    } else {
+      cv.width = CARD_W; cv.height = CARD_H; c.classList.add('form');
+      drawCreatureCard(cv.getContext('2d'), dexLook(k), 3, filled ? null : '#56607a');
+      if (!filled) c.classList.add('locked');
+    }
+    c.appendChild(cv);
+    return c;
+  }
+  function dexNew(before, newE, newF) {
+    const F = foundLoad();
+    DN.stages = [];
+    if (newE) DN.stages.push({ kind: 'e', keys: evo.ENDINGS.map((e) => e.id), had: before.e, news: [newE] });
+    if (newF.length) DN.stages.push({ kind: 'f', keys: DEX, had: before.f, news: newF });
+    DN.F = F;
+    $('dexnew').hidden = false;
+    dnStage(0);
+  }
+  function dnStage(i) {
+    const S0 = DN.stages[i], F = DN.F, grid = $('dn-grid');
+    DN.i = i;
+    DN.timers.forEach(clearTimeout); DN.timers = [];
+    grid.textContent = '';
+    grid.className = `dn-grid ${S0.kind === 'e' ? 'ends' : 'forms'}`;
+    const cells = {};
+    S0.keys.forEach((k) => { const c = dnCell(S0.kind, k, F, !!S0.had[k]); cells[k] = c; grid.appendChild(c); });
+    let n = S0.keys.filter((k) => S0.had[k]).length;
+    const all = S0.keys.length;
+    $('dn-ttl').textContent = S0.kind === 'e' ? T('結末の図鑑に登録！') : T('生き物の図鑑に登録！');
+    $('dn-count').textContent = `${n} / ${all}`;
+    $('dn-cap').textContent = '';
+    const last = i === DN.stages.length - 1;
+    $('dn-ok').textContent = last ? T('OK') : T('つぎへ');
+    $('dn-ok').hidden = true;
+    const names = [];
+    const fill = (k) => {
+      const c = dnCell(S0.kind, k, F, true);
+      c.classList.add('new', 'fill');
+      cells[k].replaceWith(c); cells[k] = c;
+      n++;
+      $('dn-count').textContent = `${n} / ${all}`;
+      names.push(S0.kind === 'e' ? endingLabel(evo.ENDINGS.find((e) => e.id === k)) : tr(dexName(k)));
+      $('dn-cap').textContent = names.join(E.LANG === 'en' ? ', ' : '、');
+    };
+    let done = false;
+    DN.finish = () => {
+      if (done) return;
+      done = true;
+      DN.timers.forEach(clearTimeout); DN.timers = [];
+      S0.news.forEach((k) => { if (!cells[k].classList.contains('new')) fill(k); });
+      $('dn-ok').hidden = false;
+      $('dn-ok').focus();
+    };
+    if (REDUCE) { DN.finish(); return; }
+    // 1つずつ：光って（1.2秒）→ 埋まる
+    S0.news.forEach((k, j) => {
+      const t = 500 + j * 1700;
+      DN.timers.push(setTimeout(() => cells[k].classList.add('glow'), t));
+      DN.timers.push(setTimeout(() => fill(k), t + 1200));
+    });
+    DN.timers.push(setTimeout(DN.finish, 500 + S0.news.length * 1700));
+  }
+  $('dexnew').addEventListener('click', (ev) => {
+    if (ev.target.closest('#dn-ok')) return;
+    if (DN.finish) DN.finish();
+  });
+  $('dn-ok').addEventListener('click', () => {
+    if (DN.i + 1 < DN.stages.length) { dnStage(DN.i + 1); return; }
+    DN.timers.forEach(clearTimeout); DN.timers = [];
+    $('dexnew').hidden = true;
+  });
   $('dx-cv').width = CARD_W; $('dx-cv').height = CARD_H;
   $('dx-close').addEventListener('click', closeDex);
   $('dx-open').addEventListener('click', () => { const x = DX.k && dexFound().get(DX.k); if (x) openHist(x.d); });
@@ -1483,6 +1550,7 @@
     t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.u ? '' : d.a ? 'alive' : 'dead'}`;
     $('hd-text').textContent = storyOf(d);
+    lifeScale($('hd-scale'), d);
     const ol = $('hd-path'); ol.textContent = '';
     d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     const url = shareUrlFrom(d);
