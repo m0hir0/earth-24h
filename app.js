@@ -564,7 +564,6 @@
   const nameOf = (L) => tr(L.name) + (L.dup ? ` ${DUP[L.dup] || ''}` : '');
   const SEP = E.LANG === 'en' ? ' · ' : '・';
   const mid = (s) => (E.LANG === 'en' ? s.replace(/^The /, 'the ') : s);      // 文の途中に入れるとき
-  const causeNote = (c) => (c && !c.includes('背景') ? T('（{c}）', { c: tr(c) }) : '');
   function dedupeNames(list) {
     const seen = {};
     list.forEach((L) => { seen[L.name] = (seen[L.name] || 0) + 1; if (seen[L.name] > 1) L.dup = seen[L.name]; });
@@ -858,6 +857,7 @@
     const others = P.rivals.map((R) => ({ R, res: evo.applyExtinction(R, ev, P.rnd) }));
     if (!me) return;
     const dead = !P.L.alive;
+    if (me.p >= 0.05 || dead) (P.L.xs = P.L.xs || []).push([ev.name, evo.realCount(P.L, me.before), dead ? 0 : evo.realCount(P.L, me.after)]);   // 物語用
     plog(ev.ya, T('{e}：{b}種 → {a}種', { e: tr(ev.name), b: spc(P.L, me.before), a: spc(P.L, me.after) }) + (dead ? T('。系統が絶滅した') : ''), dead ? 'dead' : me.p >= 0.05 ? 'event' : 'info');
     others.forEach(({ R, res }) => { if (res && !R.alive) plog(ev.ya, T('{n}の系統が、{e}で絶滅した', { n: nameOf(R), e: mid(tr(ev.name)) }), 'rival'); });
     if (me.p < 0.05 && !dead) return;                              // ほとんど影響のない出来事は記録だけ
@@ -1113,11 +1113,12 @@
     drawLineMap($('r-map'), P.log, P.ya0, null);
     const rl = $('r-log'); rl.textContent = '';
     P.log.forEach((e) => rl.appendChild(logItem(e)));
-    const card = drawCard(L, alive, endYa);
+    const data = resultData(L, alive, endYa);
+    $('r-story').textContent = storyOf(data);
+    const card = drawCard(L, alive, endYa, data);
     $('r-img').src = card.toDataURL('image/png');
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
-    const data = resultData(L, alive, endYa);
     const firstLife = !zoomUnlocked();
     histAdd(data);
     $('r-unlock').hidden = !firstLife;
@@ -1136,7 +1137,20 @@
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
   const FONT = '"Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, sans-serif';
-  function drawCard(L, alive, endYa) {
+  // 文章を幅に合わせて折り返す（日本語は1文字ずつ、英語は単語ごと）
+  function wrapLines(ctx, text, maxW, maxLines) {
+    const units = E.LANG === 'en' ? text.split(/(?<= )/) : [...text];
+    const lines = [];
+    let cur = '';
+    for (const u of units) {
+      if (ctx.measureText(cur + u).width > maxW && cur) { lines.push(cur.trimEnd()); cur = u.trimStart(); if (lines.length === maxLines) break; }
+      else cur += u;
+    }
+    if (lines.length < maxLines && cur) lines.push(cur.trimEnd());
+    else if (lines.length === maxLines) lines[maxLines - 1] = lines[maxLines - 1].replace(/.$/, '…');
+    return lines;
+  }
+  function drawCard(L, alive, endYa, data) {
     const cv = document.createElement('canvas'); cv.width = 1200; cv.height = 630;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#0c111b'; ctx.fillRect(0, 0, 1200, 630);
@@ -1160,25 +1174,66 @@
     const main = `「${es.ending.title}」`;
     fit(main, 900, 48, 28, 1150 - bw - 20);
     ctx.fillText(main, 28 + bw + 10, 511);
-    const sub = alive
-      ? T('{a}に「{f}」として生まれ、{n}として今日まで', { a: fmtAgo(L.bornYa), f: tr(L.firstName), n: tr(L.name) })
-      : T('{a}に「{f}」として生まれ、{e}に{n}として絶滅', { a: fmtAgo(L.bornYa), f: tr(L.firstName), e: fmtAgo(endYa), n: tr(L.name) });
-    ctx.fillStyle = '#ffb48f'; fit(sub, 800, 26, 18, 1150);
-    ctx.fillText(sub, 28, 560);
-    ctx.fillStyle = '#7f8ea6'; ctx.font = `700 20px ${FONT}`;
-    ctx.fillText(T('地球の24時間  #地球の24時間 #進化ガチャ'), 28, 604);
+    // 物語の、生まれたときと結末の2文
+    const parts = storyParts(data);
+    const sub = E.LANG === 'en' ? `${parts[0]} ${parts[parts.length - 2]}` : parts[0] + parts[parts.length - 2];
+    ctx.fillStyle = '#ffb48f'; ctx.font = `700 22px ${FONT}`;
+    wrapLines(ctx, sub, 1144, 2).forEach((ln, i) => ctx.fillText(ln, 28, 548 + i * 30));
+    ctx.fillStyle = '#7f8ea6'; ctx.font = `700 19px ${FONT}`;
+    ctx.fillText(T('地球の24時間  #地球の24時間 #進化ガチャ'), 28, 614);
     return cv;
   }
   // 1回の人生（系統）の記録。シェアのリンクにも、履歴にも同じ形で使う
   function resultData(L, alive, endYa) {
     return { v: 1, b: Math.round(L.bornYa), f: L.firstName, n: L.name, p: L.plan, h: L.habitat, a: alive ? 1 : 0, e: Math.round(endYa), k: L.path.map((x) => x.label), c: alive ? '' : L.deathCause,
-      g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name]) };
+      g: (L.forms || []).slice(-12).map((f) => [f.look.plan, f.look.v, f.name, Math.round(f.ya)]), x: (L.xs || []).slice(-6) };
   }
   function cleanData(d) {
     if (!d || d.v !== 1 || !evo.PLANS[d.p] || !(d.b > 0 && d.b <= S) || !(d.e >= 0 && d.e <= d.b)) return null;
     const str = (x, n) => String(x || '').slice(0, n);
-    const g = (Array.isArray(d.g) ? d.g : []).filter((f) => Array.isArray(f) && evo.PLANS[f[0]]).slice(0, 12).map((f) => [f[0], str(f[1], 12), str(f[2], 40)]);
-    return { v: 1, u: d.u ? 1 : 0, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)), g };
+    const num = (x) => (Number.isFinite(+x) && +x >= 0 ? Math.round(+x) : null);
+    const g = (Array.isArray(d.g) ? d.g : []).filter((f) => Array.isArray(f) && evo.PLANS[f[0]]).slice(0, 12).map((f) => (num(f[3]) == null ? [f[0], str(f[1], 12), str(f[2], 40)] : [f[0], str(f[1], 12), str(f[2], 40), num(f[3])]));
+    const x = (Array.isArray(d.x) ? d.x : []).filter((v) => Array.isArray(v) && num(v[1]) != null && num(v[2]) != null).slice(0, 6).map((v) => [str(v[0], 60), num(v[1]), num(v[2])]);
+    return { v: 1, u: d.u ? 1 : 0, b: d.b, e: d.e, a: d.a ? 1 : 0, f: str(d.f, 40), n: str(d.n, 40), p: d.p, h: str(d.h, 10), c: str(d.c, 60), k: (Array.isArray(d.k) ? d.k : []).slice(0, 20).map((x) => str(x, 40)), g, x };
+  }
+  /* ---------- 系統の一生を、ひとつの物語に ----------
+     保存した記録（d）だけから作るので、結末・履歴・シェアされたリンクのどれでも同じ文章になる */
+  const LIST = () => (E.LANG === 'en' ? ', ' : '、');
+  const storyOf = (d) => storyParts(d).join(E.LANG === 'en' ? ' ' : '');
+  function storyParts(d) {
+    if (d.u) return [T('{a}、生まれようとしたその時代の地球は、まだマグマと隕石の星でした。生命が現れるのは、それから{y}もあとのことです。', { a: fmtAgo(d.b), y: fmtSpan(d.b - 3.8e9) })];
+    const per = E.periodOf(d.b), where = per.name || per.era;
+    const out = [T('{a}、{p}の地球に、「{f}」として生まれました。', { a: fmtAgo(d.b), p: where, f: tr(d.f) })];
+    // 進化：姿が変わったところ（多ければまとめる）
+    const evos = (d.g || []).slice(1);
+    if (evos.length && evos.length <= 2) {
+      let prev = (d.g[0] && d.g[0][2]) || d.f;
+      for (const f of evos) {
+        out.push(f[3] != null ? T('{a}、{x}は{y}に進化しました。', { a: fmtAgo(f[3]), x: tr(prev), y: tr(f[2]) }) : T('{x}は{y}に進化しました。', { x: tr(prev), y: tr(f[2]) }));
+        prev = f[2];
+      }
+    } else if (evos.length > 2) {
+      out.push(T('それから{l}へと、{n}回姿を変えていきました。', { l: evos.map((f) => tr(f[2])).join(LIST()), n: evos.length }));
+    } else if (d.k.length) {
+      out.push(T('{n}回の分かれ道で、{l}を選びました。', { n: d.k.length, l: d.k.slice(-2).map((x) => `「${tr(x)}」`).join(LIST()) }));
+    }
+    // 淘汰：いちばん大きく減ったものを2つまで（死因の出来事は結末で書く）
+    const yaOf = (name) => (evo.EXTINCTIONS.find((x) => x.name === name) || {}).ya || 0;
+    const hits = (d.x || []).filter((x) => x[2] > 0).sort((a, b) => b[1] / Math.max(b[2], 1) - a[1] / Math.max(a[2], 1)).slice(0, 2).sort((a, b) => yaOf(b[0]) - yaOf(a[0]));
+    for (const [name, b, a] of hits) out.push(T('{e}では、{b}種のうち{a}種だけが生き延びました。', { e: mid(tr(name)), b: fmtCount(b), a: fmtCount(a) }));
+    // 結末
+    const span = fmtSpan(d.b - d.e);
+    if (d.a) {
+      out.push(T('そして{y}にわたって系統をつなぎ、今日まで生き残りました。今の子孫は、{t}。', { y: span, t: evo.PLANS[d.p].today }));
+      out.push(T('地球に現れた種の99%以上が消えたなかで、あなたの系統は残りました。'));
+    } else {
+      const fatal = (d.x || []).find((x) => x[2] === 0 && x[0] === d.c);
+      if (d.c.includes('背景')) out.push(T('{a}、数を減らし続けて、最後の種が消えました。{y}続いた系統でした。', { a: fmtAgo(d.e), y: span }));
+      else if (fatal) out.push(T('{a}、{e}で、残っていた{b}種がすべて消えました。{y}続いた系統でした。', { a: fmtAgo(d.e), e: mid(tr(d.c)), b: fmtCount(fatal[1]), y: span }));
+      else out.push(T('{a}、{e}で姿を消しました。{y}続いた系統でした。', { a: fmtAgo(d.e), e: mid(tr(d.c)), y: span }));
+      out.push(T('地球に現れた種の99%以上と同じように、あなたの系統も、地層の中で眠っています。'));
+    }
+    return out;
   }
   function shareTextFrom(d) {
     const e = evo.endingOf(d);
@@ -1193,8 +1248,8 @@
   const unb64 = (str) => decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))));
   function shareUrlFrom(d) {
     if (EMBEDDED || !/^https?:/.test(location.protocol)) return '';
-    const { v, u, b, f, n, p, h, a, e, k, c, g } = d;
-    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, u, b, f, n, p, h, a, e, k, c, g }))}`;
+    const { v, u, b, f, n, p, h, a, e, k, c, g, x } = d;
+    return `${location.origin}${location.pathname}#r=${b64(JSON.stringify({ v, u, b, f, n, p, h, a, e, k, c, g, x }))}`;
   }
   function readShared() {
     const m = location.hash.match(/^#r=([A-Za-z0-9_-]+)$/);
@@ -1406,9 +1461,7 @@
     const t = $('hd-ttl');
     t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.u ? '' : d.a ? 'alive' : 'dead'}`;
-    $('hd-text').textContent = d.u ? T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) }) : d.a
-      ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。今の子孫：{d}。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n), d: evo.PLANS[d.p].today })
-      : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。続いた期間は{y}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c), y: fmtSpan(d.b - d.e) });
+    $('hd-text').textContent = storyOf(d);
     const ol = $('hd-path'); ol.textContent = '';
     d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     const url = shareUrlFrom(d);
@@ -1450,9 +1503,7 @@
     const t = $('s-ttl');
     t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.u ? '' : d.a ? 'live' : 'dead'}`;
-    $('s-text').textContent = d.u ? T('{a}に生まれようとしたが、地球はまだ生命のいない灼熱の星だった。', { a: fmtAgo(d.b) }) : d.a
-      ? T('{a}に「{f}」として生まれ、{k}回の分かれ道を選んで、{n}として今日まで生き残りました。', { a: fmtAgo(d.b), f: tr(d.f), k: d.k.length, n: tr(d.n) })
-      : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅しました{c}。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n), c: causeNote(d.c) });
+    $('s-text').textContent = storyOf(d);
     const ol = $('s-path'); ol.textContent = '';
     d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     $('shared').hidden = false;
