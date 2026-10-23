@@ -21,6 +21,7 @@ for (const n of evo.NODES) for (const o of n.opts) {
     if (L.name && L.name !== '?') names.add(L.name);
   }
 }
+for (const n of [...names]) for (const pre of ['大型の', '小型の', 'とげのある']) if (!n.startsWith(pre)) names.add(pre + n);   // 大きさ・守りで変わった姿（app.js の tierName）
 for (const x of evo.EXTINCTIONS) causes.add(x.name);
 const bg = fs.readFileSync(path.join(dir, 'evo.js'), 'utf8').match(/die\(L, ya, '([^']+)'\)/);
 if (bg) causes.add(bg[1]);

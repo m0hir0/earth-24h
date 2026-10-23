@@ -637,17 +637,17 @@
     { 3: [{ armor: 25, adapt: 8, speed: -5 }, 1, '捕食者のあごが強くなる時代。分厚い守りがよく効く。'] },
     { 0: [{ size: 15, armor: 5, adapt: -8 }, 1, 'デボン紀の終わりには、海の酸素が減って大きな魚ほど苦しんだ。大きくなると、大量絶滅で不利。'],
       2: [{ adapt: 20, speed: 5 }, 1.3, '海が苦しくなっても、川や湖へ逃げた仲間は生き延びた。広がると大量絶滅にとても強くなる。'] },
-    { 0: [{ size: 20, armor: 5, adapt: 10 }, 1.2, '石炭紀の空気は酸素が濃く、大きな体でも息が続く。この時代は、大きくなるほうがむしろ有利。'] },
+    { 0: [{ size: 15, armor: 5, adapt: 15 }, 1.2, '石炭紀の空気は酸素が濃く、大きな体でも息が続く。この時代は、大きくなるほうがむしろ有利。'] },
     { 0: [{ size: 15, armor: 5, adapt: -8 }, 1, 'このあと史上最大の絶滅が来る。大きな体ほど生き残れなかった。'],
       1: [{ size: -15, adapt: 25 }, 1, '史上最大の絶滅を生き延びたのは、小さく何でも食べ、穴にもぐる仲間だった。'] },
     { 2: [{ adapt: 15, speed: 5 }, 2.0, '大絶滅のあとの空いた世界。広がれば、種が一気に増える。'] },
-    { 0: [{ size: 20, armor: 15, adapt: 5 }, 1, '巨大な体そのものが、肉食恐竜から身を守る鎧になった時代。大きくなるほうが有利。'] },
+    { 0: [{ size: 15, armor: 15, adapt: 12 }, 1, '巨大な体そのものが、肉食恐竜から身を守る鎧になった時代。大きくなるほうが有利。'] },
     { 3: [{ armor: 25, adapt: 10, speed: -5 }, 1, '大きな肉食恐竜が増え、鎧や角を持つ仲間が栄えた。守りがよく効く。'] },
     { 0: [{ size: 15, armor: 5, adapt: -8 }, 1, 'このあと隕石が落ちる。大きな体は不利になる。'],
       1: [{ size: -15, adapt: 25 }, 1, '隕石のあとを生き延びたのは、小さく何でも食べる仲間だった。'] },
     { 2: [{ adapt: 18, speed: 5 }, 2.0, '恐竜が消えた世界。広がれば、新しい仲間が次々に生まれる。'] },
     { 3: [{ armor: 15, adapt: 10, speed: 0 }, 1, '草原では、群れで暮らせば足を遅くせずに身を守れる。守りがよく効く。'] },
-    { 0: [{ size: 15, armor: 5, adapt: 5 }, 1, '寒い時代は、大きな体ほど熱を逃がしにくい。大きくなっても不利がない。'] },
+    { 0: [{ size: 15, armor: 5, adapt: 15 }, 1, '寒い時代は、大きな体ほど熱を逃がしにくい。大きくなっても不利がない。'] },
   ];
   // 次に来る大量絶滅への備え：{ 効き目の番号: [淘汰の名前, 減る確率の倍率] }。applyExtinction で一度だけ効く
   const AGE_PREP = [
@@ -664,10 +664,46 @@
     { 3: ['氷河時代のはじまり', 0.4] },
     {},
   ];
+  // 時代の分かれ道でなれる、その仲間の中での新しい姿（行き止まりだった体のつくりにも進化がある）
+  //   { 変種, 体のつくり, 効き目の番号, 現れた〜消えた（何年前、0は今も）, need: その場所にいるときだけ, hab: なると暮らす場所が変わる }
+  const SUBS = [
+    { v: 'coela', plan: 'fish', k: 0, from: 4.1e8, to: 0 },
+    { v: 'eelfish', plan: 'fish', k: 1, from: 1e8, to: 0 },
+    { v: 'deepsea', plan: 'fish', k: 2, from: 1.2e8, to: 0 },
+    { v: 'puffer', plan: 'fish', k: 3, from: 5e7, to: 0 },
+    { v: 'megalodon', plan: 'shark', k: 0, from: 2.3e7, to: 3.6e6 },
+    { v: 'ray', plan: 'shark', k: 2, from: 1.5e8, to: 0 },
+    { v: 'ant', plan: 'insect', k: 1, from: 1.2e8, to: 0 },
+    { v: 'butterfly', plan: 'insect', k: 2, from: 1.3e8, to: 0 },
+    { v: 'beetle', plan: 'insect', k: 3, from: 2.9e8, to: 0 },
+    { v: 'terror', plan: 'bird', k: 0, from: 6e7, to: 0 },
+    { v: 'songbird', plan: 'bird', k: 1, from: 5e7, to: 0 },
+    { v: 'penguin', plan: 'bird', k: 2, from: 6e7, to: 0, hab: 'sea' },
+    { v: 'mouse', plan: 'mammal', k: 1, from: 5.5e7, to: 0 },
+    { v: 'bat', plan: 'mammal', k: 2, from: 5.5e7, to: 0, hab: 'air' },
+    { v: 'hedgehog', plan: 'mammal', k: 3, from: 5e7, to: 0 },
+    { v: 'elephant', plan: 'mammal_large', k: 0, from: 4.5e7, to: 0 },
+    { v: 'rhino', plan: 'mammal_large', k: 3, from: 4e7, to: 0 },
+    { v: 'croc', plan: 'reptile', k: 0, from: 2e8, to: 0 },
+    { v: 'snake', plan: 'reptile', k: 2, from: 1e8, to: 0 },
+    { v: 'turtle', plan: 'reptile', k: 3, from: 2.2e8, to: 0 },
+    { v: 'mosasaur', plan: 'marine_reptile', k: 0, from: 9.8e7, to: 6.6e7 },
+    { v: 'horned', plan: 'dino_small', k: 3, from: 1e8, to: 6.6e7 },
+    { v: 'eurypterid', plan: 'arthropod', k: 0, from: 4.6e8, to: 2.52e8, need: 'sea' },
+    { v: 'crab', plan: 'arthropod', k: 2, from: 2e8, to: 0, need: 'sea' },
+    { v: 'spider', plan: 'arthropod', k: 1, from: 3.9e8, to: 0, need: 'land' },
+    { v: 'scorpion', plan: 'arthropod', k: 3, from: 4.3e8, to: 0, need: 'land' },
+    { v: 'frog', plan: 'amphibian', k: 1, from: 2e8, to: 0 },
+  ];
+  const subFor = (L, k, from, to) => SUBS.find((s) => s.plan === L.plan && s.k === k && s.from > to && s.to < from && (!s.need || s.need === L.habitat) && L.flags.sub !== s.v);
   const ageFx = (i, k) => {
     const [d, n] = (AGE_MOD[i] && AGE_MOD[i][k]) || AGE_BASE[k];
-    const prep = AGE_PREP[i][k];
-    return (L) => { bump(L, d); if (n !== 1) L.N = Math.min(CAP, L.N * n); if (prep) L.flags.prep = { ev: prep[0], m: prep[1] }; };
+    const prep = AGE_PREP[i][k], [from, to] = AGES[i];
+    return (L) => {
+      bump(L, d); if (n !== 1) L.N = Math.min(CAP, L.N * n); if (prep) L.flags.prep = { ev: prep[0], m: prep[1] };
+      const sub = subFor(L, k, from, to);
+      if (sub) { L.flags.sub = sub.v; if (sub.hab) L.habitat = sub.hab; }
+    };
   };
   const AGE_GENERIC = ['体を大きくする', '小さく、何でも食べる', '新しい場所に広がる', '守りを固める'];      // 文がない組み合わせ（と古い記録）
   // [ラベル, 実際には…]。AGES と同じ並び
@@ -1138,7 +1174,7 @@
 
   E.evo = {
     ENDINGS, endingOf,
-    CAP, REAL, realCount, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
+    SUBS, CAP, REAL, realCount, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
     ABOUT, LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die,
   };
 })();
