@@ -292,6 +292,21 @@
       ['Go to the volcanic seafloor', 'Dark, but it never freezes.', 'Hot vents may have been a refuge for life on the frozen Earth.'],
       ['Go dormant and wait', 'Sleep it out like a spore.', 'Dormancy is still a survival trick for many microbes.'],
       ['Live in thin water in ice cracks', 'Rely on a little light and water.', '']]],
+    microAnimal: ['Animals with eyes and mouths are filling the seas. How will you live with them?', 'The Cambrian explosion. The age of microbes alone is over, and the bodies of large creatures are new places to live.', [
+      ['Settle in an animal\'s gut', 'Live along the food path, together with an animal. Plenty of food, but your home depends on the animal.', 'Hundreds of kinds of bacteria still live in animal guts today.'],
+      ['Team up with corals and sponges', 'Borrow a home in an animal\'s body and share food.', 'Inside corals, tiny algae still photosynthesize and pass food to their hosts.'],
+      ['Live freely', 'Rely on no one and spread through the whole sea.', '']]],
+    microLand: ['Plants are putting down roots on land.', 'Land that was only rock and sand is turning a little green.', [
+      ['Team up with plant roots', 'Give plants water and nutrients, and get sugar back.', 'Partnerships between roots and fungi or bacteria have held up land forests for over 400 million years.'],
+      ['Spread into the soil', 'Live in the soil on land, breaking down dead plants and bodies.', 'A handful of soil holds billions of microbes.'],
+      ['Stay in the sea', 'Keep living in the sea you know.', '']]],
+    microKpg: ['After the asteroid, fallen forests and bodies cover the Earth.', 'The sky is dark with dust and plants have died. But for decomposers, food is everywhere.', [
+      ['Multiply by breaking down bodies and fallen trees', 'Your numbers shoot up.', 'Rock layers from just after the impact record a sudden burst of fungal spores.'],
+      ['Wait it out somewhere quiet', 'Don\'t grow, just wait for the storm to pass.', '']]],
+    microHuman: ['Humans are building villages and storing grain and milk.', 'Farming has begun. Right beside human life, there is a new place to live.', [
+      ['Join the makers of bread, cheese and natto', 'Grow in human food, and be carefully raised by people.', 'Yeast, lactic acid bacteria, natto bacteria. For thousands of years, people have made food together with microbes.'],
+      ['Live in human guts', 'Live in the human gut and help with digestion.', 'About 100 trillion bacteria live in the human gut, helping digestion and defense.'],
+      ['Live apart from humans', 'Stay out of human affairs in your old home.', '']]],
     body: ['What kind of body will you build?', 'In the thawed seas, life big enough to see is appearing.', [
       ['Spread flat across the seafloor', 'A leaf- or disk-shaped body living on microbial mats.', 'Most Ediacaran life vanished before the Cambrian.'],
       ['A body with a front, a back, a mouth and a gut', 'A symmetrical body that moves forward on purpose.', 'Most animals, including us, descend from this body plan.'],
@@ -460,6 +475,9 @@
     'd-homo': ['Another kind of human', 'Every human species but sapiens vanished. Yet some of their genes still live in us.'],
     'd-mega': ['Gone with the mammoths', 'Climate change and human hunting wiped out many big mammals.'],
     'd-anthro': ['Lost in the human age', 'Traces of the human age, like plastic and radioactive fallout, are being laid down in the rock.'],
+    'a-gut': ['Inside your gut', 'About 100 trillion bacteria live in the human gut. Partners that lived with animals long before humans existed are helping you digest today.'],
+    'a-ferment': ['The fermented table', 'Bread, cheese, yogurt, miso, natto. For thousands of years, microbes have kept the human table going.'],
+    'a-soil': ['The soil beneath the forest', 'Most land plants team up with fungi and bacteria at their roots. For over 400 million years, forests have stood on microbes in the soil.'],
     'u-unborn': ['Before life began', 'Earth was still hot, and life hadn\'t begun. About 17% of the 4.6 billion years had no life at all.'],
     'd-bg': ['A lineage that faded away', 'Even without a big disaster, a dwindling lineage quietly disappears. Over 99% of all species that ever lived went this way.'],
   };
@@ -561,6 +579,23 @@
 
   /* ---------------- 暮らしの出来事 ---------------- */
   const LIFE = {
+    "まだ酸素のない海で、鉄の溶けた水の中を漂った。": "You drifted in iron-rich water, in a sea with no oxygen yet.",
+    "隕石が海に落ち、熱い波が浅瀬をのみこんだ。生き残った仲間が、また数を増やした。": "An asteroid hit the sea and a hot wave swallowed the shallows. The survivors multiplied again.",
+    "1日はまだ短く、太陽は今より暗かった。それでも、仲間は静かに増えた。": "Days were still short and the Sun was dimmer than today. Still, your kind quietly grew.",
+    "海は厚い氷の下。わずかな光が届く割れ目で、じっと春を待った。": "The sea lay under thick ice. In a crack where a little light came through, you waited for spring.",
+    "氷の下の暗い水で、ほとんど動かずに眠り続けた。": "In the dark water under the ice, you slept on, barely moving.",
+    "大きな動物が、すぐそばを泳いでいった。こちらには気づきもしない。": "A large animal swam right past. It never even noticed you.",
+    "死んだ魚の体を分解して、栄養を海に返した。": "You broke down a dead fish and returned its nutrients to the sea.",
+    "巨大なクジラの骨が海底に沈み、何十年も続くごちそうになった。": "A giant whale skeleton sank to the seafloor and became a feast lasting decades.",
+    "動物が食べた草を、かわりに消化して分けあった。": "You digested the grass an animal ate, and shared it.",
+    "宿主の動物が子を産み、仲間もいっしょに次の世代へ移り住んだ。": "Your host gave birth, and your kind moved on to the next generation too.",
+    "おなかの中で、悪い菌が増えないように場所を守った。": "In the gut, you held your ground so harmful germs couldn't spread.",
+    "雨が降り、土の中に新しい水と栄養がしみこんできた。": "Rain fell, and fresh water and nutrients soaked into the soil.",
+    "落ち葉を分解して、森の土を少しずつ豊かにした。": "You broke down fallen leaves and slowly enriched the forest soil.",
+    "植物の根から糖をもらい、かわりに窒素を渡した。": "You took sugar from plant roots and gave nitrogen in return.",
+    "麦のつぶの糖を食べて、パンの生地をふくらませた。": "You ate the sugar in grain and made bread dough rise.",
+    "ゆでた大豆の上で増え、ねばねばの糸を引いた。": "You grew on boiled soybeans and spun sticky threads.",
+    "乳の中で増え、ヨーグルトやチーズに変えた。": "You grew in milk and turned it into yogurt and cheese.",
     "ひだまりの浅瀬で、ゆっくり分裂して数を増やした。": "In a sunny shallow, you slowly divided and multiplied.",
     "岩のすき間に、仲間とぬるぬるした膜（バイオフィルム）をつくって暮らした。": "You lived with others in a slimy film (a biofilm) between the rocks.",
     "海底からわき出す熱い水のそばで、化学物質を食べて生きた。": "Beside hot water welling up from the seafloor, you lived on chemicals.",
@@ -758,7 +793,7 @@
     "ほかの系統に出会う": "Meet other lineages",
     "博物館を開けませんでした。少し時間をおいて、もう一度開いてください。": "Couldn't open the museum. Please try again in a moment.",
     '{n}年前': '{n} years ago', '繁栄': 'Thriving', 'この先：{t}': 'Ahead: {t}', '大量絶滅を生き延びやすくなる': 'better at surviving mass extinctions', '大量絶滅、特に隕石に弱くなる': 'vulnerable to mass extinctions, especially the asteroid', '大量絶滅で消えやすくなる': 'vulnerable to mass extinctions', '食べられて減りにくくなる': 'fewer losses to predators', '食べられて減りやすくなる': 'more losses to predators', '種がすぐに増える': 'more species right away', '数が増えやすくなる': 'grows faster', '{n}（{c}〜）': '{n} (from {c})', 'など': ', and more', '誕生の記録を見る': 'View birth record', '遊び方': 'How to play', '遊び方を見る': 'How to play', '地球史と進化の解説・出典': 'Earth history & sources', '運営者について': 'About', 'お問い合わせ': 'Contact', 'プライバシーポリシー': 'Privacy policy', '結果をシェアする': 'Share your result', '種の数（推定）': 'est. species', 'あなたは、{n}として生まれました': 'You were born as {n}',
-    '同じ瞬間に生まれた4つの系統': 'Four lineages born at the same moment', '結末の図鑑': 'Ending collection', '生き物の図鑑': 'Creature collection', '生まれた場所': 'Birthplace', 'この時代の仲間の化石の産地': 'a fossil site from this era', '地球では：{n}': 'On Earth: {n}', '「{n}」として、{w}で生まれた。': 'Born as "{n}" {w}.', 'その間に、地球で{l}を見届けました。': 'Along the way, it witnessed {l}.', '空に酸素が増えた大酸化イベント': 'the Great Oxidation Event, when oxygen filled the sky', '地球が凍りついた全球凍結': 'Snowball Earth, when the whole planet froze', '動物がいっせいに現れたカンブリア爆発': 'the Cambrian explosion of animal life', '植物の上陸': 'plants moving onto land', '恐竜の登場': 'the rise of the dinosaurs', '最初の花': 'the first flowers', '隕石による恐竜の絶滅': 'the asteroid that ended the dinosaurs', 'ホモ・サピエンスの誕生（24:00の約{s}秒前）': 'the birth of Homo sapiens (about {s} seconds before 24:00)', 'あなたの一生のものさし': 'Measured in your lifetime', 'あなたの系統が続いた{y}は': 'The {y} your lineage lasted is', '人の一生の{n}回分': '{n} human lifetimes', '人の一生の1回分にも満たない': 'less than one human lifetime', '人が100年生きたとしても、地球時計では約{s}秒。': 'Even a 100-year human life is about {s} seconds on the Earth clock.', 'ホモ・サピエンスの歴史（約30万年）でさえ、24:00の約{s}秒前から。': 'Even all of Homo sapiens history (about 300,000 years) began only about {s} seconds before 24:00.', 'それは人の一生の{n}回分。': "That's {n} human lifetimes.", '結末の図鑑に登録！': 'New ending collected!', '生き物の図鑑に登録！': 'New creature collected!', '図鑑をすべて消す': 'Delete collections', 'もう一度押すと、図鑑をすべて消します': 'Press again to delete both collections', '出会った記録を見る': 'See the record', '今の子孫：{d}': 'Descendants today: {d}', 'この姿になった系統：{n}回': 'Lineages that took this form: {n}', 'あなたが生きた系統': 'Lineages you lived',
+    '同じ瞬間に生まれた4つの系統': 'Four lineages born at the same moment', '結末の図鑑': 'Ending collection', '生き物の図鑑': 'Creature collection', '生まれた場所': 'Birthplace', 'この時代の仲間の化石の産地': 'a fossil site from this era', '地球では：{n}': 'On Earth: {n}', '「{n}」として、{w}で生まれた。': 'Born as "{n}" {w}.', 'その間に、{l}を見届けました。': 'Along the way, it witnessed {l}.', '空に酸素が増えた大酸化イベント': 'the Great Oxidation Event, when oxygen filled the sky', '地球が凍りついた全球凍結': 'Snowball Earth, when the whole planet froze', '動物がいっせいに現れたカンブリア爆発': 'the Cambrian explosion of animal life', '植物の上陸': 'plants moving onto land', '恐竜の登場': 'the rise of the dinosaurs', '最初の花': 'the first flowers', '隕石による恐竜の絶滅': 'the asteroid that ended the dinosaurs', 'ホモ・サピエンスの誕生（24:00の約{s}秒前）': 'the birth of Homo sapiens (about {s} seconds before 24:00)', 'あなたの一生のものさし': 'Measured in your lifetime', 'あなたの系統が続いた{y}は': 'The {y} your lineage lasted is', '人の一生の{n}回分': '{n} human lifetimes', '人の一生の1回分にも満たない': 'less than one human lifetime', '人が100年生きたとしても、地球時計では約{s}秒。': 'Even a 100-year human life is about {s} seconds on the Earth clock.', 'ホモ・サピエンスの歴史（約30万年）でさえ、24:00の約{s}秒前から。': 'Even all of Homo sapiens history (about 300,000 years) began only about {s} seconds before 24:00.', 'それは人の一生の{n}回分。': "That's {n} human lifetimes.", '結末の図鑑に登録！': 'New ending collected!', '生き物の図鑑に登録！': 'New creature collected!', '図鑑をすべて消す': 'Delete collections', 'もう一度押すと、図鑑をすべて消します': 'Press again to delete both collections', '出会った記録を見る': 'See the record', '今の子孫：{d}': 'Descendants today: {d}', 'この姿になった系統：{n}回': 'Lineages that took this form: {n}', 'あなたが生きた系統': 'Lineages you lived',
     'Xでシェア': 'Share on X', 'リンクをコピー': 'Copy link', '閉じる': 'Close',
     'まだ記録はありません。生まれて結末を迎えると、ここと図鑑に残ります。記録はこの端末のブラウザにだけ保存されます。':
       'No records yet. When you reach an ending, it is saved here and in the collection. Records are stored only in this browser.',

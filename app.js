@@ -1020,7 +1020,7 @@
   // 暮らしの一場面：何を食べ、どう暮らしていたか（実際の時間で十数秒ごと）
   function lifeTick() {
     P.lifeT = 0; P.lifeNext = 13 + P.rnd() * 9;
-    const ep = evo.lifeEpisode(P.L, P.rnd, P.lifeRecent);
+    const ep = evo.lifeEpisode(P.L, P.rnd, P.lifeRecent, P.ya);
     P.lifeRecent = [ep.text, ...P.lifeRecent].slice(0, 5);
     const before = { ...P.L.traits };
     if (ep.fx) evo.bump(P.L, ep.fx);
@@ -1111,7 +1111,7 @@
     P.on = false;
     const L = P.L, alive = L.alive;
     const endYa = alive ? 0 : L.deathYa;
-    Object.assign(R, endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L)));
+    Object.assign(R, endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L), L.path.map((x) => x.label)));
     const isNew = !foundEndings().has(R.ending.id);
     $('r-ending').textContent = endingLabel(R.ending);
     $('r-new').hidden = !isNew;
@@ -1209,7 +1209,7 @@
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#0c111b'; ctx.fillRect(0, 0, 1200, 630);
     const sc = document.createElement('canvas'); sc.width = CW; sc.height = CH;
-    const es = endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L));
+    const es = endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L), L.path.map((x) => x.label));
     drawScene(sc.getContext('2d'), es.ya, 3, es);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(sc, 24, 24, PW * 6, PH * 6);

@@ -273,6 +273,57 @@
           apply: (L) => { L.flags.icewater = 1; } },
       ],
     },
+    // 動物・植物・人間があらわれてからの微生物（微生物のままの系統は、ここから先も分かれ道がある）
+    {
+      id: 'microAnimal', from: 5.3e8, to: 4.8e8, when: (L) => L.plan === 'microbe' || L.plan === 'cell',
+      q: '海に、目や口を持つ動物があふれはじめた。動物とどう付き合う？',
+      ctx: 'カンブリア爆発。微生物だけの海は終わり、大きな生き物の体が新しいすみかになった。',
+      opts: [
+        { label: '動物のおなかに住みつく', desc: '食べ物の通り道で、動物と一緒に生きる。栄養は多いが、住む場所は動物しだい。', real: '動物の腸には、今も何百種類もの細菌が住んでいる。',
+          apply: (L) => { L.flags.gut = 1; bump(L, { speed: 10, adapt: -5 }); } },
+        { label: 'サンゴや海綿と手を組む', desc: '動物の体にすみかを借りて、栄養を分けあう。', real: 'サンゴの体の中では、今も小さな藻が光合成をして栄養を渡している。',
+          apply: (L) => { L.flags.partner = 1; bump(L, { armor: 10 }); } },
+        { label: '自由に暮らす', desc: '誰にも頼らず、海のどこにでも広がる。', real: '',
+          apply: (L) => { bump(L, { adapt: 5 }); } },
+      ],
+    },
+    {
+      id: 'microLand', from: 4.7e8, to: 4.0e8, when: (L) => MICRO.has(L.plan) && L.habitat !== 'deep',
+      q: '陸に、植物が根を下ろしはじめた。',
+      ctx: 'それまで岩と砂だけだった陸に、小さな緑が広がっていく。',
+      opts: [
+        { label: '植物の根と手を組む', desc: '植物に水や栄養を渡し、かわりに糖をもらう。', real: '植物の根と菌類・細菌の協力は、4億年以上前から陸の森を支えている。',
+          apply: (L) => { L.flags.root = 1; L.habitat = 'land'; bump(L, { adapt: 5 }); } },
+        { label: '土の中へ広がる', desc: '陸の土で、枯れた植物や死骸を分解して暮らす。', real: 'ひとすくいの土には、何十億もの微生物がいる。',
+          apply: (L) => { L.flags.soil = 1; L.habitat = 'land'; bump(L, { adapt: 10, speed: -5 }); } },
+        { label: '海に残る', desc: 'なじんだ海で、これまでどおり暮らす。', real: '',
+          apply: (L) => { bump(L, { adapt: 3 }); } },
+      ],
+    },
+    {
+      id: 'microKpg', from: 6.6e7, to: 5.5e7, when: (L) => MICRO.has(L.plan),
+      q: '隕石のあと、倒れた森と死骸が地球をおおった。',
+      ctx: '空はちりで暗く、植物は枯れた。けれど、分解する者には食べ物があふれている。',
+      opts: [
+        { label: '死骸や倒れた木を分解して増える', desc: '一気に数を増やす。', real: '隕石のあとの地層には、菌類の胞子が急に増えた跡が残っている。',
+          apply: (L) => { L.N = Math.min(CAP, L.N * 1.6); bump(L, { adapt: 5 }); } },
+        { label: '静かな場所でやり過ごす', desc: '数は増やさず、嵐が過ぎるのを待つ。', real: '',
+          apply: (L) => { bump(L, { adapt: 8 }); } },
+      ],
+    },
+    {
+      id: 'microHuman', from: 1.1e4, to: 2e3, when: (L) => L.plan === 'microbe' || L.plan === 'cell',
+      q: '人間が村をつくり、麦や乳をたくわえはじめた。',
+      ctx: '農耕のはじまり。人の暮らしのすぐそばに、新しいすみかが生まれた。',
+      opts: [
+        { label: 'パンやチーズ、納豆をつくる仲間になる', desc: '人の食べ物の中で増え、人に大切に育てられる。', real: '酵母・乳酸菌・納豆菌。人は何千年も、微生物と一緒に食べ物をつくってきた。',
+          apply: (L) => { L.flags.ferment = 1; L.N = Math.min(CAP, L.N * 1.3); } },
+        { label: '人のおなかに住む', desc: '人の腸で、消化を手伝いながら暮らす。', real: '人の腸には約100兆個の細菌が住み、消化や体の守りを助けている。',
+          apply: (L) => { L.flags.gut = 1; L.flags.humanGut = 1; } },
+        { label: '人から離れて暮らす', desc: '人間とかかわらず、これまでのすみかで生きる。', real: '',
+          apply: (L) => { bump(L, { adapt: 3 }); } },
+      ],
+    },
     {
       id: 'body', from: 6.3e8, to: 5.45e8, when: (L) => (L.plan === 'colony' || L.plan === 'soft') && !L.flags.photo,
       q: '体のつくりをどうする？',
@@ -863,6 +914,36 @@
     farm: [['麦を刈り取り、冬に備えてたくわえた。', null], ['村の祭りで、収穫を祝った。', null]],
     industry: [['工場で働き、汽車に乗って町へ出かけた。', null], ['電気の明かりの下で、夜遅くまで本を読んだ。', { brain: 1 }]],
     ai: [['AIに相談しながら、新しい仕事にとりかかった。', { brain: 1 }], ['スマホで遠くの友だちと話した。', null]],
+    // 微生物の時代ごと・道ごとの出来事（lifeEpisode が足す）
+    microOld: [
+      ['まだ酸素のない海で、鉄の溶けた水の中を漂った。', null],
+      ['隕石が海に落ち、熱い波が浅瀬をのみこんだ。生き残った仲間が、また数を増やした。', { adapt: 2 }],
+      ['1日はまだ短く、太陽は今より暗かった。それでも、仲間は静かに増えた。', null],
+    ],
+    microIce: [
+      ['海は厚い氷の下。わずかな光が届く割れ目で、じっと春を待った。', { adapt: 2 }],
+      ['氷の下の暗い水で、ほとんど動かずに眠り続けた。', null],
+    ],
+    microLate: [
+      ['大きな動物が、すぐそばを泳いでいった。こちらには気づきもしない。', null],
+      ['死んだ魚の体を分解して、栄養を海に返した。', null],
+      ['巨大なクジラの骨が海底に沈み、何十年も続くごちそうになった。', { adapt: 1 }],
+    ],
+    gut: [
+      ['動物が食べた草を、かわりに消化して分けあった。', null],
+      ['宿主の動物が子を産み、仲間もいっしょに次の世代へ移り住んだ。', { adapt: 2 }],
+      ['おなかの中で、悪い菌が増えないように場所を守った。', { armor: 1 }],
+    ],
+    soil: [
+      ['雨が降り、土の中に新しい水と栄養がしみこんできた。', null],
+      ['落ち葉を分解して、森の土を少しずつ豊かにした。', null],
+      ['植物の根から糖をもらい、かわりに窒素を渡した。', { adapt: 1 }],
+    ],
+    ferment: [
+      ['麦のつぶの糖を食べて、パンの生地をふくらませた。', null],
+      ['ゆでた大豆の上で増え、ねばねばの糸を引いた。', null],
+      ['乳の中で増え、ヨーグルトやチーズに変えた。', null],
+    ],
   };
   function lifeGroup(L) {
     const p = L.plan;
@@ -881,8 +962,16 @@
     return 'human';
   }
   // その系統の、いまの暮らしの一場面（最近出たものはさける）
-  function lifeEpisode(L, rnd, recent = []) {
+  function lifeEpisode(L, rnd, recent = [], ya = 0) {
     let pool = LIFE[lifeGroup(L)].slice();
+    if (MICRO.has(L.plan)) {
+      if (ya > 2.5e9) pool = pool.concat(LIFE.microOld);
+      if (ya <= 7.2e8 && ya > 6.35e8) pool = LIFE.microIce.concat(LIFE.microIce, pool.slice(0, 2));   // 全球凍結のころは氷の話を多めに
+      if (ya <= 5.39e8) pool = pool.concat(LIFE.microLate);
+      if (L.flags.gut) pool = pool.concat(LIFE.gut);
+      if (L.flags.root || L.flags.soil) pool = pool.concat(LIFE.soil);
+      if (L.flags.ferment) pool = pool.concat(LIFE.ferment, LIFE.ferment);
+    }
     if (L.plan === 'human') { if (L.flags.farm) pool = pool.concat(LIFE.farm); if (L.flags.industry) pool = pool.concat(LIFE.industry); if (L.flags.ai) pool = pool.concat(LIFE.ai); }
     const fresh = pool.filter((x) => !recent.includes(x[0]));
     const pick = (fresh.length ? fresh : pool)[Math.floor(rnd() * (fresh.length ? fresh.length : pool.length))];
@@ -936,12 +1025,26 @@
   ].map(([match, key, title, layer, desc]) => ({ id: `d-${key}`, key, alive: false, title, layer, desc, match }));
   // 生命が生まれる前の時代を引いたとき
   const UNBORN = { id: 'u-unborn', key: 'unborn', alive: false, unborn: true, title: '生まれる前の地球', desc: '地球はまだ熱く、生命が生まれる前でした。46億年のうち約17%は、生き物のいない時代です。' };
-  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN];
+  // あとから足した結末（番号は末尾に続く）：微生物の道で決まる生き残り
+  const MICRO_ENDINGS = [
+    ['gut', 'あなたのおなかの中に', 'room', '人の腸には約100兆個の細菌が住んでいます。人類が生まれるずっと前から動物と暮らしてきた仲間が、今日もあなたの消化を助けています。'],
+    ['ferment', '食卓の発酵', 'table', 'パン、チーズ、ヨーグルト、みそ、納豆。微生物は何千年も、人の食卓を支えてきました。'],
+    ['soil', '森を支える土', 'forestfloor', '陸の植物の多くは、根で菌類や細菌と手を組んでいます。4億年以上前から、森は土の中の微生物に支えられてきました。'],
+  ].map(([key, title, scene, desc]) => ({ id: `a-${key}`, key, alive: true, title, scene, desc, alt: false }));
+  // 選んだ道（保存は日本語のラベル）から、微生物の結末を決める。あとで選んだ道ほど優先
+  const MICRO_PATH = { 'パンやチーズ、納豆をつくる仲間になる': 'ferment', '人のおなかに住む': 'gut', '植物の根と手を組む': 'soil', '土の中へ広がる': 'soil', '動物のおなかに住みつく': 'gut', '人から離れて暮らす': 'away' };
+  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN, ...MICRO_ENDINGS];
   ENDINGS.forEach((e, i) => (e.no = i + 1));
   // 記録（a: 生存, p: 体のつくり, h: 暮らす場所, c: 絶滅の原因）から結末を決める
   function endingOf(d) {
     if (d.u) return UNBORN;
     if (d.a) {
+      if (d.p === 'microbe' || d.p === 'cell') {       // 細菌（と酵母になる細胞）だけ。光合成や多細胞の仲間は、もとの結末のまま
+        // 人から離れたなら、おなかの道は選ばれなかったことにする
+        const ks = (d.k || []).map((x) => MICRO_PATH[x]).filter(Boolean), away = ks.includes('away');
+        const key = ks.reverse().find((x) => x !== 'away' && !(away && x === 'gut'));
+        if (key && (d.p === 'microbe' || key === 'ferment')) return MICRO_ENDINGS.find((e) => e.key === key);
+      }
       const key = d.p === 'arthropod' ? (d.h === 'land' ? 'arthropod-land' : 'arthropod-sea') : d.p;
       return ALIVE_ENDINGS.find((e) => e.key === key) || ALIVE_ENDINGS[0];
     }
