@@ -10,7 +10,7 @@
   const { sceneView, sceneCaption, drawScene, drawCreatureCard, PW, PH, CW, CH, CARD_W, CARD_H } = E.scenes;
   const { yaOfSec, fmtSpan } = E;
   const evo = E.evo;
-  const { lookOfG, mid, fmtCount, endScene, sceneOfData, endingLabel, cleanData, storyParts, storyOf } = E.story;
+  const { lookOfG, mid, fmtCount, endScene, sceneOfData, endingLabel, cleanData, storyParts, storyOf, placeOf } = E.story;
   const $ = (id) => document.getElementById(id);
   const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -715,7 +715,9 @@
     $('b-about').hidden = !evo.ABOUT[player.name];
     $('b-line2').textContent = `${fmtAgo(t)} · ${T('地球時計 {c}', { c: fmtClock(t) })} · ${periodLabel(t)}`;
     $('b-plan').textContent = evo.PLANS[player.plan].name;
-    $('b-hab').textContent = evo.HAB_LABEL[player.habitat] || '';
+    const pl = placeOf(t, player.plan, lookOfL(player).v);
+    $('b-hab').textContent = pl.name;
+    $('b-hab-note').hidden = !pl.found;
     $('b-prob').textContent = fmtProb((era.from - era.to) / S);
     $('b-left').textContent = T('{y}（地球時計で{t}）', { y: fmtSpan(t), t: fmtSec(t / S * DAY) });
     drawCreatureCard($('b-pic').getContext('2d'), lookOfL(player), 3);
@@ -749,13 +751,14 @@
       on: true, L: player, rivals, ya0: t, ya: t, T: PLAY_SEC, elapsed: 0, speed: 1, paused: false, skipping: false,
       pending: null, last: 0, fx: null, fxUntil: 0, rnd: evo.rng(Math.floor(Math.random() * 2 ** 31)),
       done: new Set(), log: [], startedAt: t, lifeT: 0, lifeNext: 4, lifeRecent: [], daily,
+      wi: EVENTS.findIndex((e) => e.ya < t),
     });
     $('p-log').textContent = '';
     player.forms = [{ ya: t, look: lookOfL(player), name: player.name }];
     document.querySelectorAll('#p-controls [data-speed]').forEach((b) => b.classList.toggle('on', b.dataset.speed === '1'));
     $('p-pause').textContent = T('⏸ 一時停止');
     $('p-traits').textContent = '';
-    plog(t, T('「{n}」として生まれた。', { n: nameOf(player) }), 'birth');
+    plog(t, T('「{n}」として、{w}で生まれた。', { n: nameOf(player), w: placeOf(t, player.plan, lookOfL(player).v).where }), 'birth');
     show('play');
     checkNode();
     renderPlay(true);
@@ -795,6 +798,7 @@
       if (a <= b) continue;
       el('rect', { x: x(a), y: 18, width: Math.max(1, x(b) - x(a)), height: 14, fill: e.color, opacity: 0.55 }, svg);
     }
+    for (const e of log) if (e.kind === 'world') el('circle', { cx: x(e.ya), cy: 38, r: 2, class: 'lm-world' }, svg);
     for (const e of log) if (e.kind === 'life') el('circle', { cx: x(e.ya), cy: 25, r: 3.5, class: 'lm-life' }, svg);
     for (const e of log) {
       const cx = x(e.ya);
@@ -994,6 +998,7 @@
         if (!P.L.alive) break;
       }
       P.ya = P.L.alive ? b : P.L.deathYa;
+      worldTick();
       if (!P.L.alive) break;
       if (ev && b === ev.ya) handleExtinction(ev);
       if (!P.pending) checkNode();
@@ -1001,6 +1006,17 @@
     P.elapsed = pAtYa(P.ya) * P.T;
   }
 
+  // 立ち会った地球の出来事：通り過ぎた EVENTS をタイムラインに（人類の歴史は、人類として生きているときだけ）
+  const WORLD = ['earth', 'life'], HUMAN_WORLD = ['human', 'jp', 'ai'];
+  function worldTick() {
+    if (P.wi < 0) return;
+    const human = P.L.plan === 'hominin' || P.L.plan === 'human';
+    while (P.wi < EVENTS.length && EVENTS[P.wi].ya >= P.ya) {
+      const e = EVENTS[P.wi++];
+      if (e.ya <= 0.05) continue;                                   // 「現在」は結末で
+      if (WORLD.includes(e.kind) || (human && HUMAN_WORLD.includes(e.kind))) plog(e.ya, T('地球では：{n}', { n: e.name }), 'world');
+    }
+  }
   // 暮らしの一場面：何を食べ、どう暮らしていたか（実際の時間で十数秒ごと）
   function lifeTick() {
     P.lifeT = 0; P.lifeNext = 13 + P.rnd() * 9;
