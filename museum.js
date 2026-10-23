@@ -5,7 +5,7 @@
   const E = window.E24;
   const { T } = E;
   const { drawScene, CW, CH } = E.scenes;
-  const { sceneOfData, endingLabel, cleanData, storyOf } = E.story;
+  const { sceneOfData, endingLabel, cleanData, storyOf, epithetOf } = E.story;
   const $ = (id) => document.getElementById(id);
   const HKEY = 'earth24.hearts';
 
@@ -41,7 +41,8 @@
     const head = document.createElement('div'); head.className = 'mu-head';
     const tag = document.createElement('span'); tag.className = `mu-tag ${d.a ? 'alive' : 'dead'}`; tag.textContent = d.a ? T('今も生きている') : T('化石');
     const ttl = document.createElement('b'); ttl.textContent = endingLabel(st.ending);
-    head.append(tag, ttl);
+    const epi = document.createElement('span'); epi.className = 'mu-epi'; epi.textContent = d.u ? '' : epithetOf(d);
+    head.append(tag, ttl, epi);
     if (d.y) { const dy = document.createElement('span'); dy.className = 'mu-tag day'; dy.textContent = T('今日の地球 No.{n}', { n: d.y }); head.appendChild(dy); }
     const story = document.createElement('p'); story.className = 'mu-story'; story.textContent = storyOf(d);
     const foot = document.createElement('div'); foot.className = 'mu-foot';
