@@ -463,6 +463,7 @@
      生き物の姿：体のつくり＋変種＋特徴（大きさ・守り・羽毛）
      ============================================================ */
   function variantOf(plan, f, hab, armor) {
+    if (f.sub && evo.SUBS.some((s) => s.v === f.sub && s.plan === plan)) return f.sub;      // 時代の分かれ道でなった姿
     if (plan === 'microbe') return hab === 'deep' ? 'archaea' : f.predator ? 'hunter' : f.o2 ? 'oxy' : 'rod';
     if (plan === 'cyano') return 'cyano';
     if (plan === 'cell') return f.sex ? 'para' : 'euk';
@@ -472,6 +473,17 @@
     if ((plan === 'dino_small' || plan === 'theropod') && f.feather) return 'feather';
     return '';
   }
+  // 大きさ・守りがはっきり変わったときの名前（「大型の三葉虫の仲間」など）。体のつくりと変種は同じまま
+  const NO_SPIKE = ['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned'];
+  const tierOf = (k) => ({ big: k.size >= 70, small: k.size <= 25, spiky: k.armor >= 65 && !NO_SPIKE.includes(k.v) && !NO_SPIKE.includes(k.plan) });
+  function tierName(before, after) {
+    if (MICRO_LOOK.includes(after.plan) || ['human', 'hominin'].includes(after.plan)) return null;
+    const a = tierOf(after), b = tierOf(before);
+    const pre = a.big && !b.big ? '大型の' : a.small && !b.small ? '小型の' : a.spiky && !b.spiky ? 'とげのある' : '';
+    const base = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
+    return pre && !base.startsWith(pre) ? pre + base : null;
+  }
+  const MICRO_LOOK = ['microbe', 'cyano', 'cell', 'colony'];
   const lookOfL = (L) => ({ plan: L.plan, v: variantOf(L.plan, L.flags, L.habitat, L.traits.armor), size: Math.round(L.traits.size), armor: Math.round(L.traits.armor), feather: !!L.flags.feather });
   const formKey = (k) => `${k.plan}:${k.v}`;
   // 姿が変わったのに名前が変わらなかったときの、新しい姿の名前（保存用の日本語）
@@ -479,6 +491,7 @@
     rod: '浅い海の微生物', archaea: '熱水の古細菌', oxy: '酸素を使う細菌', hunter: '微生物を食べる微生物', cyano: 'シアノバクテリア',
     euk: '核を持つ細胞', para: 'ゾウリムシの仲間', volvox: 'ボルボックスの仲間', alga: '藻類の祖先',
     trilo: '三葉虫の仲間', horseshoe: 'カブトガニの仲間', millipede: '陸の節足動物', turtle: 'カメの仲間', feather: '羽毛恐竜',
+    coela: 'シーラカンスの仲間', eelfish: 'ウナギの仲間', deepsea: '深海魚', puffer: 'フグの仲間', megalodon: 'メガロドン', ray: 'エイの仲間', ant: 'アリの仲間', butterfly: 'チョウの仲間', beetle: '甲虫の仲間', terror: '飛べない大きな鳥', songbird: '小鳥の仲間', penguin: 'ペンギンの仲間', mouse: 'ネズミの仲間', bat: 'コウモリの仲間', hedgehog: 'ハリネズミの仲間', elephant: 'ゾウの仲間', rhino: 'サイの仲間', croc: 'ワニの仲間', snake: 'ヘビの仲間', mosasaur: 'モササウルスの仲間', horned: '角のある恐竜', eurypterid: 'ウミサソリの仲間', crab: 'カニの仲間', spider: 'クモの仲間', scorpion: 'サソリの仲間', frog: 'カエルの仲間',
   };
   function renderChain(box, g) {
     box.textContent = '';
@@ -833,6 +846,7 @@
       if (fut) b.children[3].textContent = T('この先：{t}', { t: fut }); else b.children[3].remove();
       const chip = (text, cls) => { const c = document.createElement('i'); c.className = cls; c.textContent = text; chips.appendChild(c); };
       if (fx.plan) chip(T('→ {p}', { p: evo.PLANS[fx.plan].name }), 'form');
+      else if (fx.evoName) chip(T('→ {p}', { p: tr(fx.evoName) }), 'form');
       if (fx.hab) chip(T('暮らす場所 → {h}', { h: evo.HAB_LABEL[fx.hab] }), 'hab');
       for (const k of evo.TRAITS) if (fx.d[k]) chip(`${evo.TRAIT_LABEL[k]} ${fx.d[k] > 0 ? '▲' : '▼'}${Math.abs(fx.d[k])}`, fx.d[k] > 0 ? 'up' : 'down');
       if (fx.n) chip(T('種の数 ×{x}', { x: trimNum(fx.n) }), 'up');
@@ -864,8 +878,10 @@
     o.apply(c);
     const d = {};
     for (const k of evo.TRAITS) { const x = Math.round(c.traits[k] - L.traits[k]); if (x) d[k] = x; }
+    const lb = lookOfL(L), la = lookOfL(c);
+    const evoName = c.plan !== L.plan ? null : la.v !== lb.v ? (VARIANT_NAMES[la.v] || null) : tierName(lb, la);
     return { d, plan: c.plan !== L.plan ? c.plan : null, hab: c.habitat !== L.habitat ? c.habitat : null, n: c.N > L.N + 0.5 ? c.N / L.N : null,
-      prep: c.flags.prep && c.flags.prep !== L.flags.prep ? c.flags.prep : null };
+      prep: c.flags.prep && c.flags.prep !== L.flags.prep ? c.flags.prep : null, evoName };
   }
   const trimNum = (x) => E.trim(x.toFixed(1));
   function choose(node, o) {
@@ -879,8 +895,10 @@
     P.pending = null;
     showFact(o.real);
     const after = lookOfL(L);
-    if (formKey(before) !== formKey(after)) {
-      if (tr(L.name) === beforeName.replace(/ [②-⑤]$/, '')) L.name = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
+    const tn = formKey(before) === formKey(after) && tierName(before, after);
+    if (tn) L.name = tn;
+    if (formKey(before) !== formKey(after) || tn) {
+      if (!tn && tr(L.name) === beforeName.replace(/ [②-⑤]$/, '')) L.name = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
       L.forms.push({ ya: P.ya, look: after, name: L.name });
       plog(P.ya, T('{a}は、{b}に進化した！', { a: beforeName, b: nameOf(L) }), 'evo');
       playEvolution(before, after, beforeName, nameOf(L), () => { renderPlay(true); checkNode(); });
@@ -1451,9 +1469,12 @@
   // 生き物の図鑑：記録の系譜（g）に出てきた姿（体のつくり：変種）。まだの姿は灰色の影
   //   並びはおおよそ現れた順。羽毛の大型肉食恐竜（theropod:feather）は小型の恐竜になるので出てこない
   const DEX = ['microbe:archaea', 'microbe:rod', 'cyano:cyano', 'microbe:oxy', 'microbe:hunter', 'cell:euk', 'cell:para', 'colony:alga', 'colony:volvox',
-    'sponge:', 'ediacaran:', 'soft:', 'arthropod:trilo', 'anomalo:', 'arthropod:horseshoe', 'jawless:', 'fish:', 'shark:', 'armorfish:',
-    'arthropod:millipede', 'insect:', 'amphibian:', 'reptile:', 'reptile:turtle', 'synapsid:', 'marine_reptile:', 'pterosaur:',
-    'dino_small:', 'dino_small:feather', 'sauropod:', 'theropod:', 'bird:', 'mammal:', 'mammal_large:', 'whale:', 'primate:', 'hominin:', 'human:'];
+    'sponge:', 'ediacaran:', 'soft:', 'arthropod:trilo', 'anomalo:', 'arthropod:horseshoe', 'arthropod:eurypterid', 'jawless:', 'fish:', 'fish:coela', 'shark:', 'armorfish:',
+    'arthropod:millipede', 'arthropod:scorpion', 'arthropod:spider', 'insect:', 'amphibian:', 'insect:beetle', 'reptile:', 'reptile:turtle', 'synapsid:', 'marine_reptile:', 'pterosaur:',
+    'dino_small:', 'reptile:croc', 'amphibian:frog', 'arthropod:crab', 'dino_small:feather', 'sauropod:', 'theropod:', 'bird:', 'mammal:', 'shark:ray',
+    'fish:eelfish', 'fish:deepsea', 'insect:butterfly', 'insect:ant', 'reptile:snake', 'marine_reptile:mosasaur', 'dino_small:horned',
+    'bird:terror', 'bird:penguin', 'bird:songbird', 'mammal:mouse', 'mammal:bat', 'mammal:hedgehog', 'mammal_large:', 'mammal_large:elephant', 'mammal_large:rhino',
+    'whale:', 'fish:puffer', 'shark:megalodon', 'primate:', 'hominin:', 'human:'];
   const dexLook = (k) => { const [plan, v] = k.split(':'); return { plan, v }; };
   const dexName = (k) => { const { plan, v } = dexLook(k); return VARIANT_NAMES[v] || evo.PLANS[plan].ja; };
   // 姿ごとに、なった回数・名前・いちばん新しい記録

@@ -153,7 +153,9 @@
   const SEA = ['sponge', 'ediacaran', 'soft', 'arthropod', 'anomalo', 'jawless', 'fish', 'shark', 'armorfish', 'marine_reptile', 'whale'];
   function groupOf(plan, v) {
     if (MICRO.includes(plan)) return v === 'archaea' ? 'deep' : 'micro';
-    if (plan === 'arthropod') return v === 'millipede' ? 'land' : 'sea';
+    if (plan === 'arthropod') return ['millipede', 'spider', 'scorpion'].includes(v) ? 'land' : 'sea';
+    if (v === 'bat') return 'air';
+    if (v === 'penguin') return 'sea';
     if (SEA.includes(plan)) return 'sea';
     if (plan === 'pterosaur' || plan === 'bird') return 'air';
     if (plan === 'hominin') return 'hom';

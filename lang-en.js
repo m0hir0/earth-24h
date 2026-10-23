@@ -248,6 +248,7 @@
 
   // 生き物の名前（保存される値なので辞書で訳す）
   const NAMES = {
+    'シーラカンスの仲間': 'Coelacanth', 'ウナギの仲間': 'Eel', '深海魚': 'Deep-sea fish', 'フグの仲間': 'Pufferfish', 'メガロドン': 'Megalodon', 'エイの仲間': 'Ray', 'アリの仲間': 'Ant', 'チョウの仲間': 'Butterfly', '甲虫の仲間': 'Beetle', '飛べない大きな鳥': 'Giant flightless bird', '小鳥の仲間': 'Songbird', 'ペンギンの仲間': 'Penguin', 'ネズミの仲間': 'Rodent', 'コウモリの仲間': 'Bat', 'ハリネズミの仲間': 'Hedgehog', 'ゾウの仲間': 'Elephant', 'サイの仲間': 'Rhinoceros', 'ワニの仲間': 'Crocodile', 'ヘビの仲間': 'Snake', 'モササウルスの仲間': 'Mosasaur', '角のある恐竜': 'Horned dinosaur', 'ウミサソリの仲間': 'Sea scorpion', 'カニの仲間': 'Crab', 'クモの仲間': 'Spider', 'サソリの仲間': 'Scorpion', 'カエルの仲間': 'Frog',
     'はうように動く小さな動物': 'Small crawling animal', 'アノマロカリス': 'Anomalocaris', 'イクチオステガ（初期の両生類）': 'Ichthyostega (early amphibian)',
     'ウマの祖先': 'Ancestor of horses', 'クジラの祖先': 'Ancestor of whales', 'ゴカイの仲間': 'Bristle worm', 'サメの祖先': 'Ancestor of sharks',
     'シアノバクテリア': 'Cyanobacteria', 'ダンクルオステウス（板皮類）': 'Dunkleosteus (placoderm)', 'ディッキンソニア（エディアカラ生物）': 'Dickinsonia (Ediacaran)',
@@ -940,6 +941,11 @@
   Object.assign(evo.TRAIT_LABEL, TRAITS);
   Object.assign(evo.TRAIT_SHORT, TRAITS, { armor: 'Armor', adapt: 'Adapt' });
   const dict = { ...NAMES, ...CAPTIONS };
+  const PROPER = /^(Anomalocaris|Dunkleosteus|Dickinsonia|Ichthyostega|Hylonomus|Dimetrodon|Homo|Haikouichthys|Neanderthal|Archaeopteryx|Megalodon)/;
+  for (const k of Object.keys(NAMES)) {                         // 大きさ・守りで変わった姿の名前
+    const en = PROPER.test(NAMES[k]) ? NAMES[k] : NAMES[k].charAt(0).toLowerCase() + NAMES[k].slice(1);
+    dict[`大型の${k}`] = `Large ${en}`; dict[`小型の${k}`] = `Small ${en}`; dict[`とげのある${k}`] = `Spiny ${en}`;
+  }
   for (const n of evo.NODES) {
     const x = NODES[n.id];
     if (x) {
