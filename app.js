@@ -754,6 +754,7 @@
       wi: EVENTS.findIndex((e) => e.ya < t),
     });
     $('p-log').textContent = '';
+    $('p-fact').hidden = true;
     player.forms = [{ ya: t, look: lookOfL(player), name: player.name }];
     document.querySelectorAll('#p-controls [data-speed]').forEach((b) => b.classList.toggle('on', b.dataset.speed === '1'));
     $('p-pause').textContent = T('⏸ 一時停止');
@@ -874,6 +875,7 @@
     plog(P.ya, T('分かれ道：{l}', { l: tr(o.label) }) + (o.real ? ` ${o.real}` : ''), 'choice', traitDelta(beforeTraits, L));
     $('p-choice').hidden = true;
     P.pending = null;
+    showFact(o.real);
     const after = lookOfL(L);
     if (formKey(before) !== formKey(after)) {
       if (tr(L.name) === beforeName.replace(/ [②-⑤]$/, '')) L.name = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
@@ -885,6 +887,17 @@
     renderPlay(true);
     checkNode();                                                   // 同じ時代に続けて訪れる分かれ道
   }
+
+  // 選んだ道の「実際には…」を、場面の上にしばらく出す（タップで閉じる。プレイは止めない）
+  let factTimer = 0;
+  function showFact(text) {
+    clearTimeout(factTimer);
+    $('p-fact').hidden = !text;
+    if (!text) return;
+    $('p-fact-t').textContent = text;
+    factTimer = setTimeout(() => { $('p-fact').hidden = true; }, 9000);
+  }
+  $('p-fact').addEventListener('click', () => { clearTimeout(factTimer); $('p-fact').hidden = true; });
 
   function handleExtinction(ev) {
     P.done.add(ev);
@@ -1127,6 +1140,10 @@
       lead = L.deathCause.includes('背景') ? T('「{f}」から始まったあなたの系統は、数を減らし続けて姿を消しました。', { f: tr(L.firstName) }) : T('「{f}」から始まったあなたの系統は、「{c}」で姿を消しました。', { f: tr(L.firstName), c: mid(tr(L.deathCause)) });
     }
     $('r-lead').textContent = lead;
+    const span0 = L.bornYa - endYa, n0 = span0 / LIFE_YEARS, sh = $('r-scale-hero'); sh.textContent = '';
+    const shl = document.createElement('span'); shl.className = 'sh-lead'; shl.textContent = T('あなたの系統が続いた{y}は', { y: fmtSpan(span0) });
+    const shb = document.createElement('span'); shb.className = 'sh-big'; shb.textContent = n0 < 1 ? T('人の一生の1回分にも満たない') : T('人の一生の{n}回分', { n: fmtYears(n0) });
+    sh.append(shl, shb);
     $('r-cap').textContent = R.ending.desc;
     const span = L.bornYa - endYa;
     const rows = [
@@ -1167,7 +1184,7 @@
     $('r-img').src = card.toDataURL('image/png');
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
-    lifeScale($('r-scale'), data);
+    lifeScale($('r-scale'), data, true);
     $('r-epi').textContent = `― ${epithetOf(data)} ―`;
     const firstLife = !zoomUnlocked();
     const before = foundLoad();
@@ -1245,14 +1262,17 @@
   }
   // あなたの一生のものさし：系統の長さを、人の一生（100年）で数える。結論は書かず、数字だけ
   const LIFE_YEARS = 100;
-  function lifeScale(box, d) {
+  // noteOnly：結末画面では大きな数字を上（#r-scale-hero）に出すので、ここは続きの説明だけ
+  function lifeScale(box, d, noteOnly = false) {
     box.textContent = '';
     if (!d || d.u) return;
     const span = d.b - d.e, n = span / LIFE_YEARS;
     const add = (tag, cls, text) => { const x = document.createElement(tag); x.className = cls; x.textContent = text; box.appendChild(x); };
     add('p', 'ls-h', T('あなたの一生のものさし'));
-    add('p', 'ls-lead', T('あなたの系統が続いた{y}は', { y: fmtSpan(span) }));
-    add('p', 'ls-big', n < 1 ? T('人の一生の1回分にも満たない') : T('人の一生の{n}回分', { n: fmtYears(n) }));
+    if (!noteOnly) {
+      add('p', 'ls-lead', T('あなたの系統が続いた{y}は', { y: fmtSpan(span) }));
+      add('p', 'ls-big', n < 1 ? T('人の一生の1回分にも満たない') : T('人の一生の{n}回分', { n: fmtYears(n) }));
+    }
     add('p', 'ls-note', T('人が100年生きたとしても、地球時計では約{s}秒。', { s: (LIFE_YEARS / S * DAY).toFixed(3) }));
     if (d.p === 'hominin' || d.p === 'human') add('p', 'ls-note', T('ホモ・サピエンスの歴史（約30万年）でさえ、24:00の約{s}秒前から。', { s: Math.round(3e5 / S * DAY) }));
   }
