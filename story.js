@@ -15,11 +15,11 @@
     return n.toLocaleString('ja-JP');
   }
   // 結末の場面：生き残れば今日の子孫の暮らし、絶滅すればその化石が眠る地層
-  function endScene(alive, endYa, plan, habitat, cause, look) {
-    const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause });
+  function endScene(alive, endYa, plan, habitat, cause, look, k = []) {
+    const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause, k });
     return { ya: alive ? 0.3 : Math.max(endYa, 1), ending: { ...e, plan, look: look || { plan } } };
   }
-  const sceneOfData = (d) => (d.u ? { ya: d.b, ending: { ...evo.endingOf(d), ya: d.b } } : endScene(d.a, d.e, d.p, d.h, d.c, d.g && d.g.length ? lookOfG(d.g[d.g.length - 1]) : null));
+  const sceneOfData = (d) => (d.u ? { ya: d.b, ending: { ...evo.endingOf(d), ya: d.b } } : endScene(d.a, d.e, d.p, d.h, d.c, d.g && d.g.length ? lookOfG(d.g[d.g.length - 1]) : null, d.k));
   const endingLabel = (e) => T('結末 No.{no}「{t}」', { no: String(e.no).padStart(2, '0'), t: e.title });
   // 記録を確かめて、決まった形にそろえる（シェアのリンク・履歴・博物館で共通）
   function cleanData(d) {
@@ -211,7 +211,7 @@
     const seen = MILESTONES.filter(([ya]) => ya < d.b && ya > d.e);
     const pick = seen.length > 2 ? [seen[0], seen[seen.length - 1]] : seen;
     if (d.a && seen.length > 2 && pick[1] !== MILESTONES[MILESTONES.length - 1]) pick[1] = MILESTONES[MILESTONES.length - 1];
-    if (pick.length) out.push(T('その間に、地球で{l}を見届けました。', { l: pick.map((m) => T(m[1], { s: Math.round(m[0] / S * DAY) })).join(E.LANG === 'en' ? ' and ' : 'と、') }));
+    if (pick.length) out.push(T('その間に、{l}を見届けました。', { l: pick.map((m) => T(m[1], { s: Math.round(m[0] / S * DAY) })).join(E.LANG === 'en' ? ' and ' : 'と、') }));
     // 結末
     const span = fmtSpan(d.b - d.e);
     if (d.a) {
