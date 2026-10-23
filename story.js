@@ -227,5 +227,41 @@
     return out;
   }
 
-  E.story = { lookOfG, mid, fmtCount, endScene, sceneOfData, endingLabel, cleanData, storyParts, storyOf, placeOf, placeOfData };
+  /* ---------- 二つ名：同じ結末でも、その系統の歩みで変わる一言 ----------
+     保存した記録（d）だけから決める。上から順に、当てはまった最初のもの */
+  const BIG5 = [4.45e8, 3.72e8, 2.519e8, 2.014e8, 6.6e7];
+  const LAND = ['land', 'hom', 'sap'];
+  // 微生物の二つ名は、選んだ道から（あとで選んだものほど優先）
+  const MICRO_EPI = {
+    'ほかの微生物を食べる': '微生物を食べて生きた者', '深海の熱水のそばにとどまる': '深い闇で生き抜いた者', '酸素の届かない深海や泥の中へ逃げる': '深い闇で生き抜いた者',
+    '火山の熱がある海底へ': '火山の熱で冬を越した者', '休眠して、氷が解けるのを待つ': '氷の下で眠った者', '氷の割れ目の薄い水で暮らす': '氷の割れ目で生きた者',
+    'サンゴや海綿と手を組む': 'サンゴとともに生きた者',
+  };
+  function epithetOf(d) {
+    if (!d || d.u) return '';
+    const g = d.g && d.g.length ? d.g : [[d.p, '', d.n]];
+    const grps = g.map((f) => groupOf(f[0], f[1]));
+    const first = grps[0], last = grps[grps.length - 1], micro = (x) => x === 'micro' || x === 'deep';
+    const span = d.b - d.e, lived = (ya) => ya < d.b && ya > d.e;
+    const big = BIG5.filter(lived).length, forms = new Set(g.map((f) => `${f[0]}:${f[1]}`)).size;
+    if (!micro(last) && big >= 5) return T('五大絶滅をすべてくぐった者');
+    if (forms >= 5) return T('{n}つの姿を生きた者', { n: forms });
+    if (grps.includes('air') && first !== 'air') return first === 'sea' || micro(first) ? T('海から空へ飛び立った者') : T('空へ飛び立った者');
+    if (micro(first) && !micro(last)) return T('ひとつの細胞から始まった者');
+    if (!micro(last) && big >= 3) return T('{n}度の大量絶滅をくぐった者', { n: big });
+    if (first === 'sea' && LAND.includes(last)) return T('海から陸へ上がった者');
+    if (LAND.includes(first) && last === 'sea') return T('陸から海へ帰った者');
+    if (!micro(last) && lived(2.519e8)) return T('史上最大の絶滅を越えた者');
+    if (!micro(last) && lived(6.6e7)) return T('隕石の日を越えた者');
+    if (!d.a && span < 5e6) return T('つかの間の系統');
+    const mk = micro(last) && (d.k || []).slice().reverse().find((x) => MICRO_EPI[x]);
+    if (mk) return T(MICRO_EPI[mk]);
+    if (forms === 1 && span >= 1e9) return T('{y}、姿を変えなかった者', { y: fmtSpan(span) });
+    if (micro(last) && d.a && d.b > 2.4e9) return T('酸素のない海から来た者');
+    if (micro(last) && lived(7.17e8)) return T('凍った地球を越えた者');
+    const per = E.periodOf(d.b);
+    return T('{p}生まれ', { p: per.name || per.era });
+  }
+
+  E.story = { lookOfG, mid, fmtCount, endScene, sceneOfData, endingLabel, cleanData, storyParts, storyOf, placeOf, placeOfData, epithetOf };
 })();

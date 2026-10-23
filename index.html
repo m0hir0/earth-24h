@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<script src="move.js?v=202610230605"></script>
+<script src="move.js?v=202610230629"></script>
 <link rel="canonical" href="https://earth24h.com/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>地球の24時間</title>
@@ -579,6 +579,9 @@
 
   /* 生きた系統の履歴 */
   #hist { scroll-margin-top: 110px; }
+  .epithet { font-size: 14px; font-weight: 800; color: var(--accent); margin: 2px 0 4px; text-align: center; }
+  .epithet:empty { display: none; }
+  .hist-detail .epithet { text-align: left; }
   .ending-badge { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 10px; margin-top: 8px; font-weight: 900; font-size: 17px; }
   .ending-badge .new { font-size: 12px; font-weight: 900; color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 3px 10px; animation: badge .5s cubic-bezier(.3,1.6,.5,1); }
   @keyframes badge { 0% { transform: scale(.4); } 100% { transform: scale(1); } }
@@ -766,6 +769,7 @@
       <div class="kick" data-i18n>シェアされた進化の記録</div>
       <canvas class="scene" id="s-scene" aria-hidden="true"></canvas>
       <div class="ttl" id="s-ttl"></div>
+      <p class="epithet" id="s-epi"></p>
       <p class="end-desc" id="s-ending"></p>
       <p id="s-text"></p>
       <div class="chain" id="s-chain"></div>
@@ -835,6 +839,7 @@
       <div class="hist-detail" id="hist-detail" hidden>
         <canvas class="scene" id="hd-scene" aria-hidden="true"></canvas>
         <div class="ttl" id="hd-ttl"></div>
+        <p class="epithet" id="hd-epi"></p>
         <p class="end-desc" id="hd-ending"></p>
         <p id="hd-text"></p>
         <div class="lifescale" id="hd-scale"></div>
@@ -905,6 +910,7 @@
       <div class="kick" id="r-kick"></div>
       <div class="big" id="r-big"></div>
       <div class="ending-badge"><span id="r-ending"></span><span class="new" id="r-new" hidden data-i18n>はじめての結末！</span></div>
+      <p class="epithet" id="r-epi"></p>
       <p id="r-lead"></p>
     </div>
     <canvas class="scene" id="r-scene" aria-hidden="true"></canvas>
@@ -1034,13 +1040,13 @@
   </footer>
 </div>
 
-<script src="i18n.js?v=202610230605"></script>
-<script src="data.js?v=202610230605"></script>
-<script src="scenes.js?v=202610230605"></script>
-<script src="globe.js?v=202610230605"></script>
-<script src="evo.js?v=202610230605"></script>
-<script src="lang-en.js?v=202610230605"></script>
-<script src="story.js?v=202610230605"></script>
-<script src="app.js?v=202610230605"></script>
+<script src="i18n.js?v=202610230629"></script>
+<script src="data.js?v=202610230629"></script>
+<script src="scenes.js?v=202610230629"></script>
+<script src="globe.js?v=202610230629"></script>
+<script src="evo.js?v=202610230629"></script>
+<script src="lang-en.js?v=202610230629"></script>
+<script src="story.js?v=202610230629"></script>
+<script src="app.js?v=202610230629"></script>
 </body>
 </html>

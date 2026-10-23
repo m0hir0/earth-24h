@@ -10,7 +10,7 @@
   const { sceneView, sceneCaption, drawScene, drawCreatureCard, PW, PH, CW, CH, CARD_W, CARD_H } = E.scenes;
   const { yaOfSec, fmtSpan } = E;
   const evo = E.evo;
-  const { lookOfG, mid, fmtCount, endScene, sceneOfData, endingLabel, cleanData, storyParts, storyOf, placeOf } = E.story;
+  const { lookOfG, mid, fmtCount, endScene, sceneOfData, endingLabel, cleanData, storyParts, storyOf, placeOf, epithetOf } = E.story;
   const $ = (id) => document.getElementById(id);
   const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1168,6 +1168,7 @@
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
     lifeScale($('r-scale'), data);
+    $('r-epi').textContent = `― ${epithetOf(data)} ―`;
     const firstLife = !zoomUnlocked();
     const before = foundLoad();
     histAdd(data);
@@ -1264,7 +1265,7 @@
       : T('{a}に「{f}」として生まれ、{e}、{n}として絶滅した。', { a: fmtAgo(d.b), f: tr(d.f), e: fmtAgo(d.e), n: tr(d.n) });
     const day = d.y ? `${T('今日の地球 No.{n}', { n: d.y })}\n` : '';
     const lt = lifeTimes(d);
-    return `${day}${body}${lt ? (E.LANG === 'en' ? ' ' : '') + lt : ''}\n${endingLabel(e)}\n${d.y ? T('#地球の24時間 #今日の地球') : T('#地球の24時間 #進化ガチャ')}`;
+    return `${day}${body}${lt ? (E.LANG === 'en' ? ' ' : '') + lt : ''}\n${endingLabel(e)} ― ${epithetOf(d)}\n${d.y ? T('#地球の24時間 #今日の地球') : T('#地球の24時間 #進化ガチャ')}`;
   }
   // 結果をリンクに埋め込む（#r=...）。開いた人には、この結果と「あなたも生まれてみる」が出る
   const b64 = (str) => btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -1567,6 +1568,7 @@
     t.className = `ttl ${d.u ? '' : d.a ? 'alive' : 'dead'}`;
     $('hd-text').textContent = storyOf(d);
     lifeScale($('hd-scale'), d);
+    $('hd-epi').textContent = d.u ? '' : `― ${epithetOf(d)} ―`;
     const ol = $('hd-path'); ol.textContent = '';
     d.k.forEach((x) => { const li = document.createElement('li'); li.textContent = tr(x); ol.appendChild(li); });
     const url = shareUrlFrom(d);
@@ -1605,6 +1607,7 @@
     SH.st = sceneOfData(d);
     renderChain($('s-chain'), d.g);
     $('s-ending').textContent = `${endingLabel(SH.st.ending)}：${SH.st.ending.desc}`;
+    $('s-epi').textContent = d.u ? '' : `― ${epithetOf(d)} ―`;
     const t = $('s-ttl');
     t.textContent = d.u ? T('生まれられなかった') : d.a ? T('今も生きている') : T('絶滅');
     t.className = `ttl ${d.u ? '' : d.a ? 'live' : 'dead'}`;
