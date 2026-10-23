@@ -848,6 +848,7 @@
   // 特徴の変化が、この先の生き残りにどう効くか（evo.rates と applyExtinction の効き方を一言で）
   function futureHint(fx) {
     const d = fx.d, v = (k) => d[k] || 0, out = [];
+    if (fx.prep) out.push(fx.prep.m < 1 ? T('次の「{e}」で減りにくい', { e: mid(tr(fx.prep.ev)) }) : T('次の「{e}」で減りやすい', { e: mid(tr(fx.prep.ev)) }));      // その時代の生き方の備え
     const ext = v('adapt') - v('size');                                // 大量絶滅：適応力は強く、大きさは弱く
     if (ext >= 5) out.push(T('大量絶滅を生き延びやすくなる'));
     else if (ext <= -5) out.push(v('size') > 0 && P.ya > 6.6e7 ? T('大量絶滅、特に隕石に弱くなる') : T('大量絶滅で消えやすくなる'));
@@ -863,7 +864,8 @@
     o.apply(c);
     const d = {};
     for (const k of evo.TRAITS) { const x = Math.round(c.traits[k] - L.traits[k]); if (x) d[k] = x; }
-    return { d, plan: c.plan !== L.plan ? c.plan : null, hab: c.habitat !== L.habitat ? c.habitat : null, n: c.N > L.N + 0.5 ? c.N / L.N : null };
+    return { d, plan: c.plan !== L.plan ? c.plan : null, hab: c.habitat !== L.habitat ? c.habitat : null, n: c.N > L.N + 0.5 ? c.N / L.N : null,
+      prep: c.flags.prep && c.flags.prep !== L.flags.prep ? c.flags.prep : null };
   }
   const trimNum = (x) => E.trim(x.toFixed(1));
   function choose(node, o) {

@@ -625,12 +625,50 @@
   // 時代ごとの「どう生きる？」。効き目は4種類（大きく／小さく何でも食べる／広がる／守り）で、言葉と史実だけを時代と暮らす場所（海・陸・空）で変える
   //   並びは効き目の順。tools/sim/ages.js は並びの番号で選ぶ
   const AGE_DESC = ['強くなるが、たくさん食べ、環境の急な変化に弱くなる。', '目立たないが、どんな時代でも生き延びやすい。', '仲間を増やし、さまざまな環境に分かれていく。', '体を守る力が上がる。そのぶん動きは少し遅くなる。'];
-  const AGE_FX = [
-    (L) => bump(L, { size: 15, armor: 5, adapt: -5 }),
-    (L) => bump(L, { size: -15, adapt: 15 }),
-    (L) => { bump(L, { adapt: 8, speed: 5 }); L.N = Math.min(CAP, L.N * 1.3); },
-    (L) => bump(L, { armor: 15, speed: -5 }),
+  const AGE_BASE = [                                              // [特徴の増減, 種の数の倍率]
+    [{ size: 15, armor: 5, adapt: -5 }, 1],
+    [{ size: -15, adapt: 15 }, 1],
+    [{ adapt: 8, speed: 5 }, 1.3],
+    [{ armor: 15, speed: -5 }, 1],
   ];
+  // 時代ごとの効き目の違い（史実にもとづく）：{ 効き目の番号: [増減を上書き, 種の数の倍率, その時代の説明] }
+  const AGE_MOD = [
+    { 2: [{ adapt: 14, speed: 5 }, 1.8, '生まれたばかりの礁が、新しいすみかを次々に生んでいる。広がると種がぐんと増え、大量絶滅にも強くなる。'] },
+    { 3: [{ armor: 25, adapt: 8, speed: -5 }, 1, '捕食者のあごが強くなる時代。分厚い守りがよく効く。'] },
+    { 0: [{ size: 15, armor: 5, adapt: -8 }, 1, 'デボン紀の終わりには、海の酸素が減って大きな魚ほど苦しんだ。大きくなると、大量絶滅で不利。'],
+      2: [{ adapt: 20, speed: 5 }, 1.3, '海が苦しくなっても、川や湖へ逃げた仲間は生き延びた。広がると大量絶滅にとても強くなる。'] },
+    { 0: [{ size: 20, armor: 5, adapt: 10 }, 1.2, '石炭紀の空気は酸素が濃く、大きな体でも息が続く。この時代は、大きくなるほうがむしろ有利。'] },
+    { 0: [{ size: 15, armor: 5, adapt: -8 }, 1, 'このあと史上最大の絶滅が来る。大きな体ほど生き残れなかった。'],
+      1: [{ size: -15, adapt: 25 }, 1, '史上最大の絶滅を生き延びたのは、小さく何でも食べ、穴にもぐる仲間だった。'] },
+    { 2: [{ adapt: 15, speed: 5 }, 2.0, '大絶滅のあとの空いた世界。広がれば、種が一気に増える。'] },
+    { 0: [{ size: 20, armor: 15, adapt: 5 }, 1, '巨大な体そのものが、肉食恐竜から身を守る鎧になった時代。大きくなるほうが有利。'] },
+    { 3: [{ armor: 25, adapt: 10, speed: -5 }, 1, '大きな肉食恐竜が増え、鎧や角を持つ仲間が栄えた。守りがよく効く。'] },
+    { 0: [{ size: 15, armor: 5, adapt: -8 }, 1, 'このあと隕石が落ちる。大きな体は不利になる。'],
+      1: [{ size: -15, adapt: 25 }, 1, '隕石のあとを生き延びたのは、小さく何でも食べる仲間だった。'] },
+    { 2: [{ adapt: 18, speed: 5 }, 2.0, '恐竜が消えた世界。広がれば、新しい仲間が次々に生まれる。'] },
+    { 3: [{ armor: 15, adapt: 10, speed: 0 }, 1, '草原では、群れで暮らせば足を遅くせずに身を守れる。守りがよく効く。'] },
+    { 0: [{ size: 15, armor: 5, adapt: 5 }, 1, '寒い時代は、大きな体ほど熱を逃がしにくい。大きくなっても不利がない。'] },
+  ];
+  // 次に来る大量絶滅への備え：{ 効き目の番号: [淘汰の名前, 減る確率の倍率] }。applyExtinction で一度だけ効く
+  const AGE_PREP = [
+    { 2: ['オルドビス紀末の大量絶滅', 0.4] },
+    { 3: ['デボン紀後期の大量絶滅', 0.5] },
+    { 2: ['デボン紀後期の大量絶滅', 0.35], 0: ['デボン紀後期の大量絶滅', 1.2] },
+    { 3: ['石炭紀の熱帯雨林の崩壊', 0.5] },
+    { 1: ['ペルム紀末の大量絶滅', 0.6], 0: ['ペルム紀末の大量絶滅', 1.2] },
+    { 2: ['三畳紀末の大量絶滅', 0.45] },
+    {},
+    {},
+    { 1: ['白亜紀末の大量絶滅', 0.5], 0: ['白亜紀末の大量絶滅', 1.2] },
+    { 2: ['始新世末の寒冷化', 0.4] },
+    { 3: ['氷河時代のはじまり', 0.4] },
+    {},
+  ];
+  const ageFx = (i, k) => {
+    const [d, n] = (AGE_MOD[i] && AGE_MOD[i][k]) || AGE_BASE[k];
+    const prep = AGE_PREP[i][k];
+    return (L) => { bump(L, d); if (n !== 1) L.N = Math.min(CAP, L.N * n); if (prep) L.flags.prep = { ev: prep[0], m: prep[1] }; };
+  };
   const AGE_GENERIC = ['体を大きくする', '小さく、何でも食べる', '新しい場所に広がる', '守りを固める'];      // 文がない組み合わせ（と古い記録）
   // [ラベル, 実際には…]。AGES と同じ並び
   const AGE_TEXT = [
@@ -676,7 +714,7 @@
       id: `age${i}-${g}`, from, to,
       when: (L) => !MICRO.has(L.plan) && L.plan !== 'human' && ageGroup(L) === g && !AGE_GROUPS.some((x) => L.taken.has(`age${i}-${x}`)),
       q: `${age}を、どう生きる？`, ctx,
-      opts: AGE_FX.map((apply, k) => ({ label: tx ? tx[k][0] : AGE_GENERIC[k], desc: AGE_DESC[k], real: tx ? tx[k][1] : '', apply })),
+      opts: AGE_BASE.map((_, k) => ({ label: tx ? tx[k][0] : AGE_GENERIC[k], desc: (AGE_MOD[i][k] || [])[2] || AGE_DESC[k], real: tx ? tx[k][1] : '', apply: ageFx(i, k) })),
     });
   }));
 
@@ -789,9 +827,11 @@
     if (!L.alive) return null;
     const before = Math.round(L.N);
     let p = ev.kill(L);
+    const prep = L.flags.prep && L.flags.prep.ev === ev.name;
     if (p < 1 && p > 0) {
       p *= 1 + (L.traits.size - 50) / 250;
       p *= 1 - (L.traits.adapt - 50) / 250;
+      if (L.flags.prep && L.flags.prep.ev === ev.name) p *= L.flags.prep.m;      // その時代の生き方の備え
       // 同じ系統の種は似た場所・似た暮らし。運命はまとめて振れる
       p += gauss(rnd) * 0.12;
       p = Math.max(0, Math.min(0.999, p));
@@ -801,6 +841,7 @@
     else if (before > 40) after = Math.max(0, Math.round(before * (1 - p) + gauss(rnd) * Math.sqrt(before * p * (1 - p))));
     else { after = 0; for (let i = 0; i < before; i++) if (rnd() > p) after++; }
     if (L.plan === 'human') after = before;
+    if (prep) delete L.flags.prep;
     L.N = after;
     if (after < 1) die(L, ev.ya, ev.name);
     return { before, after, p };
