@@ -941,7 +941,8 @@
       return { k, mod: !!m, label, desc: m ? m[2] : AGE_DESC[k], real: tx ? tx[k][1] : '', apply: ageFx(i, k, g), only: (L) => fitsAge(L, label) };
     });
     // 合わないときの、ふつうの言葉の選択肢（効き目は同じ。並びの最後に足すので、英語や ages.js の番号はそのまま）
-    opts.slice().forEach((o) => { if (tx) opts.push({ ...o, alt: true, label: AGE_GENERIC[o.k], real: '', only: (L) => !fitsAge(L, o.label) });   // 「実際には」は元の選択肢の話なので出さない });
+    // alt の「実際には」は出さない（元の選択肢の話なので）
+    opts.slice().forEach((o) => { if (tx) opts.push({ ...o, alt: true, label: AGE_GENERIC[o.k], real: '', only: (L) => !fitsAge(L, o.label) }); });
     NODES.push({
       id: `age${i}-${g}`, from, to,
       when: (L) => !MICRO.has(L.plan) && !PLANTS.has(L.plan) && L.plan !== 'human' && ageGroup(L) === g && !AGE_GROUPS.some((x) => L.taken.has(`age${i}-${x}`)),
