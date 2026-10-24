@@ -1262,7 +1262,18 @@
   const DEFAULT_V = { microbe: 'rod', cyano: 'cyano', cell: 'euk', colony: 'alga', arthropod: 'trilo' };
   const lookOf = (x) => (typeof x === 'string' ? { plan: x, v: DEFAULT_V[x] || '' } : { ...x, v: x.v || DEFAULT_V[x.plan] || '' });
   const specOf = (look) => VARIANT_SPR[look.v] || PLAYER_SPR[look.plan];
-  const formScale = (look, base) => Math.max(1, Math.min(3, Math.round(base * (0.7 + (look.size == null ? 45 : look.size) / 150))));
+  // 大きさ（特徴）を絵の大きさに。その体のつくりのふつうの大きさ（生まれたとき）とくらべて、
+  // 「大きくなる」「小さく」を選んだぶんだけ変わる（前は大きさ83以上でしか変わらなかった）
+  function sizeMul(look) {
+    const sz = look.size == null ? 45 : look.size;
+    const pl = E.evo && E.evo.PLANS[look.plan], b = pl ? pl.base[0] : 45;
+    return { m: Math.max(0.6, Math.min(2.2, (sz + 20) / (b + 20))), b };
+  }
+  // 細かい点（d=2）は1きざみ、ふつうの点は0.5きざみ（画面の点がそろうように）
+  function formScale(look, base, d) {
+    const { m, b } = sizeMul(look), step = d > 1 ? 1 : 0.5;
+    return Math.max(step, Math.round(base * (0.7 + b / 150) * m / step) * step);
+  }
 
   // 顕微鏡で見る微生物。変種ごとに形が違う
   function drawMicro(P, v, cx, cy, r, t, frame = true) {
@@ -1319,16 +1330,19 @@
     look = lookOf(look);
     const plan = look.plan, sz = look.size == null ? 45 : look.size;
     if (MICRO_PLANS.includes(plan)) { const r = card ? 22 : 20, cy = card ? 24 : 30; drawMicro(P, look.v, cx, cy, r, t, !card); return cy - r - 1; }
-    if (plan === 'soft') {                                   // ゴカイのような、くねる体（細かい点）
-      const n = 14 + Math.round(sz / 5), y0 = ground - 3, x0 = cx - Math.round(n / 2);
-      const yy = (i) => y0 + Math.round(Math.sin(i * 0.45 + t * 0.4) * 3) / 2;
+    if (plan === 'soft') {                                   // ゴカイのような、くねる体（細かい点）。大きくなるほど太く長く
+      const u = card ? 1 : Math.max(1, Math.round(sizeMul(look).m * 2) / 2);
+      const n = 14 + Math.round(sz / 5), y0 = ground - 3 * u, x0 = cx - Math.round(n * u / 2);
+      const yy = (i) => y0 + Math.round(Math.sin(i * 0.45 + t * 0.4) * 3 * u) / 2;
       for (let i = 0; i < n; i++) {
-        P.rect(x0 + i, yy(i), 1, 1.5, i % 2 ? '#d0607a' : '#e07a8a');
-        if (i % 2 === 0) { P.rect(x0 + i + 0.5, yy(i) - 0.5, 0.5, 0.5, '#f0b0b8'); P.rect(x0 + i + 0.5, yy(i) + 1.5, 0.5, 0.5, '#f0b0b8'); }
+        const x = x0 + i * u;
+        P.rect(x, yy(i), u, 1.5 * u, i % 2 ? '#d0607a' : '#e07a8a');
+        if (i % 2 === 0) { P.rect(x + 0.5 * u, yy(i) - 0.5 * u, 0.5 * u, 0.5 * u, '#f0b0b8'); P.rect(x + 0.5 * u, yy(i) + 1.5 * u, 0.5 * u, 0.5 * u, '#f0b0b8'); }
       }
-      P.rect(x0 + n, yy(n) - 0.5, 2, 2, '#a03a50'); P.rect(x0 + n + 1, yy(n), 0.5, 0.5, '#1a1a1a');
-      P.rect(x0 + n + 2, yy(n) - 0.5, 1, 0.5, '#a03a50'); P.rect(x0 + n + 2, yy(n) + 1, 1, 0.5, '#a03a50');
-      return y0 - 4;
+      const hx = x0 + n * u, hy = yy(n);
+      P.rect(hx, hy - 0.5 * u, 2 * u, 2 * u, '#a03a50'); P.rect(hx + u, hy, 0.5 * u, 0.5 * u, '#1a1a1a');
+      P.rect(hx + 2 * u, hy - 0.5 * u, u, 0.5 * u, '#a03a50'); P.rect(hx + 2 * u, hy + u, u, 0.5 * u, '#a03a50');
+      return y0 - 4 * u;
     }
     const spec = specOf(look);
     if (!spec) return ground;
@@ -1336,7 +1350,8 @@
     let spr = SPR[name];
     let rows = spr.rows || spr;
     const d = spr.d || 1;
-    let s = formScale(look, spec[2]);
+    let s = formScale(look, spec[2], d);
+    if (!card) { const step = d > 1 ? 1 : 0.5; while (s > step && (rows.length * s / d > 50 || rows[0].length * s / d > 150)) s -= step; }   // 場面からはみ出さない
     if (card) s = Math.max(1, Math.min(2 * d, Math.floor(56 * d / rows[0].length), Math.floor(38 * d / rows.length)));   // カードでは大きく（細かさは保つ）
     const cell = s / d, w = rows[0].length * cell, h = rows.length * cell;
     const swim = ['jawless', 'fish', 'shark', 'armorfish', 'marine_reptile', 'whale', 'anomalo'].includes(plan) || look.v === 'penguin';
@@ -1457,7 +1472,10 @@
       for (let k = 0; k < 4; k++) P.rect(140 + k * 3, 36 + k * 2, 14 - k * 3, 1, 'rgba(244,240,216,0.5)');
       P.ground(48, '#c9b48a');
       P.rect(0, 47, PW, 1, 'rgba(255,255,255,0.4)');
-      for (let k = 0; k < 4; k++) P.sprite(SPR.trilo, { a: '#7a6a4a', b: '#4a3e2a' }, 20 + k * 40, 54 + (k % 2) * 3, k % 2 === 0, 2);
+      for (let k = 0; k < 4; k++) {                                // 卵を産みに来たカブトガニ（三葉虫は今はいない）
+        const x = 20 + k * 40, y = 57 + (k % 2) * 3;
+        P.dome(x, y, 4, '#5a4a36'); P.dome(x, y - 1, 3, '#6a5a44'); P.rect(x + (k % 2 ? -9 : 4), y - 0.5, 5, 0.5, '#4a3a2a');
+      }
       return 60;
     },
     forestfloor(P, t) {
@@ -1700,7 +1718,8 @@
   function drawEnding(P, e, t) {
     if (e.unborn) { sceneHadean(P, e.ya || 4.3e9, t); return; }
     if (e.alive) {
-      const ground = (TODAY[e.scene] || TODAY.meadow)(P, t);
+      const sc = (e.sceneBy && e.look && e.sceneBy[e.look.v]) || e.scene;      // 同じ結末でも姿で場面が変わる（ウナギは川）
+      const ground = (TODAY[sc] || TODAY.meadow)(P, t);
       if (e.plan !== 'human') drawPlayer(P, e.look || e.plan, t, ground);
     } else {
       sceneFossil(P, e.plan, e.layer, t, e.look);
@@ -1841,6 +1860,75 @@
   };
   TODAY.lichen = (P, t) => PLACE.lichen(P, 0, t);
   TODAY.openocean = (P, t) => PLACE.ocean(P, 0, t);
+
+  // 結末の今日の暮らし（姿や道ごと）。説明の文と絵が食い違わないように
+  TODAY.mossrock = (P, t) => {                                       // 岩をおおうコケ：木もれ日の森の、苔むした岩と小川
+    P.bands(['#8fb89a', '#9fc4a6', '#b0cfb2']);
+    for (let k = 0; k < 5; k++) { P.rect(10 + k * 42, 0, 7, 40, '#5a4a36'); P.disc(13 + k * 42, 4, 12, k % 2 ? '#4e7e4a' : '#5a8a50'); }
+    P.ground(40, '#5e7a40');
+    P.water(52, '#5a8aa0', '#8ab8c8', t, 120, PW);
+    const rocks = [[16, 60, 13], [50, 60, 10], [126, 58, 15], [160, 50, 8], [184, 52, 10]];
+    for (const [x, y, r] of rocks) {
+      P.dome(x, y, r, '#7e7e78');                                    // 岩（下のふちだけ見える）
+      P.dome(x, y - 2, r - 1, '#4a7e36');                            // 岩をすっぽりおおうコケ
+      P.dome(x, y - 3, r - 3, '#5a9a40');
+      for (let i = -r + 2; i < r - 1; i += 2) P.rect(x + i, y - 2 - Math.round(Math.sqrt(Math.max(0, (r - 1) * (r - 1) - i * i))), 1, 1, '#8cc85a');   // ふわふわの縁
+    }
+    for (let k = 0; k < 40; k++) P.rect((k * 23) % PW, 41 + (k * 7) % 14, 2, 1, k % 3 ? '#6e9a44' : '#88b850');   // 地面のコケ
+    for (let k = 0; k < 6; k++) { const ph = (t * 0.6 + k * 11) % 40; P.rect((k * 37 + 15) % PW, ph, 1, 3, 'rgba(255,255,220,0.25)'); }   // 木もれ日
+    return 60;
+  };
+  TODAY.fernvalley = (P, t) => {                                     // シダの谷：湿った谷の木生シダと、足もとのシダの葉
+    P.bands(['#a8c8b0', '#94b89c', '#80a888', '#6c9874']);
+    P.ridge(30, 14, 1.1, '#5e8a64', 0.06); P.ridge(38, 10, 2.4, '#4e7a54', 0.08);
+    for (let k = 0; k < 7; k++) fernTree(P, 8 + k * 28, 50, 18 + (k % 3) * 6, '#3e7a44', '#5a4a32');
+    P.ground(50, '#3e5a2e');
+    for (let k = 0; k < 9; k++) {                                    // 手前の大きなシダの葉
+      const x = 4 + k * 22, h = 10 + (k % 3) * 3, sway = Math.round(Math.sin(t * 0.15 + k));
+      for (let i = 0; i < h; i++) { const y = 62 - i; P.rect(x + i * 0.6 + sway * (i / h), y, 1, 1, '#3a7a3a'); if (i % 2 === 0) { P.rect(x + i * 0.6 - 2 + sway * (i / h), y, 2, 0.5, '#4f9a4a'); P.rect(x + i * 0.6 + 1 + sway * (i / h), y, 2, 0.5, '#4f9a4a'); } }
+    }
+    for (let k = 0; k < 10; k++) P.rect((k * 31 + t * 0.2) % PW, 20 + (k * 7) % 20, 3, 0.5, 'rgba(255,255,255,0.35)');   // 霧
+    return 60;
+  };
+  TODAY.underground = (P, t) => PLACE.roots(P, 0, t);
+  TODAY.crust = (P, t) => {                                          // 砂漠の黒い膜（シアノバクテリアのクラスト）
+    P.bands(['#8ec0e8', '#a8d0ec', '#c4dcee', '#e2e4dc']);
+    P.disc(160, 10, 6, '#fff6d8');
+    P.tri(40, 34, 10, '#c08a5a', 2.2); P.rect(30, 26, 20, 8, '#c08a5a');   // 遠くの台地
+    P.tri(120, 34, 7, '#b88456', 2.6);
+    P.ground(34, '#d8b880');
+    for (let k = 0; k < 26; k++) { const x = (k * 37 + 5) % PW, y = 38 + (k * 11) % 24, w = 6 + (k % 4) * 3; oval(P, x, y, w / 2, 1.5, k % 3 ? '#4a3e30' : '#3a3428'); }   // 黒い膜
+    for (let k = 0; k < 6; k++) { const x = 20 + k * 33; P.rect(x, 33, 1, 3, '#7a8a4a'); P.rect(x - 1, 33, 3, 1, '#7a8a4a'); }   // まばらな草
+    return 58;
+  };
+  TODAY.icesea = (P, t) => {                                         // 氷の海：浮かぶ氷とペンギンの群れ
+    P.bands(['#b8d4e8', '#c8dcec', '#d8e6f0']);
+    P.ridge(26, 8, 0.7, '#eef4f8', 0.05);
+    P.water(30, '#2a5a7a', '#5a8aa8', t, 0, PW);
+    const floes = [[10, 30, 40], [130, 31, 50]];
+    for (const [x, y, w] of floes) { P.rect(x, y - 3, w, 4, '#f4f8fb'); P.rect(x + 2, y + 1, w - 4, 1, '#c4dcea'); }
+    for (let k = 0; k < 6; k++) { const x = 16 + k * 5 + (k > 2 ? 104 : 0); P.rect(x, 21, 2, 6, '#1a2030'); P.rect(x + 0.5, 23, 1, 3, '#f4f4f0'); P.rect(x + 2, 22, 1, 0.5, '#e8a030'); }   // 氷の上のペンギン
+    for (let k = 0; k < 8; k++) P.rect((k * 29 + t * 0.4) % PW, 40 + (k * 5) % 18, 2, 1, 'rgba(220,240,255,0.5)');   // 泡
+    return 58;
+  };
+  TODAY.tidepool = (P, t) => {                                       // 磯：岩場の潮だまり
+    P.bands(['#8ec5e8', '#a6d1ec', '#c0ddee']);
+    P.clouds(t, '#ffffff', 2, 5, 0.1);
+    P.water(26, '#3a7aa0', '#7ab0cc', t, 0, PW);
+    P.ground(40, '#7a6a5a');
+    for (let k = 0; k < 9; k++) P.dome(8 + k * 22, 44 + (k % 3) * 4, 6 + (k % 3) * 2, k % 2 ? '#6a5a4a' : '#8a7a68');
+    for (let k = 0; k < 3; k++) { oval(P, 30 + k * 60, 56, 12, 3, '#4a8ab0'); oval(P, 30 + k * 60, 55, 10, 1.5, '#7ab8d8'); }   // 潮だまり
+    for (let k = 0; k < 7; k++) P.disc(14 + k * 27, 46 + (k % 2) * 6, 1, ['#e0a050', '#c05050', '#3a6a3a'][k % 3]);   // 貝や海藻
+    return 58;
+  };
+  TODAY.deepsea = (P, t) => {                                        // 深海：光の届かない暗い海と、マリンスノー
+    P.bands(['#0e2034', '#0b1a2c', '#081524', '#06101c']);
+    P.ridge(58, 4, 0.6, '#1e2228', 0.07); P.ground(60, '#181c22');
+    for (let k = 0; k < 4; k++) P.dome(20 + k * 50, 60, 4 + (k % 2) * 2, '#262a30');
+    for (let k = 0; k < 50; k++) P.rect((k * 37) % PW, (k * 13 + t * 0.3 * (1 + k % 2)) % 58, 0.5, 0.5, 'rgba(220,230,240,0.55)');   // マリンスノー
+    for (let k = 0; k < 6; k++) { const on = (t + k * 3) % 10 < 6; if (on) P.disc((k * 41 + 20) % PW, 12 + (k * 9) % 40, 0.5, '#7ae8ff'); }   // 生き物の光
+    return 58;
+  };
   const PLACE_CAPTION = {
     soil: '土の中・小さな生き物と微生物のすみか', litter: '落ち葉の下・湿った土の中', roots: '土の中・植物の根と菌の糸',
     gut: 'おなかの中・食べ物の通り道', jar: '発酵のかめの中・ぷくぷくと泡が立つ', mud: '海の底の泥・巣穴の断面',

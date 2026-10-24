@@ -16,7 +16,7 @@
   }
   // 結末の場面：生き残れば今日の子孫の暮らし、絶滅すればその化石が眠る地層
   function endScene(alive, endYa, plan, habitat, cause, look, k = []) {
-    const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause, k });
+    const e = evo.endingOf({ a: alive, p: plan, h: habitat, c: cause, k, v: look && look.v != null ? look.v : undefined });
     return { ya: alive ? 0.3 : Math.max(endYa, 1), ending: { ...e, plan, look: look || { plan } } };
   }
   const sceneOfData = (d) => (d.u ? { ya: d.b, ending: { ...evo.endingOf(d), ya: d.b } } : endScene(d.a, d.e, d.p, d.h, d.c, d.g && d.g.length ? lookOfG(d.g[d.g.length - 1]) : null, d.k));
