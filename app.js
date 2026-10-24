@@ -897,7 +897,7 @@
      進化ガチャ：プレイ
      ============================================================ */
   const P = { on: false };
-  sceneView($('p-scene'), (now) => (P.on || P.L ? { ya: P.ya, plan: P.L.alive ? P.L.plan : null, habitat: P.L.habitat, look: lookOfL(P.L), fx: now < P.fxUntil ? P.fx : null } : null));
+  sceneView($('p-scene'), (now) => (P.on || P.L ? { ya: P.ya, plan: P.L.alive ? P.L.plan : null, habitat: P.L.habitat, place: evo.placeAt(P.L, P.ya), look: lookOfL(P.L), fx: now < P.fxUntil ? P.fx : null } : null));
   const pDial = buildDial($('p-dial'), { reveal: true });
 
   const yaAtP = (p) => P.ya0 * Math.pow(1 - Math.min(1, Math.max(0, p)), 2);   // 今に近いほどゆっくり
@@ -1107,8 +1107,8 @@
     box.classList.remove('hit'); void box.offsetWidth; box.classList.add('hit');
     $('p-ev-ok').focus({ preventScroll: true });
   }
-  sceneView($('ch-scene'), () => ($('p-choice').hidden || !P.L ? null : { ya: P.ya, plan: P.L.plan, habitat: P.L.habitat, look: lookOfL(P.L) }));
-  sceneView($('ev-scene'), () => ($('ev-modal').hidden || !P.L ? null : { ya: P.ya, plan: P.L.alive ? P.L.plan : null, habitat: P.L.habitat, look: lookOfL(P.L), fx: P.fx }));
+  sceneView($('ch-scene'), () => ($('p-choice').hidden || !P.L ? null : { ya: P.ya, plan: P.L.plan, habitat: P.L.habitat, place: evo.placeAt(P.L, P.ya), look: lookOfL(P.L) }));
+  sceneView($('ev-scene'), () => ($('ev-modal').hidden || !P.L ? null : { ya: P.ya, plan: P.L.alive ? P.L.plan : null, habitat: P.L.habitat, place: evo.placeAt(P.L, P.ya), look: lookOfL(P.L), fx: P.fx }));
   $('p-ev-ok').addEventListener('click', () => {
     $('ev-modal').hidden = true;
     P.pending = null;
@@ -1239,7 +1239,7 @@
     const p = pAtYa(ya);
     const rate = (2 * P.ya0 * (1 - p) / P.T) * (P.skipping ? 80 : P.speed);
     $('p-rate').textContent = T('1秒 = {y}年', { y: fmtYears(Math.max(rate, 0.1)) });
-    $('p-cap').textContent = sceneCaption(ya, { fx: performance.now() < P.fxUntil ? P.fx : null, habitat: L.habitat });
+    $('p-cap').textContent = sceneCaption(ya, { fx: performance.now() < P.fxUntil ? P.fx : null, habitat: L.habitat, place: evo.placeAt(L, ya) });
     const now = performance.now();
     if (!force && now - lastSlow < 250) return;
     lastSlow = now;
