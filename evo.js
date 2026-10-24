@@ -804,7 +804,7 @@
     { v: 'ant', plan: 'insect', k: 1, from: 1.2e8, to: 0 },
     { v: 'butterfly', plan: 'insect', k: 2, from: 1.3e8, to: 0 },
     { v: 'beetle', plan: 'insect', k: 3, from: 2.9e8, to: 0 },
-    { v: 'terror', plan: 'bird', k: 0, from: 6e7, to: 0 },
+    { v: 'terror', plan: 'bird', k: 0, from: 6e7, to: 0, hab: 'land' },
     { v: 'songbird', plan: 'bird', k: 1, from: 5e7, to: 0 },
     { v: 'penguin', plan: 'bird', k: 2, from: 6e7, to: 0, hab: 'sea' },
     { v: 'mouse', plan: 'mammal', k: 1, from: 5.5e7, to: 0 },
@@ -824,7 +824,9 @@
     { v: 'frog', plan: 'amphibian', k: 1, from: 2e8, to: 0 },
     { v: 'grass', plan: 'flower', k: -1, from: 3e7, to: 0 },       // 時代の分かれ道ではなく grassPlant でなる
   ];
-  const subFor = (L, k, from, to) => SUBS.find((s) => s.plan === L.plan && s.k === k && s.from > to && s.to < from && (!s.need || s.need === L.habitat) && L.flags.sub !== s.v);
+  // その仲間の中での姿の変化は、同じ体のつくりのあいだに1回だけ（ペンギンが飛べない大きな鳥に戻る、のような横すべりをしない）
+  const hasSub = (L) => SUBS.some((s) => s.v === L.flags.sub && s.plan === L.plan);
+  const subFor = (L, k, from, to) => !hasSub(L) && SUBS.find((s) => s.plan === L.plan && s.k === k && s.from > to && s.to < from && (!s.need || s.need === L.habitat));
   const ageFx = (i, k) => {
     const [d, n] = (AGE_MOD[i] && AGE_MOD[i][k]) || AGE_BASE[k];
     const prep = AGE_PREP[i][k], [from, to] = AGES[i];

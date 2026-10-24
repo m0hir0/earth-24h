@@ -1063,7 +1063,11 @@
     $('p-fact').hidden = !text;
     if (!text) return;
     $('p-fact-t').textContent = text;
-    factTimer = setTimeout(() => { $('p-fact').hidden = true; }, 9000);
+    $('p-fact').classList.remove('out');
+    factTimer = setTimeout(() => {                                   // ゆっくり消えて、速度ボタンが見えるように戻る
+      $('p-fact').classList.add('out');
+      factTimer = setTimeout(() => { $('p-fact').hidden = true; $('p-fact').classList.remove('out'); }, 800);
+    }, 8200);
   }
   $('p-fact').addEventListener('click', () => { clearTimeout(factTimer); $('p-fact').hidden = true; });
 
