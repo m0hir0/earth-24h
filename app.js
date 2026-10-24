@@ -520,7 +520,7 @@
     return '';
   }
   // 大きさ・守りがはっきり変わったときの名前（「大型の三葉虫の仲間」など）。体のつくりと変種は同じまま
-  const NO_SPIKE = ['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned', 'plant', 'fern', 'seed', 'flower'];
+  const NO_SPIKE = ['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned', 'plant', 'fern', 'seed', 'flower', 'soft', 'sponge', 'ediacaran'];   // とげの絵を描かない体は「とげのある〜」にしない
   const tierOf = (k) => ({ big: k.size >= 70, small: k.size <= 25, spiky: k.armor >= 65 && !NO_SPIKE.includes(k.v) && !NO_SPIKE.includes(k.plan) });
   function tierName(before, after) {
     if (MICRO_LOOK.includes(after.plan) || ['human', 'hominin'].includes(after.plan)) return null;
@@ -1177,7 +1177,7 @@
     function finish() {
       if (finished) return;
       finished = true;
-      drawCreatureCard(ctx, toLook, 3);
+      drawCreatureCard(ctx, toLook, 3, null, true);
       m.classList.add('done');
       $('evo-msg').textContent = T('{a}は、{b}に進化した！', { a: fromName, b: toName });
       $('evo-sub').textContent = evo.PLANS[toLook.plan].name;
@@ -1190,8 +1190,8 @@
       if (k >= 1) { finish(); return; }
       if (now - last > 40) {
         last = now;
-        if (k < 0.15) drawCreatureCard(ctx, fromLook, Math.floor(now / 125));
-        else if (k < 0.9) { const q = (k - 0.15) / 0.75; drawCreatureCard(ctx, Math.sin(q * q * 70) > 0 ? toLook : fromLook, 0, '#ffffff'); }
+        if (k < 0.15) drawCreatureCard(ctx, fromLook, Math.floor(now / 125), null, true);   // 大きさの段階も見えるように
+        else if (k < 0.9) { const q = (k - 0.15) / 0.75; drawCreatureCard(ctx, Math.sin(q * q * 70) > 0 ? toLook : fromLook, 0, '#ffffff', true); }
         else { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, CARD_W, CARD_H); }
       }
       requestAnimationFrame(frame);

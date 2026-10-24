@@ -1317,12 +1317,12 @@
     }
   }
   // とげ：体のいちばん上にそって
-  function spikes(P, rows, x0, y0, s, c) {
+  function spikes(P, rows, x0, y0, s, c, tall = 1) {
     const W = rows[0].length;
     for (let i = 1; i < W - 1; i += 3) {
       let top = -1;
       for (let j = 0; j < rows.length; j++) if (rows[j][i] !== '.') { top = j; break; }
-      if (top >= 0) P.rect(x0 + i * s, y0 + (top - 1) * s, s, s, c);
+      if (top >= 0) P.rect(x0 + i * s, y0 + (top - tall) * s, s, s * tall, c);
     }
   }
   // 生き物を1体描く。戻り値は頭の上の y（矢印を置く位置）
@@ -1334,7 +1334,7 @@
       return drawTinyMicro(P, look, t, cx, ground);
     }
     if (plan === 'soft') {                                   // ゴカイのような、くねる体（細かい点）。大きくなるほど太く長く
-      const u = card ? 1 : Math.max(1, Math.round(sizeMul(look).m * 2) / 2);
+      const u = card === 'sized' ? cardTier(look) / 0.75 : card ? 1 : Math.max(1, Math.round(sizeMul(look).m * 2) / 2);
       const n = 14 + Math.round(sz / 5), y0 = ground - 3 * u, x0 = cx - Math.round(n * u / 2);
       const yy = (i) => y0 + Math.round(Math.sin(i * 0.45 + t * 0.4) * 3 * u) / 2;
       for (let i = 0; i < n; i++) {
@@ -1356,6 +1356,7 @@
     let s = formScale(look, spec[2], d);
     if (!card) { const step = d > 1 ? 1 : 0.5; while (s > step && (rows.length * s / d > 50 || rows[0].length * s / d > 150)) s -= step; }   // 場面からはみ出さない
     if (card) s = Math.max(1, Math.min(2 * d, Math.floor(56 * d / rows[0].length), Math.floor(38 * d / rows.length)));   // カードでは大きく（細かさは保つ）
+    if (card === 'sized') s = Math.max(0.5, Math.round(s * cardTier(look) * 2) / 2);   // 進化の演出：小型は小さく、大型はカードいっぱい
     const cell = s / d, w = rows[0].length * cell, h = rows.length * cell;
     const swim = ['jawless', 'fish', 'shark', 'armorfish', 'marine_reptile', 'whale', 'anomalo'].includes(plan) || look.v === 'penguin';
     const fly = ((plan === 'pterosaur' || plan === 'bird' || plan === 'insect') && !['penguin', 'terror', 'ant', 'beetle'].includes(look.v)) || look.v === 'bat';
@@ -1365,7 +1366,7 @@
     const back = !card && (fly || swim) && Math.cos(t * 0.07) < 0;          // 左へ動くときは左を向く（絵はもともと右向き）
     P.sprite(spr, pal, x, y, back, s);
     if (back) rows = rows.map((r) => [...r].reverse().join(''));
-    if ((look.armor || 0) >= 65 && !['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned', 'plant', 'fern', 'seed', 'flower', 'grass'].includes(look.v || plan) && plan !== 'arthropod' && plan !== 'armorfish') spikes(P, rows, x, y, cell, '#5a4a3a');
+    if ((look.armor || 0) >= 65 && !['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned', 'plant', 'fern', 'seed', 'flower', 'grass'].includes(look.v || plan) && plan !== 'arthropod' && plan !== 'armorfish') spikes(P, rows, x, y, cell, card ? '#e8dcc0' : '#5a4a3a', card ? 2 : 1);   // カード（暗い背景）では明るく長く
     if (look.feather && (plan === 'dino_small' || plan === 'theropod')) {    // 羽毛：頭のとさかと、背中・しっぽの羽
       const f = cell;
       [[w - 4 * f, -f, '#e0503a'], [w - 3 * f, -2 * f, '#f0c040'], [w - 5 * f, 0, '#e0503a']].forEach(([dx, dy, c]) => P.rect(x + dx, y + dy, f * 2, f, c));
@@ -1382,11 +1383,13 @@
     P.rect(x - 2, y - 5 + b, 5, 1, '#ffd84a'); P.rect(x - 1, y - 4 + b, 3, 1, '#ffd84a'); P.rect(x, y - 3 + b, 1, 1, '#ffd84a');
   }
   // 生き物だけを小さなキャンバス（64×48）に。silhouette で白一色（進化の演出用）
-  function drawCreatureCard(ctx, look, t = 0, silhouette = null) {
+  // sized：進化の演出用。大きさの段階（小型・ふつう・大型）で絵の大きさを変える（ふつうはカードいっぱい）
+  function drawCreatureCard(ctx, look, t = 0, silhouette = null, sized = false) {
     ctx.clearRect(0, 0, 64 * K, 48 * K);
     const P = painter(ctx, silhouette);
-    drawForm(P, look, t, 32, 44, true);
+    drawForm(P, look, t, 32, 44, sized ? 'sized' : true);
   }
+  const cardTier = (look) => { const sz = look.size == null ? 45 : look.size; return sz >= 70 ? 1 : sz <= 25 ? 0.5 : 0.75; };
 
   /* ============================================================
      結末の場面：今日の子孫の暮らし／化石が眠る地層
