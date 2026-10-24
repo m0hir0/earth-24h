@@ -1165,6 +1165,28 @@
   }
   const nodeFor = (L, ya) => NODES.find((n) => !L.taken.has(n.id) && ya <= n.from && ya > n.to && n.when(L));
 
+  // 振り返りの「もしも」：系統の写しを作り、今日まで（か絶滅まで）一気に進める。分かれ道はランダムに選ぶ
+  //   進め方はプレイ（app.js の advance）と同じ。graceAbove：その年前より前で、まだ分かれ道を選んでいなければ背景の絶滅を止める
+  const cloneL = (L) => ({ ...L, isPlayer: false, traits: { ...L.traits }, flags: { ...L.flags }, taken: new Set(L.taken), path: [...L.path], log: [], forms: null, envLog: null });
+  function runOut(L, ya, rnd, graceAbove = Infinity) {
+    const check = () => { let n; while (L.alive && (n = nodeFor(L, ya))) autoChoose(L, n, rnd); };
+    let guard = 0;
+    check();
+    while (ya > 0 && L.alive && guard++ < 20000) {
+      const ev = EXTINCTIONS.find((e) => e.ya < ya);
+      let b = Math.max(0, ya - Math.max(ya * 0.02, 0.5));
+      if (ev) b = Math.max(b, ev.ya);
+      for (const n of NODES) if (n.from < ya && n.from > b) b = n.from;
+      const span = ya - b, k = Math.max(1, Math.ceil(span / 1e6)), dt = span / k;
+      for (let i = 0; i < k && L.alive; i++) step(L, ya - dt * (i + 0.5), dt, rnd, L.path.length === 0 && ya > graceAbove);
+      if (!L.alive) break;
+      ya = b;
+      if (ev && b === ev.ya) applyExtinction(L, ev, rnd);
+      check();
+    }
+    return L;
+  }
+
   // 乱数（種あり：シェアしたときの再現用）
   function rng(seed) {
     let s = seed >>> 0;
@@ -1578,6 +1600,6 @@
   E.evo = {
     ENDINGS, endingOf, placeAt, optsFor,
     SUBS, CAP, REAL, realCount, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
-    ABOUT, LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die,
+    ABOUT, LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die, cloneL, runOut,
   };
 })();

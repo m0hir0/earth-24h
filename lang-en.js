@@ -857,6 +857,21 @@
   /* ---------------- 画面の文言 ---------------- */
   const UI = {
     // HTML
+    // 振り返り
+    '振り返り': 'Looking back', '今日まで続いた': 'Made it to today', '絶滅した': 'Went extinct', '今回のあなた': 'This life of yours',
+    'いちばん大きな分かれ目': 'The fork that mattered most',
+    'もし、{a}に「{f}」として100回生まれていたら': 'If you had been born {a} as "{f}" 100 times',
+    '今日まで続いたのは、100のうち{n}。': '{n} out of 100 made it to today.',
+    'あなたは、その{n}のうちの1つ。': 'You are one of those {n}.',
+    'あなたは、消えた{n}のうちの1つ。': 'You are one of the {n} that vanished.',
+    '消えた系統の最期でいちばん多いのは「{c}」（{k}）。': 'The most common end was "{c}" ({k}).',
+    '少しずつ数を減らして': 'slowly dwindling away',
+    '計算中…（{n}/100）': 'Calculating… ({n}/100)', '分かれ道を計算中…': 'Calculating the forks…',
+    'あなた': 'You',
+    '今日まで続く確率（それぞれ{n}回ずつ試した目安）': 'Chance of lasting to today (estimated from {n} tries each)',
+    'どの道を選んでも、今日まで続く確率は約{p}%でした。': 'Whichever path you took, the chance of lasting to today was about {p}%.',
+    'どの道を選んでも、ほとんど変わりませんでした（約{lo}〜{hi}%）。': 'Whichever path you took, it barely changed (about {lo}–{hi}%).',
+    '選び方で変えられたのは、約{lo}%から約{hi}%のあいだ。': 'Your choice could only move it between about {lo}% and {hi}%.',
     '地球の24時間': 'Earth in 24 Hours', '生まれる': 'Be born', 'いまの地球': 'Earth now', '今を拡大': 'Zoom into now',
     'lbl.clock': '<span data-tz></span>: 0:00 is the birth of Earth, 24:00 is now.',
     'このときの地球': 'Earth at this moment', '大気中の酸素': 'Oxygen in the air', '今は21%': 'Today: 21%', '1日の長さ': 'Length of a day',
