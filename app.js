@@ -64,6 +64,8 @@
     }
     const gMarks = el('g', { class: 'marks' }, svg);              // 出来事の印（プレイ中の小さな時計）
     let drawn = 0;
+    const gNow = el('g', { class: 'now-mark', visibility: 'hidden' }, svg);   // 「いま」の印（輪の外の三角）。針とは別に、端末の時刻の位置
+    el('path', { d: `M${C},${C - R1 - 2} l-8,-13 h16 Z` }, gNow);
     const hand = el('g', { class: 'hand' }, svg);
     el('line', { x1: C, y1: C - R0 + 6, x2: C, y2: C - R1 - 10 }, hand);
     el('circle', { cx: C, cy: C - R1 - 10, r: 7 }, hand);
@@ -73,6 +75,7 @@
         if (revealPath) revealPath.setAttribute('d', pie(deg));
       },
       select(list) { segs.forEach((p, i) => p.classList.toggle('sel', list.includes(i))); },
+      now(deg) { gNow.setAttribute('transform', `rotate(${deg} ${C} ${C})`); gNow.setAttribute('visibility', 'visible'); },
       // 誕生・分かれ道・進化・淘汰・絶滅を、その時刻の位置に印で置く。新しい印はぽんと現れる
       marks(log) {
         const list = log.filter((e) => ['birth', 'choice', 'evo', 'event', 'dead'].includes(e.kind));
@@ -97,6 +100,7 @@
   let evoScreen = 'birth';
   function show(name) {
     for (const k in SCREENS) $(SCREENS[k]).hidden = k !== name;
+    document.body.dataset.screen = name;
     if (name !== 'birth') { $('b-cert-modal').hidden = true; $('b-none').hidden = true; }
     const tab = ['birth', 'play', 'result'].includes(name) ? 'evo' : name;
     if (tab === 'evo') evoScreen = name;
@@ -225,18 +229,26 @@
     $('live-ago').textContent = fmtAgo(ya);
     $('live-era').textContent = `${E.LANG === 'en' ? '· ' : '・'}${periodLabel(ya)}`;
     if (!G.spinning) $('b-now').textContent = T('いまの地球時計の時代（{a}）を引く', { a: fmtAgo(ya) });
+    $('b-live').innerHTML = T('<span class="nm">▼</span>いま <b>{t}</b> ＝ <b class="ago">{a}</b>の地球', { t, a: fmtAgo(ya) });
+    bDial.now(fracOf(ya) * 360);
+    if (G.follow && !G.spinning) { G.angle = fracOf(ya) * 360; G.handYa = ya; bDial.set(G.angle); }   // 回す前の針は、時計として「いま」を指す
+    $('b-human').innerHTML = ya > 3e5
+      ? T('ホモ・サピエンスの誕生（毎晩 <b>{c}</b>）まで、あと <b>{t}</b>', { c: fmtClock(3e5), t: fmtCountdown((ya - 3e5) / S * DAY) })
+      : T('人類の時代です。24:00まで、あと <b>{t}</b>', { t: fmtSec(DAY - sec) });
     sinceTick();
     if (DAILY && G.day !== new Date().getDate()) { G.day = new Date().getDate(); if (G.ready) renderDaily(); }   // 日付が変わったら今日のお題も変わる
   }
   let lastHomeTick = 0;
   function homeLoop() {
     liveTick();
+    bGlobeTick();
     if (!$('screen-home').hidden) { homeTick(); lastHomeTick = performance.now(); }
     requestAnimationFrame(homeLoop);
   }
   // アニメーションが止まる環境（裏のタブ、プレビュー）でも時計は進める
   setInterval(() => {
     liveTick();
+    bGlobeTick();
     if (!$('screen-home').hidden && performance.now() - lastHomeTick > 400) { homeTick(); lastHomeTick = performance.now(); }
   }, 500);
   $('live').addEventListener('click', () => show(HOME_TAB ? 'home' : 'now'));
@@ -605,8 +617,17 @@
     if ($('b-era-info').hidden || $('b-era-info').contains(ev.target) || $('b-dial').contains(ev.target)) return;
     closeEra();
   });
-  bDial.set(0);
-  const G = { angle: 0, spinning: false, birth: null };
+  const G = { angle: 0, spinning: false, birth: null, follow: true, handYa: S };
+  // 時計の中央の地球は、針の指す時代のすがた。ルーレットが回るあいだは、46億年を早回しで移り変わる
+  const BGL = { ctx: null, last: 0 };
+  { const c = $('b-globe'); c.width = c.height = E.globe.N; BGL.ctx = c.getContext('2d'); }
+  function bGlobeTick(force) {
+    if ($('screen-birth').hidden) return;
+    const nowMs = performance.now();
+    if (!force && nowMs - BGL.last < (G.spinning ? 50 : 100)) return;
+    BGL.last = nowMs;
+    E.globe.draw(BGL.ctx, G.handYa, REDUCE ? 0.6 : nowMs * 0.00028);
+  }
 
   const DUP = ['', '', '②', '③', '④', '⑤'];
   const nameOf = (L) => tr(L.name) + (L.dup ? ` ${DUP[L.dup] || ''}` : '');
@@ -683,10 +704,18 @@
     $('eras-sum').textContent = total ? T('ルーレットを回した回数：{n}回', { n: total.toLocaleString() }) : T('ルーレットで出た時代が、ここに集まります。まだの時代は、出る確率だけが見えます。');
   }
   const setPrimary = (rolled) => { $('b-spin').classList.toggle('btn-primary', !rolled); $('b-born').classList.toggle('btn-primary', rolled); };
+  const ROLL_PARTS = ['br-new', 'br-prob', 'br-who', 'b-born', 'br-done'];
+  function rollShow(ya) {
+    const s = SLOTS[slotOf(ya)];
+    $('br-dot').style.background = s.color;
+    $('br-name').textContent = tr(s.name);
+    $('br-when').textContent = `${T('地球時計 {c}', { c: fmtClock(ya) })}${SEP}${fmtAgo(ya)}`;
+  }
   function onRoll(t) {
     const i = slotOf(t), R = erasLoad(), isNew = !R.s[i], s = SLOTS[i];
     R.s[i]++; erasSave(R);
     G.roll = { t, drawn: false };
+    $('br-prob').hidden = false; $('br-who').hidden = false;
     $('br-new').hidden = !isNew;
     $('br-dot').style.background = s.color;
     $('br-name').textContent = tr(s.name);
@@ -702,6 +731,7 @@
     $('b-roll').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });   // 「この時代に生まれる」が画面に入るように
     setPrimary(true);
     renderEras(isNew ? i : -1);
+    if (isNew) setTimeout(() => eraNew(i), REDUCE ? 0 : 250);       // はじめての時代：図鑑のマスが光って埋まる
   }
   // 生き物のガチャ：1つの時代で1回だけ。気に入らなければ、時代から回し直す
   $('b-born').addEventListener('click', () => {
@@ -744,7 +774,7 @@
   const OPENED = Date.now();
   function sinceTick() {
     const s = Math.max(1, Math.floor((Date.now() - OPENED) / 1000));
-    $('b-since').textContent = T('このページを開いてから{t}。そのあいだに地球時計では、約{y}年が流れました。', { t: fmtSec(s), y: fmtYears(s / DAY * S) });
+    $('b-since').innerHTML = T('このページを開いてから <b>{t}</b>。<br>地球時計では、約<b>{y}年</b>が流れました。', { t: fmtSec(s), y: fmtYears(s / DAY * S) });
   }
   try { localStorage.removeItem('earth24.birthYear'); } catch (e) { /* 生まれた年の比較は廃止。前に入れた値を消す */ }
 
@@ -783,9 +813,10 @@
     $('b-daily').disabled = true;
     $('b-none').hidden = true;
     $('b-cert-wrap').hidden = true;
-    $('b-roll').hidden = true;
+    ROLL_PARTS.forEach((id) => { $(id).hidden = true; });
+    $('b-roll').hidden = false;
     openCert(false);
-    G.birth = null; G.roll = null;
+    G.birth = null; G.roll = null; G.follow = false;
     const target = fracOf(t) * 360;
     const start = G.angle % 360;
     const end = start + 360 * 3 + ((target - start + 360) % 360);
@@ -795,11 +826,12 @@
       const deg = start + (end - start) * e;
       bDial.set(deg);
       const ya = Math.max(1, (1 - (deg % 360) / 360) * S);
-      setClock($('b-clock'), fmtClock(ya));
-      $('b-ago').textContent = fmtAgo(ya);
-      $('b-era').textContent = tr(SLOTS[slotOf(ya)].name);
+      G.handYa = ya;
+      rollShow(ya);
+      bGlobeTick();
       if (k < 1) { requestAnimationFrame(stepAnim); return; }
       G.angle = target; bDial.set(target);
+      G.handYa = t; rollShow(t); bGlobeTick(true);
       G.spinning = false;
       $('b-spin').disabled = false;
       $('b-now').disabled = false;
@@ -812,9 +844,7 @@
   }
 
   function onBorn(t, daily = null) {
-    setClock($('b-clock'), fmtClock(t));
-    $('b-ago').textContent = fmtAgo(t);
-    $('b-era').textContent = tr(SLOTS[slotOf(t)].name);
+    G.follow = false; G.handYa = t; G.angle = fracOf(t) * 360; bDial.set(G.angle);
     const options = evo.birthOptions(t);
     if (!options.length) {
       G.noneYa = t;
@@ -1641,6 +1671,11 @@
   const DN = { stages: [], timers: [], finish: null };
   function dnCell(kind, k, F, filled) {
     const c = document.createElement('div'); c.className = 'dn-cell';
+    if (kind === 'r') {                                              // 時代の図鑑：その時代の色と名前
+      c.classList.add('era');
+      if (filled) { c.style.background = SLOTS[k].color; c.textContent = tr(SLOTS[k].name); } else c.textContent = '？';
+      return c;
+    }
     if (kind === 'e' && !filled) { c.textContent = '？'; return c; }
     const cv = document.createElement('canvas');
     if (kind === 'e') {
@@ -1664,17 +1699,25 @@
     $('dexnew').hidden = false;
     dnStage(0);
   }
+  function eraNew(i) {
+    const R = erasLoad(), had = {};
+    R.s.forEach((c, k) => { if (c && k !== i) had[k] = true; });
+    DN.stages = [{ kind: 'r', keys: SLOTS.map((_, k) => k), had, news: [i] }];
+    DN.F = null;
+    $('dexnew').hidden = false;
+    dnStage(0);
+  }
   function dnStage(i) {
     const S0 = DN.stages[i], F = DN.F, grid = $('dn-grid');
     DN.i = i;
     DN.timers.forEach(clearTimeout); DN.timers = [];
     grid.textContent = '';
-    grid.className = `dn-grid ${S0.kind === 'e' ? 'ends' : 'forms'}`;
+    grid.className = `dn-grid ${S0.kind === 'e' ? 'ends' : S0.kind === 'r' ? 'eras' : 'forms'}`;
     const cells = {};
     S0.keys.forEach((k) => { const c = dnCell(S0.kind, k, F, !!S0.had[k]); cells[k] = c; grid.appendChild(c); });
     let n = S0.keys.filter((k) => S0.had[k]).length;
     const all = S0.keys.length;
-    $('dn-ttl').textContent = S0.kind === 'e' ? T('結末の図鑑に登録！') : T('生き物の図鑑に登録！');
+    $('dn-ttl').textContent = S0.kind === 'e' ? T('結末の図鑑に登録！') : S0.kind === 'r' ? T('時代の図鑑に登録！') : T('生き物の図鑑に登録！');
     $('dn-count').textContent = `${n} / ${all}`;
     $('dn-cap').textContent = '';
     const last = i === DN.stages.length - 1;
@@ -1687,7 +1730,7 @@
       cells[k].replaceWith(c); cells[k] = c;
       n++;
       $('dn-count').textContent = `${n} / ${all}`;
-      names.push(S0.kind === 'e' ? endingLabel(evo.ENDINGS.find((e) => e.id === k)) : tr(dexName(k)));
+      names.push(S0.kind === 'e' ? endingLabel(evo.ENDINGS.find((e) => e.id === k)) : S0.kind === 'r' ? (E.LANG === 'en' ? `${tr(SLOTS[k].name)} (${T('{p}分の1', { p: fmtOneIn(1 / SLOTS[k].p) })})` : `${tr(SLOTS[k].name)}（${T('{p}分の1', { p: fmtOneIn(1 / SLOTS[k].p) })}）`) : tr(dexName(k)));
       $('dn-cap').textContent = names.join(E.LANG === 'en' ? ', ' : '、');
     };
     let done = false;
