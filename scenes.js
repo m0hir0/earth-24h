@@ -549,6 +549,10 @@
      分かれ道で体のつくりや特徴が変わると、絵も変わる */
   const MICRO_PLANS = ['microbe', 'cyano', 'cell', 'colony'];
   const PLAYER_SPR = {
+    plant: ['moss', { a: '#4f8a3a', b: '#8ab04a', c: '#3a6a2a', d: '#6a5030' }, 2],
+    fern: ['fern', { a: '#3a8a4a', b: '#6a5030' }, 2],
+    seed: ['conifer', { a: '#2f6a3a', b: '#6a4a2a' }, 2],
+    flower: ['flower', { a: '#4f8a3a', b: '#f06a8a', c: '#ffd84a' }, 2],
     arthropod: ['trilo', { a: '#d4a24c', b: '#7a5a20', c: '#ecc878', e: '#1a1a1a' }, 2],
     insect: ['dragonfly', { a: '#2f6f9a', b: '#1f4f7a', k: '#18304a', w: 'rgba(235,248,255,0.85)' }, 2],
     sponge: ['sponge', { a: '#e0a050', b: '#7a4a20', c: '#b07030' }, 2],
@@ -580,6 +584,7 @@
     turtle: ['turtle', { a: '#6a8a4a', b: '#3e5a2e', c: '#9ab07a' }, 2],
     feather: ['raptor', { a: '#3a7ab0', c: '#2a2a2a' }, 2],
     // 時代の分かれ道でなる姿（evo.js の SUBS）
+    grass: ['grass', { a: '#8ab04a' }, 2],
     coela: ['coela', { a: '#4a5a8a', b: '#c8d0e0', c: '#3a4a70' }, 2],
     eelfish: ['eel', { a: '#5a6a3a', b: '#3a4a2a', c: '#a0b070' }, 2],
     deepsea: ['angler', { a: '#3a3a4a', b: '#f0f080', k: '#f0f0a0' }, 2],
@@ -615,6 +620,65 @@
   });
   // 細かいドットで描き直した生き物（1マス＝ふつうの点の半分）。a 体、b 濃いところ、c 明るいところ、k 目
   const HI = {
+    moss: [
+      '..b..b...b..',
+      '.aaa.aa.aaa.',
+      'aacaaaacaaca',
+      'aaaaaaaaaaaa',
+      '.dddddddddd.',
+    ],
+    fern: [
+      '......a......',
+      '....a.a.a....',
+      '...a.aaa.a...',
+      '..a.a.a.a.a..',
+      '.a..aaaaa..a.',
+      '...a.aaa.a...',
+      '..a..aaa..a..',
+      '.a.a.aaa.a.a.',
+      'a...aaaaa...a',
+      '.....aaa.....',
+      '......b......',
+      '.....bbb.....',
+    ],
+    conifer: [
+      '....a....',
+      '...aaa...',
+      '..aaaaa..',
+      '...aaa...',
+      '..aaaaa..',
+      '.aaaaaaa.',
+      '..aaaaa..',
+      '.aaaaaaa.',
+      'aaaaaaaaa',
+      '..aaaaa..',
+      '.aaaaaaa.',
+      'aaaaaaaaa',
+      'aaaaaaaaa',
+      '....b....',
+      '....b....',
+      '...bbb...',
+    ],
+    flower: [
+      '...bbb...',
+      '..bbcbb..',
+      '.bbcccbb.',
+      '..bbcbb..',
+      '...bbb...',
+      '....a....',
+      '.aa.a....',
+      'aaaaa.aa.',
+      '....aaaa.',
+      '....a....',
+      '....a....',
+    ],
+    grass: [
+      'a..a...a..a..',
+      'a.aa.a.aa.a.a',
+      'aaa.aaa.aaaa.',
+      '.aaaaaaaaaaaa',
+      'aaaaaaaaaaaaa',
+    ],
     coela: [
       '......aa..........',
       '.....aaaa.........',
@@ -1280,7 +1344,7 @@
     const x = cx - Math.round(w / 2) + (card ? 0 : Math.round(Math.sin(t * 0.07) * 4));
     if (fly && name === 'pteroA' && t % 4 >= 2 && !card) spr = SPR.pteroB;
     P.sprite(spr, pal, x, y, false, s);
-    if ((look.armor || 0) >= 65 && !['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned'].includes(look.v || plan) && plan !== 'arthropod' && plan !== 'armorfish') spikes(P, rows, x, y, cell, '#5a4a3a');
+    if ((look.armor || 0) >= 65 && !['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned', 'plant', 'fern', 'seed', 'flower', 'grass'].includes(look.v || plan) && plan !== 'arthropod' && plan !== 'armorfish') spikes(P, rows, x, y, cell, '#5a4a3a');
     if (look.feather && (plan === 'dino_small' || plan === 'theropod')) {    // 羽毛：頭のとさかと、背中・しっぽの羽
       const f = cell;
       [[w - 4 * f, -f, '#e0503a'], [w - 3 * f, -2 * f, '#f0c040'], [w - 5 * f, 0, '#e0503a']].forEach(([dx, dy, c]) => P.rect(x + dx, y + dy, f * 2, f, c));
