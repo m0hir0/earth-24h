@@ -13,6 +13,10 @@
     cyano:     { name: '光合成する微生物', today: 'シアノバクテリア。今も海や湖で酸素をつくっている', base: [2, 10, 5, 0, 60] },
     cell:      { name: '核を持つ単細胞生物', today: 'アメーバやゾウリムシの仲間', base: [5, 10, 25, 3, 55] },
     colony:    { name: '多細胞のかたまり', today: '海藻や菌類の仲間', base: [12, 15, 10, 3, 50] },
+    plant:     { name: '陸の植物（コケの仲間）', today: 'コケの仲間。今も森の地面や岩をおおっている', base: [5, 10, 0, 0, 60] },
+    fern:      { name: 'シダ植物', today: 'シダやトクサの仲間', base: [30, 15, 0, 0, 50] },
+    seed:      { name: '種で増える植物', today: 'マツやイチョウ、ソテツの仲間', base: [70, 30, 0, 0, 45] },
+    flower:    { name: '花を咲かせる植物', today: '今の陸の植物の9割近くを占める、花を咲かせる植物', base: [30, 20, 0, 0, 70] },
     sponge:    { name: '海綿の仲間', today: '今も海底で水をこしている海綿', base: [15, 35, 0, 0, 55] },
     ediacaran: { name: 'エディアカラ生物', today: '子孫ははっきりしていない', base: [30, 5, 5, 2, 30] },
     soft:      { name: 'やわらかい体の動物', today: 'ゴカイやクラゲの仲間', base: [10, 5, 30, 8, 50] },
@@ -44,6 +48,7 @@
   const TRAIT_LABEL = { size: '大きさ', armor: '守り', speed: '動き', brain: '知恵', adapt: '適応力' };
   const TRAIT_SHORT = { ...TRAIT_LABEL };                          // 狭い表で使う短い名前
   const MICRO = new Set(['microbe', 'cyano', 'cell', 'colony']);
+  const PLANTS = new Set(['plant', 'fern', 'seed', 'flower']);     // 藻類から陸へ上がった植物（動物の分かれ道は通らない）
   const HAB_LABEL = { shallow: '浅い海', sea: '海', deep: '深海の熱水のそば', land: '陸', air: '空', fresh: '川や沼' };
 
   /* ---------------- ガチャで生まれる生き物 ---------------- */
@@ -190,6 +195,7 @@
   }
   function setPlan(L, plan) {
     if (L.plan === plan) return;
+    L.bloom = 1;
     const b = PLANS[plan].base;
     TRAITS.forEach((k, i) => (L.traits[k] = Math.round((L.traits[k] + b[i] * 2) / 3)));
     L.plan = plan;
@@ -288,7 +294,7 @@
       ],
     },
     {
-      id: 'microLand', from: 4.7e8, to: 4.0e8, when: (L) => MICRO.has(L.plan) && L.habitat !== 'deep',
+      id: 'microLand', from: 4.7e8, to: 4.0e8, when: (L) => MICRO.has(L.plan) && L.habitat !== 'deep' && !(L.plan === 'colony' && L.flags.photo),
       q: '陸に、植物が根を下ろしはじめた。',
       ctx: 'それまで岩と砂だけだった陸に、小さな緑が広がっていく。',
       opts: [
@@ -322,6 +328,88 @@
           apply: (L) => { L.flags.gut = 1; L.flags.humanGut = 1; } },
         { label: '人から離れて暮らす', desc: '人間とかかわらず、これまでのすみかで生きる。', real: '',
           apply: (L) => { bump(L, { adapt: 3 }); } },
+      ],
+    },
+    // 藻類から植物へ：陸へ上がる → 水を運ぶ茎 → 種 → 花 → 草
+    {
+      id: 'landPlant', from: 4.7e8, to: 4.2e8, when: (L) => L.plan === 'colony' && L.flags.photo,
+      q: '陸には、まだ緑がない。水辺から陸へ上がる？',
+      ctx: 'オルドビス紀。海には藻類があふれているが、陸は岩と砂ばかり。',
+      opts: [
+        { label: '乾きに強い体で、陸へ上がる', desc: 'コケのように地面に張りつき、乾いても耐える体になる。', real: '陸に最初に広がった植物は、コケに近い小さな植物だった。',
+          apply: (L) => { setPlan(L, 'plant'); L.habitat = 'land'; L.name = 'コケの仲間'; } },
+        { label: '海に残り、海藻の森をつくる', desc: 'なじんだ海で、光を浴びて暮らし続ける。', real: '',
+          apply: (L) => { bump(L, { adapt: 5 }); } },
+      ],
+    },
+    {
+      id: 'vascular', from: 4.3e8, to: 3.7e8, when: (L) => L.plan === 'plant',
+      q: '茎の中に、水を運ぶ管をつくる？',
+      ctx: 'シルル紀からデボン紀。陸の植物は、まだ地面すれすれの高さしかない。',
+      opts: [
+        { label: '茎に水の通り道をつくり、高く伸びる', desc: '根から葉まで水を運べるようになり、背が高くなる。', real: '水を運ぶ管（維管束）を持つ植物が現れ、のちの森につながった。',
+          apply: (L) => { setPlan(L, 'fern'); L.name = 'シダの仲間'; } },
+        { label: '低く地面をおおって広がる', desc: '背は低いまま、湿った地面いっぱいに広がる。', real: 'コケの仲間は、今も森の地面や岩をおおっている。',
+          apply: (L) => { bump(L, { adapt: 10 }); L.N = Math.min(CAP, L.N * 1.3); } },
+      ],
+    },
+    {
+      id: 'seedPlant', from: 3.7e8, to: 3.0e8, when: (L) => L.plan === 'fern',
+      q: '乾いた土地でも子を残せる「種」をつくる？',
+      ctx: 'デボン紀の終わりから石炭紀。シダの森が広がっているが、胞子で増えるには水がいる。',
+      opts: [
+        { label: '乾いても芽を出せる種をつくる', desc: '種の中に栄養をたくわえ、乾いた土地にも広がる。', real: '種で増える植物（裸子植物）が現れ、乾いた大陸の内側にも森ができた。',
+          apply: (L) => { setPlan(L, 'seed'); L.name = 'マツやイチョウの仲間'; } },
+        { label: '胞子のまま、湿った森で栄える', desc: '石炭紀の湿った大森林の主役であり続ける。', real: '石炭紀の巨大なシダやリンボクの森が、のちの石炭になった。',
+          apply: (L) => { L.N = Math.min(CAP, L.N * 1.4); } },
+      ],
+    },
+    {
+      id: 'plantA', from: 2.9e8, to: 2.6e8, when: (L) => PLANTS.has(L.plan),
+      q: 'ペルム紀の乾いた大地を、どう生きる？',
+      ctx: '大陸がひとつにまとまり、内陸は乾いている。',
+      opts: [
+        { label: '高く育ち、光を独り占めする', desc: '強くなるが、環境の急な変化に弱くなる。', real: 'ペルム紀には、イチョウやソテツの祖先が森をつくりはじめた。',
+          apply: (L) => bump(L, { size: 15, adapt: -5 }) },
+        { label: '小さく、早く芽を出す', desc: 'どんな時代でも生き延びやすい。', real: '',
+          apply: (L) => bump(L, { size: -15, adapt: 15 }) },
+        { label: 'とげや毒で、食べられないようにする', desc: '食べられて減りにくくなる。', real: '葉を食べる動物が増え、植物も身を守る工夫を重ねていった。',
+          apply: (L) => bump(L, { armor: 15 }) },
+      ],
+    },
+    {
+      id: 'flowerPlant', from: 1.4e8, to: 1.0e8, when: (L) => L.plan === 'seed',
+      q: '花を咲かせ、虫に花粉を運んでもらう？',
+      ctx: '白亜紀。恐竜が歩く森で、虫たちが植物のあいだを飛び回っている。',
+      opts: [
+        { label: '花を咲かせ、虫と手を組む', desc: '花のみつで虫を呼び、花粉を運んでもらう。', real: '花を咲かせる植物は白亜紀に現れ、たちまち世界中に広がった。',
+          apply: (L) => { setPlan(L, 'flower'); L.name = '花を咲かせる植物'; } },
+        { label: '風で花粉を飛ばし、針葉樹の森をつくる', desc: '背の高い木になり、寒い土地にも森を広げる。', real: 'マツやスギの仲間は、今も寒い土地で大きな森をつくっている。',
+          apply: (L) => bump(L, { armor: 10, adapt: 5 }) },
+      ],
+    },
+    {
+      id: 'plantB', from: 6.0e7, to: 4.0e7, when: (L) => PLANTS.has(L.plan),
+      q: '恐竜のいない世界を、どう生きる？',
+      ctx: '新しく増えた哺乳類や鳥が、葉や実を食べはじめた。',
+      opts: [
+        { label: '高く育ち、光を独り占めする', desc: '強くなるが、環境の急な変化に弱くなる。', real: '古第三紀のはじめは暖かく、北極の近くまで森が広がった。',
+          apply: (L) => bump(L, { size: 15, adapt: -5 }) },
+        { label: '甘い実をつけ、動物に種を運ばせる', desc: '食べられることで、遠くへ広がる。', real: '実を食べる鳥や哺乳類が、種を遠くまで運ぶようになった。',
+          apply: (L) => { bump(L, { adapt: 10 }); L.N = Math.min(CAP, L.N * 1.3); } },
+        { label: 'とげや毒で、食べられないようにする', desc: '食べられて減りにくくなる。', real: 'バラのとげやトウガラシの辛さも、食べられないための工夫だ。',
+          apply: (L) => bump(L, { armor: 15 }) },
+      ],
+    },
+    {
+      id: 'grassPlant', from: 3.0e7, to: 1.0e7, when: (L) => L.plan === 'flower',
+      q: '地球が乾いていく。どんな姿で広がる？',
+      ctx: '新第三紀。森が縮み、乾いた大地が広がっている。',
+      opts: [
+        { label: '草になって、乾いた大地を草原に変える', desc: '背の低い草になり、食べられてもすぐに伸びる。', real: '草原は新第三紀に広がり、ウマやゾウの仲間を育てた。',
+          apply: (L) => { L.flags.sub = 'grass'; L.name = '草の仲間'; bump(L, { size: -10, adapt: 10 }); } },
+        { label: '森の木であり続ける', desc: '大きな木になって、森を支える。', real: '',
+          apply: (L) => bump(L, { size: 10 }) },
       ],
     },
     {
@@ -425,7 +513,7 @@
       ],
     },
     {
-      id: 'ptPrep', from: 2.6e8, to: 2.52e8, when: (L) => !MICRO.has(L.plan),
+      id: 'ptPrep', from: 2.6e8, to: 2.52e8, when: (L) => !MICRO.has(L.plan) && !PLANTS.has(L.plan),
       q: 'シベリアで大噴火が始まった。空気と海が熱くなり、酸素が減っていく。',
       ctx: '何十万年も続く噴火。地球の歴史で最悪の時代が近づいている。',
       opts: [
@@ -694,6 +782,7 @@
     { v: 'spider', plan: 'arthropod', k: 1, from: 3.9e8, to: 0, need: 'land' },
     { v: 'scorpion', plan: 'arthropod', k: 3, from: 4.3e8, to: 0, need: 'land' },
     { v: 'frog', plan: 'amphibian', k: 1, from: 2e8, to: 0 },
+    { v: 'grass', plan: 'flower', k: -1, from: 3e7, to: 0 },       // 時代の分かれ道ではなく grassPlant でなる
   ];
   const subFor = (L, k, from, to) => SUBS.find((s) => s.plan === L.plan && s.k === k && s.from > to && s.to < from && (!s.need || s.need === L.habitat) && L.flags.sub !== s.v);
   const ageFx = (i, k) => {
@@ -748,7 +837,7 @@
     const tx = AGE_TEXT[i][g];
     NODES.push({
       id: `age${i}-${g}`, from, to,
-      when: (L) => !MICRO.has(L.plan) && L.plan !== 'human' && ageGroup(L) === g && !AGE_GROUPS.some((x) => L.taken.has(`age${i}-${x}`)),
+      when: (L) => !MICRO.has(L.plan) && !PLANTS.has(L.plan) && L.plan !== 'human' && ageGroup(L) === g && !AGE_GROUPS.some((x) => L.taken.has(`age${i}-${x}`)),
       q: `${age}を、どう生きる？`, ctx,
       opts: AGE_BASE.map((_, k) => ({ label: tx ? tx[k][0] : AGE_GENERIC[k], desc: (AGE_MOD[i][k] || [])[2] || AGE_DESC[k], real: tx ? tx[k][1] : '', apply: ageFx(i, k) })),
     });
@@ -803,6 +892,7 @@
     microbe: 100000, cyano: 5000, cell: 50000, colony: 10000, sponge: 9000, ediacaran: 200, soft: 20000,
     arthropod: 20000, anomalo: 50, jawless: 500, fish: 30000, shark: 1200, armorfish: 1000, insect: 1000000,
     amphibian: 8000, reptile: 12000, synapsid: 1000, marine_reptile: 500, pterosaur: 200, dino_small: 600,
+    plant: 20000, fern: 12000, seed: 3000, flower: 300000,
     sauropod: 300, theropod: 600, bird: 11000, mammal: 6500, mammal_large: 2000, whale: 90, primate: 500,
     hominin: 20, human: 1,
   };
@@ -810,7 +900,7 @@
   const round2 = (x) => { if (x < 100) return Math.round(x); const p = 10 ** (Math.floor(Math.log10(x)) - 1); return Math.round(x / p) * p; };
   function realCount(L, n = L.N) {
     if (!(n > 0)) return 0;
-    return Math.max(1, round2((REAL[L.plan] || 1000) * Math.min(n, CAP) / CAP));
+    return Math.max(1, round2((REAL[L.plan] || 1000) * Math.min(n, CAP) / CAP * (L.bloom || 1)));
   }
   function rates(L, ya) {
     const T = L.traits;
@@ -821,6 +911,7 @@
     const pred = (ya > 3.59e8 && ya < 5.39e8) || (ya > 6.6e7 && ya < 2.3e8) ? 1.6 : 1;
     let mu = 0.22 * (0.82 + T.size / 400 - T.armor * pred / 300 - T.adapt / 300);
     if (MICRO.has(L.plan)) { lam *= 0.15; mu *= 0.12; }
+    if (PLANTS.has(L.plan)) mu *= 0.75;                             // 植物は動物より絶えにくい
     if (L.plan === 'anomalo' && ya < 4.4e8) mu *= 3;
     if (L.plan === 'amphibian' && ya < 3.0e8) mu *= 1.4;
     if (L.plan === 'synapsid' && ya < 2.3e8) mu *= 1.8;
@@ -840,8 +931,80 @@
   function gauss(rnd) { return Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd()); }
 
   // dtY 年ぶん進める（grace: 背景の絶滅を止める）
+  // その仲間の栄え方の出来事（化石の記録にもとづく目安）：[何年前, 体のつくり（空白区切り）, 種の数の倍率, 理由]
+  //   その時期を通ると、理由つきで種の数が増えたり減ったりする（ふだんのゆらぎとは別）。あなたの系統は L.envLog に残し、画面のタイムラインに出す
+  const BOOMS = [
+    [2.7e9, 'cyano', 1.3, 'ストロマトライトが浅い海いっぱいに広がった'],
+    [5.5e8, 'cyano', 0.8, '海底をかじる動物が現れ、ストロマトライトが減りはじめた'],
+    [8e8, 'colony', 1.2, '藻類が海に広がり、緑の海が増えた'],
+    [5.6e8, 'ediacaran', 1.3, 'エディアカラ生物が、海の底いっぱいに広がった'],
+    [5.25e8, 'sponge', 1.2, '海綿の仲間が礁をつくり、すみかを広げた'],
+    [5.3e8, 'soft', 1.2, 'カンブリア爆発。動物の体の形が一気に増えた'],
+    [5.2e8, 'arthropod', 1.4, '三葉虫の仲間が海じゅうに広がった。カンブリア紀は三葉虫の黄金時代'],
+    [4.6e8, 'arthropod', 1.2, 'オルドビス紀の大放散。礁が広がり、すみかが増えた'],
+    [4.2e8, 'arthropod', 0.8, 'あごを持つ魚が増え、海の底で食べられる仲間が増えた'],
+    [3.8e8, 'arthropod', 0.8, '三葉虫の仲間は、少しずつ種類を減らしていった'],
+    [1.8e8, 'arthropod', 1.3, 'カニやエビの仲間が増えはじめた'],
+    [5.1e8, 'anomalo', 0.8, '捕食者どうしの競争が激しくなった'],
+    [4.3e8, 'jawless', 0.8, 'あごを持つ魚に押され、あごのない魚は減っていった'],
+    [3.9e8, 'armorfish', 1.2, '板皮類が、海の王者として栄えた'],
+    [4e8, 'fish', 1.2, 'デボン紀「魚の時代」。海にも川にも魚が広がった'],
+    [1e8, 'fish', 1.3, '今の魚につながる仲間（真骨魚）が、一気に種類を増やした'],
+    [5e7, 'fish', 1.2, 'サンゴ礁の魚が大きく増えた'],
+    [3.4e8, 'shark', 1.3, '石炭紀はサメの黄金時代。いろいろな形のサメが現れた'],
+    [1e8, 'shark', 1.15, '今のサメやエイにつながる仲間が増えた'],
+    [3.1e8, 'insect', 1.3, '石炭紀の森で、昆虫が大きくなり種類を増やした'],
+    [1.2e8, 'insect', 1.4, '花を咲かせる植物が広がり、花に集まる昆虫が一気に増えた'],
+    [5e7, 'insect', 1.2, '暖かい森で、アリやチョウの仲間が増えた'],
+    [3.3e8, 'amphibian', 1.3, '石炭紀の湿った森は、両生類の楽園だった'],
+    [2.9e8, 'amphibian', 0.8, '気候が乾き、水辺に頼る両生類は減った'],
+    [2.4e8, 'amphibian', 0.85, 'は虫類との競争で、両生類は脇役になった'],
+    [2.9e8, 'reptile', 1.2, '乾いた大地に、殻のある卵を産むは虫類が広がった'],
+    [1e8, 'reptile', 1.3, 'トカゲやヘビの仲間が大きく増えた'],
+    [2.8e8, 'synapsid', 1.3, 'ペルム紀の陸の主役は、単弓類だった'],
+    [2.4e8, 'synapsid', 0.75, '大絶滅のあと、恐竜の祖先たちに押されて減っていった'],
+    [2.1e8, 'dino_small sauropod theropod', 1.2, '三畳紀の終わり、恐竜が数を増やしはじめた'],
+    [1.6e8, 'dino_small sauropod theropod', 1.3, 'ジュラ紀、恐竜は大陸じゅうに広がった'],
+    [8e7, 'dino_small sauropod theropod', 1.2, '白亜紀の終わり、恐竜の種類はいちばん多くなった'],
+    [2e8, 'marine_reptile', 1.2, 'ジュラ紀の海で、魚竜や首長竜が栄えた'],
+    [9e7, 'marine_reptile', 0.8, '魚竜が姿を消し、海のは虫類の仲間が減った'],
+    [1.5e8, 'pterosaur', 1.2, '翼竜が空で栄えた'],
+    [1e8, 'pterosaur', 0.8, '鳥が増え、小さな翼竜は姿を消していった'],
+    [1.2e8, 'bird', 1.2, '白亜紀、鳥はさまざまな仲間に分かれた'],
+    [6e7, 'bird', 1.4, '恐竜が消えた空で、鳥が一気に種類を増やした'],
+    [2.5e7, 'bird', 1.2, '小鳥の仲間が世界中に広がった'],
+    [1.6e8, 'mammal', 1.1, '夜の森で、小さな哺乳類が少しずつ種類を増やした'],
+    [6e7, 'mammal', 1.5, '恐竜が消え、哺乳類が一気に種類を増やした'],
+    [3e7, 'mammal', 1.2, 'ネズミの仲間が世界中に広がった'],
+    [5e7, 'mammal_large', 1.3, '暖かい森で、大きな哺乳類が種類を増やした'],
+    [1.5e7, 'mammal_large', 1.3, '草原が広がり、草を食べる大きな哺乳類が増えた'],
+    [4.5e7, 'whale', 1.3, 'クジラの祖先が海になじみ、種類を増やした'],
+    [3e7, 'whale', 1.3, 'ヒゲクジラとハクジラの仲間に分かれた'],
+    [5e7, 'primate', 1.3, '暖かい森が広がり、霊長類が増えた'],
+    [3.4e7, 'primate', 0.8, '寒冷化で森が減り、霊長類は減った'],
+    [2e7, 'primate', 1.2, '類人猿の仲間が栄えた'],
+    [8e6, 'primate', 0.8, '森が減り、類人猿は数を減らした'],
+    [4.2e8, 'plant', 1.3, '陸の水辺に、緑が広がりはじめた'],
+    [3.6e8, 'fern', 1.4, 'シダの大森林が、陸をおおった'],
+    [3.05e8, 'fern', 0.8, '気候が乾き、湿ったシダの森が縮んだ'],
+    [2.9e8, 'seed', 1.2, '乾いた大地に、種で増える植物が広がった'],
+    [1.0e8, 'seed', 0.8, '花を咲かせる植物に押され、種類を減らした'],
+    [1.0e8, 'flower', 1.5, '花を咲かせる植物が、世界中に広がった'],
+    [2.0e7, 'flower', 1.2, '草原が広がり、草の仲間が増えた'],
+  ].map(([ya, plans, m, text]) => ({ ya, plans: plans.split(' '), m, text }));
+  function boomTick(L, hi, lo) {
+    for (const b of BOOMS) {
+      if (b.ya > hi || b.ya <= lo || !b.plans.includes(L.plan)) continue;
+      const before = realCount(L), target = L.N * b.m;
+      // 上限いっぱいで栄えたときは、画面の種の数だけを「栄え具合」で増やす（L.bloom、最大1.6倍。体のつくりが変わると1に戻る）
+      if (target > CAP) { L.bloom = Math.min(1.6, (L.bloom || 1) * target / CAP); L.N = CAP; } else L.N = Math.max(1, target);
+      const after = realCount(L);
+      if (L.isPlayer && after !== before) (L.envLog = L.envLog || []).push({ ya: b.ya, text: b.text, before, after });
+    }
+  }
   function step(L, ya, dtY, rnd, grace) {
     if (!L.alive || L.plan === 'human') return;
+    boomTick(L, ya + dtY / 2, ya - dtY / 2);
     const { lam, mu } = rates(L, ya);
     const dt = dtY / M;
     if (L.N >= 30) {
@@ -1059,6 +1222,16 @@
       ['落ち葉を分解して、森の土を少しずつ豊かにした。', null],
       ['植物の根から糖をもらい、かわりに窒素を渡した。', { adapt: 1 }],
     ],
+    plant: [
+      ['朝日を浴びて、葉いっぱいに光合成をした。', null],
+      ['雨が降り、根から水をたっぷり吸い上げた。', null],
+      ['風に乗って、胞子や種が遠くの土地へ飛んでいった。', { adapt: 2 }],
+      ['虫に葉をかじられたが、また新しい芽を出した。', { armor: 1 }],
+      ['日照りが続き、葉を落として耐えた。', { adapt: 2 }],
+      ['落ち葉が積もって、足もとに新しい土ができた。', null],
+      ['山火事のあとの焼け野原に、いち早く芽を出した。', { adapt: 2 }],
+      ['動物に実を食べてもらい、種が遠くへ運ばれた。', null],
+    ],
     ferment: [
       ['麦のつぶの糖を食べて、パンの生地をふくらませた。', null],
       ['ゆでた大豆の上で増え、ねばねばの糸を引いた。', null],
@@ -1069,6 +1242,7 @@
     const p = L.plan;
     if (p === 'microbe' || p === 'cyano') return 'microbe';
     if (p === 'cell' || p === 'colony') return 'cell';
+    if (PLANTS.has(p)) return 'plant';
     if (['sponge', 'ediacaran', 'soft'].includes(p)) return 'soft';
     if (p === 'arthropod') return L.habitat === 'land' ? 'bug' : 'arthro';
     if (p === 'insect') return 'bug';
@@ -1153,7 +1327,14 @@
   ].map(([key, title, scene, desc]) => ({ id: `a-${key}`, key, alive: true, title, scene, desc, alt: false }));
   // 選んだ道（保存は日本語のラベル）から、微生物の結末を決める。あとで選んだ道ほど優先
   const MICRO_PATH = { 'パンやチーズ、納豆をつくる仲間になる': 'ferment', '人のおなかに住む': 'gut', '植物の根と手を組む': 'soil', '土の中へ広がる': 'soil', '動物のおなかに住みつく': 'gut', '人から離れて暮らす': 'away' };
-  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN, ...MICRO_ENDINGS];
+  // 藻類から陸へ上がった植物の生き残り
+  const PLANT_ENDINGS = [
+    ['plant', '岩をおおう緑', 'forestfloor', 'コケの仲間は、4億年以上前に最初に陸を緑に変えました。今も森の地面や岩をおおっています。'],
+    ['fern', 'シダの谷', 'jungle', '石炭紀の大森林をつくったシダの仲間は、今も湿った谷で葉を広げています。わたしたちが燃やしてきた石炭の多くは、その森の名残です。'],
+    ['seed', '針葉樹の森', 'forestnight', 'マツやスギの仲間は、恐竜の時代の森の主役でした。今も寒い土地で、大きな森をつくっています。'],
+    ['flower', '花と虫の共生', 'meadow', '花を咲かせる植物は、虫や鳥に花粉を運んでもらうことで、今では陸の植物の9割近くを占めるまでになりました。'],
+  ].map(([key, title, scene, desc]) => ({ id: `a-${key}`, key, alive: true, title, scene, desc, alt: false }));
+  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN, ...MICRO_ENDINGS, ...PLANT_ENDINGS];
   ENDINGS.forEach((e, i) => (e.no = i + 1));
   // 記録（a: 生存, p: 体のつくり, h: 暮らす場所, c: 絶滅の原因）から結末を決める
   function endingOf(d) {
@@ -1165,6 +1346,7 @@
         const key = ks.reverse().find((x) => x !== 'away' && !(away && x === 'gut'));
         if (key && (d.p === 'microbe' || key === 'ferment')) return MICRO_ENDINGS.find((e) => e.key === key);
       }
+      if (PLANTS.has(d.p)) return PLANT_ENDINGS.find((e) => e.key === d.p);
       const key = d.p === 'arthropod' ? (d.h === 'land' ? 'arthropod-land' : 'arthropod-sea') : d.p;
       return ALIVE_ENDINGS.find((e) => e.key === key) || ALIVE_ENDINGS[0];
     }
