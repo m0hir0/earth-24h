@@ -1028,7 +1028,7 @@
     $('p-q').textContent = node.q;
     $('p-ctx').textContent = node.ctx;
     const box = $('p-opts'); box.textContent = '';
-    node.opts.forEach((o) => {
+    evo.optsFor(node, P.L).forEach((o) => {
       const b = document.createElement('button'); b.className = 'opt';
       b.innerHTML = '<b></b><span></span><div class="chips"></div><em class="fut"></em>';
       b.children[0].textContent = tr(o.label); b.children[1].textContent = o.desc;
@@ -1899,7 +1899,8 @@
       if (j && j.total) $('b-museum-s').textContent = T('いま{n}系統が展示されています', { n: j.total.toLocaleString() });
     }).catch(() => {});
   }
-  $('r-home').addEventListener('click', () => show('home'));
+  $('r-home').addEventListener('click', () => show(HOME_TAB ? 'home' : 'now'));   // 「いまの地球」は休止中なので、46億年を流すへ
+  if (!HOME_TAB) $('r-home').textContent = T('46億年を流す');
   $('r-hist').addEventListener('click', () => {
     show('birth');
     const list = histLoad();

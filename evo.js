@@ -204,6 +204,11 @@
     for (const k in d) L.traits[k] = Math.max(0, Math.min(100, L.traits[k] + d[k]));
   }
 
+  // 選択肢を出す条件（optsFor）に使う
+  const isMoss = (L) => L.plan === 'plant', notMoss = (L) => L.plan !== 'plant';
+  const photoOf = (L) => L.plan === 'cyano' || PLANTS.has(L.plan) || !!L.flags.photo;
+  const onLandOf = (L) => L.habitat === 'land' || L.habitat === 'air';
+  const subIs = (L, v) => L.flags.sub === v && SUBS.some((s) => s.v === v && s.plan === L.plan);
   /* ---------------- 分かれ道（進化の選択） ----------------
      from〜to の時代に、条件に合う系統に一度だけ訪れる */
   const NODES = [
@@ -342,8 +347,10 @@
           apply: (L) => { L.flags.lichen = 1; L.habitat = 'land'; bump(L, { adapt: 10, armor: 10 }); } },
         { label: '植物の根やすきまに住みつく', desc: '植物に窒素を渡し、かわりに糖をもらう。', real: 'ソテツの根やアカウキクサの葉のすきまには、今もシアノバクテリアが住んでいる。',
           apply: (L) => { L.flags.root = 1; L.habitat = 'land'; bump(L, { adapt: 5 }); } },
-        { label: '水の中に残る', desc: 'なじんだ水の中で、これまでどおり暮らす。', real: '',
+        { label: '水の中に残る', desc: 'なじんだ水の中で、これまでどおり暮らす。', real: '', only: (L) => !L.flags.rock,
           apply: (L) => { bump(L, { adapt: 3 }); } },
+        { label: '岩の上で、このまま暮らす', desc: '雨にぬれる岩の上で、乾きに耐えて暮らし続ける。', real: '雨の少ない砂漠の地面も、シアノバクテリアの薄い膜におおわれていることがある。', only: (L) => !!L.flags.rock,
+          apply: (L) => { bump(L, { adapt: 5 }); } },
       ],
     },
     {
@@ -351,10 +358,12 @@
       q: '隕石のあと、倒れた森と死骸が地球をおおった。',
       ctx: '空はちりで暗く、植物は枯れた。けれど、分解する者には食べ物があふれている。',
       opts: [
-        { label: '死骸や倒れた木を分解して増える', desc: '一気に数を増やす。', real: '隕石のあとの地層には、菌類の胞子が急に増えた跡が残っている。',
+        { label: '死骸や倒れた木を分解して増える', desc: '一気に数を増やす。', real: '隕石のあとの地層には、菌類の胞子が急に増えた跡が残っている。', only: (L) => !photoOf(L),
           apply: (L) => { L.N = Math.min(CAP, L.N * 1.6); bump(L, { adapt: 5 }); } },
         { label: '静かな場所でやり過ごす', desc: '数は増やさず、嵐が過ぎるのを待つ。', real: '',
           apply: (L) => { bump(L, { adapt: 8 }); } },
+        { label: 'ちりが晴れて光が戻るのを待ち、一気に増える', desc: '暗いあいだはじっと耐え、光が戻ったら真っ先に増える。', real: '隕石のあとの海では、光が戻ると小さな藻やシアノバクテリアがいち早く増えたと考えられている。', only: photoOf,
+          apply: (L) => { bump(L, { adapt: 5 }); L.N = Math.min(CAP, L.N * 1.4); } },
       ],
     },
     {
@@ -409,11 +418,15 @@
       q: 'ペルム紀の乾いた大地を、どう生きる？',
       ctx: '大陸がひとつにまとまり、内陸は乾いている。',
       opts: [
-        { label: '高く育ち、光を独り占めする', desc: '強くなるが、環境の急な変化に弱くなる。', real: 'ペルム紀には、イチョウやソテツの祖先が森をつくりはじめた。',
+        { label: '高く育ち、光を独り占めする', desc: '強くなるが、環境の急な変化に弱くなる。', real: 'ペルム紀には、イチョウやソテツの祖先が森をつくりはじめた。', only: notMoss,
           apply: (L) => bump(L, { size: 15, adapt: -5 }) },
         { label: '小さく、早く芽を出す', desc: 'どんな時代でも生き延びやすい。', real: '',
           apply: (L) => bump(L, { size: -15, adapt: 15 }) },
-        { label: 'とげや毒で、食べられないようにする', desc: '食べられて減りにくくなる。', real: '葉を食べる動物が増え、植物も身を守る工夫を重ねていった。',
+        { label: 'とげや毒で、食べられないようにする', desc: '食べられて減りにくくなる。', real: '葉を食べる動物が増え、植物も身を守る工夫を重ねていった。', only: notMoss,
+          apply: (L) => bump(L, { armor: 15 }) },
+        { label: '岩のすき間に、乾きに強いじゅうたんを広げる', desc: '乾いても死なず、雨が降ればすぐに緑に戻る体になる。', real: 'コケの仲間には、からからに乾いても、水を得ると数時間で生き返るものがいる。', only: isMoss,
+          apply: (L) => { bump(L, { adapt: 10 }); L.N = Math.min(CAP, L.N * 1.2); } },
+        { label: '苦い成分で、食べられないようにする', desc: '食べられて減りにくくなる。', real: 'コケの多くは苦い成分を持ち、虫や動物にあまり食べられない。', only: isMoss,
           apply: (L) => bump(L, { armor: 15 }) },
       ],
     },
@@ -433,12 +446,20 @@
       q: '恐竜のいない世界を、どう生きる？',
       ctx: '新しく増えた哺乳類や鳥が、葉や実を食べはじめた。',
       opts: [
-        { label: '高く育ち、光を独り占めする', desc: '強くなるが、環境の急な変化に弱くなる。', real: '古第三紀のはじめは暖かく、北極の近くまで森が広がった。',
+        { label: '高く育ち、光を独り占めする', desc: '強くなるが、環境の急な変化に弱くなる。', real: '古第三紀のはじめは暖かく、北極の近くまで森が広がった。', only: notMoss,
           apply: (L) => bump(L, { size: 15, adapt: -5 }) },
-        { label: '甘い実をつけ、動物に種を運ばせる', desc: '食べられることで、遠くへ広がる。', real: '実を食べる鳥や哺乳類が、種を遠くまで運ぶようになった。',
+        { label: '甘い実をつけ、動物に種を運ばせる', desc: '食べられることで、遠くへ広がる。', real: '実を食べる鳥や哺乳類が、種を遠くまで運ぶようになった。', only: (L) => L.plan === 'flower',
           apply: (L) => { bump(L, { adapt: 10 }); L.N = Math.min(CAP, L.N * 1.3); } },
-        { label: 'とげや毒で、食べられないようにする', desc: '食べられて減りにくくなる。', real: 'バラのとげやトウガラシの辛さも、食べられないための工夫だ。',
+        { label: 'とげや毒で、食べられないようにする', desc: '食べられて減りにくくなる。', real: 'バラのとげやトウガラシの辛さも、食べられないための工夫だ。', only: notMoss,
           apply: (L) => bump(L, { armor: 15 }) },
+        { label: '湿った森の地面や岩をおおって広がる', desc: '背は低いまま、日かげの地面や岩をじゅうたんのようにおおう。', real: 'コケの仲間は、森の地面や岩、木の幹をじゅうたんのようにおおっている。', only: isMoss,
+          apply: (L) => { bump(L, { adapt: 10 }); L.N = Math.min(CAP, L.N * 1.2); } },
+        { label: '苦い成分で、食べられないようにする', desc: '食べられて減りにくくなる。', real: 'コケの多くは苦い成分を持ち、虫や動物にあまり食べられない。', only: isMoss,
+          apply: (L) => bump(L, { armor: 15 }) },
+        { label: '日かげの湿った谷で葉を広げる', desc: '高い木の下の、湿った日かげで暮らす。', real: '今のシダの多くは、花を咲かせる植物の森の下で、新しく種類を増やしたと考えられている。', only: (L) => L.plan === 'fern',
+          apply: (L) => bump(L, { adapt: 8 }) },
+        { label: '寒い山や北の大地へ森を広げる', desc: '寒さに強い葉で、ほかの木が育ちにくい土地へ。', real: 'マツやトウヒの仲間は、今も北の寒い土地に広い森をつくっている。', only: (L) => L.plan === 'seed',
+          apply: (L) => bump(L, { adapt: 8, armor: 5 }) },
       ],
     },
     {
@@ -499,7 +520,7 @@
       ctx: '水辺には、まだ誰もいない新しい世界が広がっている。',
       opts: [
         { label: '陸に上がる', desc: '乾燥に耐える殻で、植物の茂る陸へ。', real: 'ヤスデやクモ、昆虫の祖先は、こうして陸に上がった。',
-          apply: (L) => { L.habitat = 'land'; L.flags.trilobite = 0; L.name = '陸の節足動物'; bump(L, { adapt: 10 }); } },
+          apply: (L) => { L.habitat = 'land'; L.flags.trilobite = 0; if (L.flags.sub === 'eurypterid') L.flags.sub = null; L.name = '陸の節足動物'; bump(L, { adapt: 10 }); } },
         { label: '海の三葉虫のまま', desc: '慣れた海で、殻を硬くして暮らす。', real: '',
           apply: (L) => { bump(L, { armor: 10 }); } },
         { label: '海底の泥にもぐって暮らす', desc: '目立たず、じっと生きる。', real: 'カブトガニは、4億年以上ほとんど姿を変えずに生きている。',
@@ -507,7 +528,7 @@
       ],
     },
     {
-      id: 'wings', from: 4.0e8, to: 3.2e8, when: (L) => L.plan === 'arthropod' && L.habitat === 'land',
+      id: 'wings', from: 4.0e8, to: 3.2e8, when: (L) => L.plan === 'arthropod' && L.habitat === 'land' && !hasSub(L),   // クモやサソリは昆虫にならない
       q: '翅（はね）を持つ？',
       ctx: '背中の小さなひだが、空気をとらえはじめた。',
       opts: [
@@ -559,10 +580,12 @@
       opts: [
         { label: '体を小さくし、何でも食べる', desc: '少ない食べ物でも生きられるようにする。', real: '大量絶滅のあとは、小さく何でも食べる生き物が生き残りやすい。',
           apply: (L) => { bump(L, { size: -20, adapt: 15 }); } },
-        { label: '穴を掘って暮らす', desc: '地中は、暑さや乾燥から身を守ってくれる。', real: '穴を掘るリストロサウルスは、この絶滅を生き延びて大繁栄した。',
+        { label: '穴を掘って暮らす', desc: '地中は、暑さや乾燥から身を守ってくれる。', only: onLandOf, real: '穴を掘るリストロサウルスは、この絶滅を生き延びて大繁栄した。',
           apply: (L) => { L.flags.burrow = 1; } },
         { label: '今のまま勝負する', desc: '何も変えない。', real: '',
           apply: () => {} },
+        { label: '海底の泥にもぐって暮らす', desc: '泥の中は、熱くなった海から少し身を守ってくれる。', real: '', only: (L) => !onLandOf(L) && L.plan !== 'sponge',
+          apply: (L) => { L.flags.burrow = 1; } },
       ],
     },
     {
@@ -804,7 +827,7 @@
     { v: 'ant', plan: 'insect', k: 1, from: 1.2e8, to: 0 },
     { v: 'butterfly', plan: 'insect', k: 2, from: 1.3e8, to: 0 },
     { v: 'beetle', plan: 'insect', k: 3, from: 2.9e8, to: 0 },
-    { v: 'terror', plan: 'bird', k: 0, from: 6e7, to: 0, hab: 'land' },
+    { v: 'terror', plan: 'bird', k: 0, from: 6e7, to: 2.6e6, hab: 'land' },        // 氷河時代のはじまりまでに絶滅
     { v: 'songbird', plan: 'bird', k: 1, from: 5e7, to: 0 },
     { v: 'penguin', plan: 'bird', k: 2, from: 6e7, to: 0, hab: 'sea' },
     { v: 'mouse', plan: 'mammal', k: 1, from: 5.5e7, to: 0 },
@@ -905,8 +928,8 @@
       kill: (L) => (L.plan === 'armorfish' ? 1 : sea(L) ? 0.4 : 0.2) },
     { ya: 3.05e8, name: '石炭紀の熱帯雨林の崩壊', fact: '気候が乾き、湿った森が縮んだ。水辺に頼る両生類が大きく減り、は虫類が広がった。',
       kill: (L) => (L.plan === 'amphibian' ? 0.7 : L.habitat === 'land' ? 0.2 : 0.05) },
-    { ya: 2.519e8, fx: 'eruption', name: 'ペルム紀末の大量絶滅', fact: 'シベリアの大噴火で海は熱く酸素不足に。海の種の8割以上が消えた史上最大の絶滅。三葉虫もここで姿を消した。',
-      kill: (L) => (L.flags.trilobite ? 1 : L.flags.burrow ? 0.55 : sea(L) ? 0.88 : MICRO.has(L.plan) ? 0.3 : 0.75) },
+    { ya: 2.519e8, fx: 'eruption', name: 'ペルム紀末の大量絶滅', fact: 'シベリアの大噴火で海は熱く酸素不足に。海の種の8割以上が消えた史上最大の絶滅。三葉虫とウミサソリもここで姿を消した。',
+      kill: (L) => (L.flags.trilobite || subIs(L, 'eurypterid') ? 1 : L.flags.burrow ? 0.55 : sea(L) ? 0.88 : MICRO.has(L.plan) ? 0.3 : 0.75) },
     { ya: 2.014e8, fx: 'eruption', name: '三畳紀末の大量絶滅', fact: '大西洋ができはじめたころの大噴火。多くのは虫類や単弓類が消え、恐竜の天下が始まった。',
       kill: (L) => (L.plan === 'synapsid' ? 0.95 : ['dino_small', 'sauropod', 'theropod', 'pterosaur'].includes(L.plan) ? 0.35 : L.plan === 'reptile' ? 0.6 : L.plan === 'mammal' ? 0.4 : sea(L) ? 0.55 : 0.4) },
     { ya: 6.6e7, fx: 'impact', name: '白亜紀末の大量絶滅', fact: '直径約10kmの隕石がメキシコに衝突。鳥以外の恐竜、翼竜、首長竜、アンモナイトが消えた。',
@@ -914,8 +937,8 @@
         : L.plan === 'bird' ? 0.75 : L.traits.size > 55 ? 0.95 : L.flags.burrow ? 0.4 : L.habitat === 'deep' ? 0.3 : sea(L) ? 0.6 : 0.65) },
     { ya: 3.4e7, fx: 'ice', name: '始新世末の寒冷化', fact: '南極に氷床ができ、地球が一気に寒くなった。',
       kill: (L) => (L.flags.warm ? 0.2 : 0.35) },
-    { ya: 2.58e6, fx: 'ice', name: '氷河時代のはじまり', fact: '寒い氷期と暖かい間氷期のくり返しが始まった。',
-      kill: (L) => (L.flags.warm ? 0.15 : 0.25) },
+    { ya: 2.58e6, fx: 'ice', name: '氷河時代のはじまり', fact: '寒い氷期と暖かい間氷期のくり返しが始まった。巨大なサメ（メガロドン）や、南アメリカの飛べない大きな鳥も、この頃までに姿を消した。',
+      kill: (L) => (subIs(L, 'megalodon') || subIs(L, 'terror') ? 1 : L.flags.warm ? 0.15 : 0.25) },
     { ya: 1.2e6, name: '頑丈型猿人の消滅', fact: '硬い植物を食べた頑丈型猿人（パラントロプス）は、この頃までに姿を消した。',
       kill: (L) => (L.flags.robust ? 1 : 0) },
     { ya: 4e4, name: 'ほかの人類の消滅', fact: 'ネアンデルタール人など、サピエンス以外の人類はこの頃までに姿を消した。交わった人類の遺伝子の一部は、今も私たちの中にある。',
@@ -1089,8 +1112,10 @@
   }
 
   // ライバルは分かれ道でランダムに選ぶ
+  // その系統に出す選択肢（only があれば、その体・暮らしに合うものだけ。コケに「高く育つ」は出さない）
+  const optsFor = (node, L) => node.opts.filter((o) => !o.only || o.only(L));
   function autoChoose(L, node, rnd) {
-    const o = node.opts[Math.floor(rnd() * node.opts.length)];
+    const os = optsFor(node, L), o = os[Math.floor(rnd() * os.length)];
     o.apply(L);
     L.taken.add(node.id);
     L.path.push(o.label);
@@ -1287,12 +1312,14 @@
     ],
     plant: [
       ['朝日を浴びて、葉いっぱいに光合成をした。', null],
-      ['雨が降り、根から水をたっぷり吸い上げた。', null],
+      ['雨が降り、根から水をたっぷり吸い上げた。', null, '!moss'],
       ['風に乗って、胞子や種が遠くの土地へ飛んでいった。', { adapt: 2 }],
       ['虫に葉をかじられたが、また新しい芽を出した。', { armor: 1 }, 'insects'],
-      ['日照りが続き、葉を落として耐えた。', { adapt: 2 }],
-      ['落ち葉が積もって、足もとに新しい土ができた。', null],
+      ['日照りが続き、葉を落として耐えた。', { adapt: 2 }, '!moss'],
+      ['落ち葉が積もって、足もとに新しい土ができた。', null, 'trees'],
       ['山火事のあとの焼け野原に、いち早く芽を出した。', { adapt: 2 }],
+      ['日照りでからからに縮れたが、雨が降るとすぐに緑に戻った。', { adapt: 2 }, 'moss'],
+      ['岩の表面に、少しずつ緑のじゅうたんを広げた。', null, 'moss'],
       ['動物に実を食べてもらい、種が遠くへ運ばれた。', null, 'fruit'],
     ],
     ferment: [
@@ -1333,7 +1360,7 @@
       photo, eater: !photo, mobile: L.plan !== 'sponge', fly, flightless: ['penguin', 'terror'].includes(L.flags.sub), big: L.plan === 'mammal_large',
       plants: ya < 4.7e8, trees: ya < 3.85e8, insects: ya < 4.0e8, carb: ya <= 3.6e8 && ya > 2.9e8, spiders: ya < 3.9e8 && L.flags.sub !== 'spider',
       fruit: ya < 1.3e8 && L.plan === 'flower', whales: ya < 5e7, tools: ya < 3.3e6, fire: ya < 1e6, art: ya < 6.5e4,
-      trilo: !!L.flags.trilobite,
+      trilo: !!L.flags.trilobite, moss: L.plan === 'plant',
     };
     return cond.split(' ').every((k) => (k[0] === '!' ? !T[k.slice(1)] : T[k]));
   }
@@ -1371,10 +1398,10 @@
     ['arthropod-land', '森の足もと', 'forestfloor', '落ち葉の下では、クモやヤスデの仲間が今も暮らしています。'],
     ['insect', '地上でいちばん多い者', 'meadow', '名前のついた動物の種の半分以上は昆虫です。'],
     ['jawless', 'あごのない生き残り', 'river', 'ヤツメウナギは、あごを持たない魚の数少ない生き残りです。'],
-    ['fish', 'サンゴ礁の群れ', 'reef', '硬骨魚は、今いる脊椎動物の種の半分以上を占めています。'],
+    ['fish', '魚の大繁栄', 'reef', '硬骨魚は、今いる脊椎動物の種の半分以上を占めています。'],
     ['shark', '4億年の狩人', 'ocean', 'サメは恐竜より前から、そして恐竜が消えたあとも、海の狩人であり続けています。'],
     ['amphibian', '田んぼの歌い手', 'paddy', '夏の夜の田んぼに響くカエルの声は、3億年以上前に陸に上がった祖先から続いています。'],
-    ['reptile', '恐竜を見送った者', 'river', 'ワニやカメは、恐竜の時代を越えて今も水辺で暮らしています。'],
+    ['reptile', '恐竜を見送った者', 'river', 'ワニやカメ、ヘビやトカゲの仲間は、恐竜の時代を越えて今も暮らしています。'],
     ['synapsid', 'もしも：単弓類の生き残り', 'grassland', '実際には、単弓類で今も生きているのは哺乳類だけ。これは、もうひとつの地球の話です。'],
     ['anomalo', 'もしも：アノマロカリスの末裔', 'ocean', '実際には、アノマロカリスの仲間は4億年以上前に姿を消しました。これは、もうひとつの地球の話です。'],
     ['bird', '恐竜の子孫は空へ', 'sky', '鳥は、白亜紀末の隕石を生き延びた、ただひとつの恐竜の仲間です。'],
@@ -1409,14 +1436,14 @@
   const MICRO_ENDINGS = [
     ['gut', 'あなたのおなかの中に', 'room', '人の腸には約100兆個の細菌が住んでいます。人類が生まれるずっと前から動物と暮らしてきた仲間が、今日もあなたの消化を助けています。'],
     ['ferment', '食卓の発酵', 'table', 'パン、チーズ、ヨーグルト、みそ、納豆。微生物は何千年も、人の食卓を支えてきました。'],
-    ['soil', '森を支える土', 'forestfloor', '陸の植物の多くは、根で菌類や細菌と手を組んでいます。4億年以上前から、森は土の中の微生物に支えられてきました。'],
+    ['soil', '森を支える土', 'underground', '陸の植物の多くは、根で菌類や細菌と手を組んでいます。4億年以上前から、森は土の中の微生物に支えられてきました。'],
   ].map(([key, title, scene, desc]) => ({ id: `a-${key}`, key, alive: true, title, scene, desc, alt: false }));
   // 選んだ道（保存は日本語のラベル）から、微生物の結末を決める。あとで選んだ道ほど優先
   const MICRO_PATH = { 'パンやチーズ、納豆をつくる仲間になる': 'ferment', '人のおなかに住む': 'gut', '植物の根と手を組む': 'soil', '土の中へ広がる': 'soil', '動物のおなかに住みつく': 'gut', '人から離れて暮らす': 'away' };
   // 藻類から陸へ上がった植物の生き残り
   const PLANT_ENDINGS = [
-    ['plant', '岩をおおう緑', 'forestfloor', 'コケの仲間は、4億年以上前に最初に陸を緑に変えました。今も森の地面や岩をおおっています。'],
-    ['fern', 'シダの谷', 'jungle', '石炭紀の大森林をつくったシダの仲間は、今も湿った谷で葉を広げています。わたしたちが燃やしてきた石炭の多くは、その森の名残です。'],
+    ['plant', '岩をおおう緑', 'mossrock', 'コケの仲間は、4億年以上前に最初に陸を緑に変えました。今も森の地面や岩をおおっています。'],
+    ['fern', 'シダの谷', 'fernvalley', '石炭紀の大森林をつくったシダの仲間は、今も湿った谷で葉を広げています。わたしたちが燃やしてきた石炭の多くは、その森の名残です。'],
     ['seed', '針葉樹の森', 'forestnight', 'マツやスギの仲間は、恐竜の時代の森の主役でした。今も寒い土地で、大きな森をつくっています。'],
     ['flower', '花と虫の共生', 'meadow', '花を咲かせる植物は、虫や鳥に花粉を運んでもらうことで、今では陸の植物の9割近くを占めるまでになりました。'],
   ].map(([key, title, scene, desc]) => ({ id: `a-${key}`, key, alive: true, title, scene, desc, alt: false }));
@@ -1425,7 +1452,16 @@
     ['lichen', '岩をいろどる地衣類', 'lichen', '菌と手を組んだあなたの子孫は、地衣類として今日も岩や木の幹をいろどっています。南極の岩の上にも、砂漠にも。'],
     ['ocean', '外洋の光の粒', 'openocean', '外洋を漂う小さなシアノバクテリアは、地球でいちばん数の多い光合成の生き物です。その数は約10の27乗個。今も海で酸素をつくっています。'],
   ].map(([key, title, scene, desc]) => ({ id: `a-${key}`, key, alive: true, title, scene, desc, alt: false }));
-  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN, ...MICRO_ENDINGS, ...PLANT_ENDINGS, ...CYANO_ENDINGS];
+  // 同じ体のつくりでも、姿（変種）や道で今日の暮らしがまったく違うもの
+  const MORE_ENDINGS = [
+    ['penguin', 'bird', '氷の海を飛ぶ鳥', 'icesea', 'ペンギンは空を飛ぶかわりに、翼で海の中を飛ぶように泳ぎます。南の冷たい海で、今も子育てをしています。'],
+    ['crab', 'arthropod', '磯のカニ', 'tidepool', 'カニの仲間はジュラ紀に増えはじめ、今では海から川、浜辺まで、約7000種が暮らしています。'],
+    ['coela', 'fish', '深海の生きている化石', 'deepsea', 'シーラカンスは6600万年前に絶滅したと思われていましたが、1938年に南アフリカの沖で生きた姿が見つかりました。今も深い海の岩かげで暮らしています。'],
+    ['deepsea', 'fish', '深海の灯り', 'deepsea', 'チョウチンアンコウの仲間は、光の届かない深海で、自分の光でえものをおびき寄せています。'],
+    ['crust', 'cyano', '砂漠をおおう黒い膜', 'crust', '雨の少ない砂漠の地面は、シアノバクテリアがつくる薄い黒い膜におおわれていることがあります。土が風で飛ばされないように守っています。'],
+  ].map(([key, plan, title, scene, desc]) => ({ id: `a-${key}`, key, plan, alive: true, title, scene, desc, alt: false }));
+  ALIVE_ENDINGS.find((e) => e.key === 'fish').sceneBy = { eelfish: 'river' };
+  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN, ...MICRO_ENDINGS, ...PLANT_ENDINGS, ...CYANO_ENDINGS, ...MORE_ENDINGS];
   ENDINGS.forEach((e, i) => (e.no = i + 1));
   // 記録（a: 生存, p: 体のつくり, h: 暮らす場所, c: 絶滅の原因）から結末を決める
   function endingOf(d) {
@@ -1438,11 +1474,17 @@
         if (key && (d.p === 'microbe' || key === 'ferment')) return MICRO_ENDINGS.find((e) => e.key === key);
       }
       if (PLANTS.has(d.p)) return PLANT_ENDINGS.find((e) => e.key === d.p);
-      if (d.p === 'cyano') {                             // あとで選んだ道（地衣類）を優先
+      if (d.p === 'cyano') {                             // あとで選んだ道を優先：地衣類 → 植物の根 → 陸の岩 → 外洋
         const ks = d.k || [];
         if (ks.includes('菌と手を組んで地衣類になる')) return CYANO_ENDINGS[0];
+        if (ks.includes('植物の根やすきまに住みつく')) return MICRO_ENDINGS.find((e) => e.key === 'soil');
+        if (ks.includes('湿った陸の岩へ上がる')) return MORE_ENDINGS.find((e) => e.key === 'crust');
         if (ks.includes('外洋へ漂う')) return CYANO_ENDINGS[1];
       }
+      // 姿（変種）で決まる結末（ペンギン・カニ・シーラカンス・深海魚）。記録の系譜の最後の姿を見る
+      const v = d.v != null ? d.v : d.g && d.g.length ? d.g[d.g.length - 1][1] : '';
+      const ve = v && MORE_ENDINGS.find((e) => e.key === v && e.plan === d.p);
+      if (ve) return ve;
       const key = d.p === 'arthropod' ? (d.h === 'land' ? 'arthropod-land' : 'arthropod-sea') : d.p;
       return ALIVE_ENDINGS.find((e) => e.key === key) || ALIVE_ENDINGS[0];
     }
@@ -1461,7 +1503,7 @@
     'cyanoWhere:外洋へ漂う': 'ocean', 'cyanoWhere:浅い海で岩（ストロマトライト）を積み続ける': 'stroma', 'cyanoWhere:湿った陸の岩へ上がる': 'rock',
     'cyanoLand:菌と手を組んで地衣類になる': 'lichen', 'cyanoLand:植物の根やすきまに住みつく': 'roots',
     'predator:砂にもぐって隠れる': 'burrow', 'arthroLand:海底の泥にもぐって暮らす': 'burrow', 'arthroLand:陸に上がる': null,
-    'ptPrep:穴を掘って暮らす': ['burrow', 2.45e8],
+    'ptPrep:穴を掘って暮らす': ['burrow', 2.45e8], 'ptPrep:海底の泥にもぐって暮らす': ['burrow', 2.45e8],
     'night:夜に動く': 'night', 'night:木の上で暮らす': 'tree', 'night:地面に穴を掘る': 'burrow', 'night:体を大きくして対抗する': null,
     'radiation:木の上で、目と手を使う': 'tree',
   };
@@ -1491,7 +1533,7 @@
   }
 
   E.evo = {
-    ENDINGS, endingOf, placeAt,
+    ENDINGS, endingOf, placeAt, optsFor,
     SUBS, CAP, REAL, realCount, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
     ABOUT, LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die,
   };
