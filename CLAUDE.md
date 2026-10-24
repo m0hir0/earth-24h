@@ -16,7 +16,7 @@
 2. `data.js` — 定数（S=46億年, DAY）、書式（fmtYears/fmtAgo/fmtSec/fmtClock/fmtProb…、英語版あり）、ERAS・PERIODS（地質年代）・EVENTS（約170件、`key` は日本語名で不変）・status（酸素/1日の長さ/太陽）・AI_STORY
 3. `scenes.js` — ドット絵。座標は 192×64 だが、実際は2倍の細かさ（`K=2`、キャンバスは 384×128、カードは 128×96）で描く。`P.rect` は小数（0.5 単位）も使え、丸・山・楕円は細かい点でなめらか。`drawScene(ctx, ya, t, opts)`、opts は `{fx, habitat, plan, look, ending}`。`sceneView(canvas, getState)` が 8コマ/秒で描き直す。生き物の姿は `drawForm(P, look, …)`（微生物は `drawMicro` で変種ごとに描き分け）、`drawCreatureCard`（64×48、白い影も描ける）。結末用 `TODAY`（今日の暮らし）と `sceneFossil`（化石の地層）もここ
 4. `globe.js` — 「46億年を流す」（と休止中の「いまの地球」）のダイヤル中央の回る地球（時代で姿が変わる）
-5. `evo.js` — 進化ガチャの中身：PLANS（体のつくり、base 特徴値）、birthOptions（時代ごとの生まれる生き物）、NODES（分かれ道、最後に地質年代×暮らす場所ごとの age{0〜11}-{sea/land/air}）、EXTINCTIONS（淘汰）、種の数の増減 `step`（歴史の出来事による増減 `BOOMS` も）、`applyExtinction`、ENDINGS（47種類、No.40は誕生前、No.41〜43は微生物の道、No.44〜47は植物の道）、LIFE（暮らしの出来事）と `endingOf(d)`
+5. `evo.js` — 進化ガチャの中身：PLANS（体のつくり、base 特徴値）、birthOptions（時代ごとの生まれる生き物）、NODES（分かれ道、最後に地質年代×暮らす場所ごとの age{0〜11}-{sea/land/air}）、EXTINCTIONS（淘汰）、種の数の増減 `step`（歴史の出来事による増減 `BOOMS` も）、`applyExtinction`、ENDINGS（49種類、No.40は誕生前、No.41〜43は微生物の道、No.44〜47は植物の道、No.48・49はシアノバクテリアの道）、LIFE（暮らしの出来事）と `endingOf(d)`
 6. `lang-en.js` — 英語の文章。英語のときだけ内容を置きかえ、UI 辞書を `E.addDict` する
 7. `story.js` — 記録から作るもの（`E.story`）：系統の物語 `storyParts/storyOf`、結末の場面 `endScene/sceneOfData`、記録の検証 `cleanData`、`fmtCount` など。ゲームと博物館で共通
 8. `app.js` — 画面と動き（タブ、いまの地球（休止中）、46億年を流す、時代のルーレットと生き物のガチャ、プレイ、結末、シェア、履歴、図鑑）
@@ -47,7 +47,7 @@
 - **時刻**：時計は端末の現地時間（ja かつ Asia/Tokyo なら「日本時間」表示）。
 - **姿（look）**：`{plan, v:変種, size, armor, feather}`。変種は app.js の `variantOf()` が flags と habitat から決める（例：microbe→rod/archaea/oxy/hunter、cell→euk/para、colony→alga/volvox、arthropod→trilo/horseshoe/millipede、reptile→turtle（守り70以上）、羽毛→feather）。大きさで絵の拡大率、守り65以上で背中にとげ。
 - **進化の演出**：分かれ道で `plan:変種` が変わると `playEvolution()`（白い影が入れ替わる→新しい姿）。名前が変わらない選択肢なら `VARIANT_NAMES` か PLANS の `ja` 名を付ける。`L.forms` が系譜。
-- **結末は47種類**：生存22・絶滅17・誕生前1（No.40「生まれる前の地球」、生命誕生前の時代を引いたとき履歴に `u:1` で記録）＋微生物の道の生存3（No.41「あなたのおなかの中に」・No.42「食卓の発酵」・No.43「森を支える土」、`MICRO_ENDINGS`）＋植物の道の生存4（No.44「岩をおおう緑」・No.45「シダの谷」・No.46「針葉樹の森」・No.47「花と虫の共生」、`PLANT_ENDINGS`、最後の体のつくりで決まる）。番号は ENDINGS の並び順なので、追加は末尾に。
+- **結末は49種類**：生存22・絶滅17・誕生前1（No.40「生まれる前の地球」、生命誕生前の時代を引いたとき履歴に `u:1` で記録）＋微生物の道の生存3（No.41「あなたのおなかの中に」・No.42「食卓の発酵」・No.43「森を支える土」、`MICRO_ENDINGS`）＋植物の道の生存4（No.44「岩をおおう緑」・No.45「シダの谷」・No.46「針葉樹の森」・No.47「花と虫の共生」、`PLANT_ENDINGS`、最後の体のつくりで決まる）＋シアノバクテリアの道の生存2（No.48「岩をいろどる地衣類」・No.49「外洋の光の粒」、`CYANO_ENDINGS`、選んだ道のラベルで決まる。地衣類が優先）。番号は ENDINGS の並び順なので、追加は末尾に。
 - **RPGの時間**：プレイは `ya = ya0 * (1 - p)^2`（今に近いほどゆっくり）、×1で約10分（`PLAY_SEC`）。分かれ道と大きな淘汰では止まる。
 - **種の数の見せ方**：中の N（0〜CAP）は釣り合い用。画面の数は `evo.realCount(L, n)` ＝ その仲間がいちばん栄えたときの実際の種数の目安 `REAL[plan]` × N/CAP（上から2けたに丸め、`fmtCount` で「1.1万」「1,700」）。「60種以上」の表示は廃止。「繁栄・ふつう・危ない」はゲージと重なるので作らない（ユーザー判断）。
 - **特徴の効き方**（`rates`・`applyExtinction`）：適応力＝増えやすく大量絶滅に強い、大きさ＝大量絶滅に弱い（隕石では55超でほぼ全滅、ふだんの減りには小さくしか効かない）、守り＝食べられて減りにくい（捕食者の多い時代 5.39億〜3.59億年前・2.3億〜6600万年前は1.6倍効く）、動き・知恵＝増えやすい。分かれ道の選択肢には `futureHint()` が「この先：…」を一言そえる。「どう生きる？」でいつも同じものを選んだときの生存率（動物、3000回）：大きく19%・小さく64%・広がる63%・守り60%（`tools/sim/ages.js`、時代ごとの効き目を入れたあと）。
@@ -66,7 +66,7 @@
   - `node tools/sim/ages.js`：「どう生きる？」でいつも同じ選択肢を選んだときの生存率（大きく19%・小さく64%・広がる63%・守り60%）。
   - `node tools/sim/insect.js`：浅い海の微生物から昆虫まで進める道が、生まれた時代ごとにあるか。
   - 釣り合いを変える前に、元の data.js と evo.js を別のフォルダに写しておき、`node tools/sim/ages.js <そのフォルダ>` と今の結果を比べる（共通の読み込みは `tools/sim/load.js`）。
-  - `tools/gallery.html`：生き物のカードと場面の確認（サーバーを起動して `/tools/gallery.html`）。`?l=plan:変種,...`（カード）、`&s=年前,plan,habitat,変種,大きさ;...`（場面）、`&e=1`（結末すべて）か `&e=plan,...`（その生き物で結末を描く、化石の確認に）、`&z=倍率`。
+  - `tools/gallery.html`：生き物のカードと場面の確認（サーバーを起動して `/tools/gallery.html`）。`?l=plan:変種,...`（カード）、`&s=年前,plan,habitat,変種,大きさ,居場所;...`（場面。居場所は soil・gut など、省略可）、`&e=1`（結末すべて）か `&e=plan,...`（その生き物で結末を描く、化石の確認に）、`&z=倍率`。
   - `python3 tools/bump-version.py`：push の前に（下の項目）。
 - クラウドのセッションで作業するときは、作業ブランチ → プルリクエスト → main にマージ、で公開される（GitHub Pages は main から配信）。内蔵ブラウザでの見た目の確認ができない場合は、公開後にスマホで確かめてもらう。
 - **push の前に `python3 tools/bump-version.py`**：各ページが読み込む .js/.css に `?v=日時` を付け直す。GitHub Pages はファイルを約10分キャッシュさせるので、付け忘れると「新しいページ＋古いJS」になって表示が欠ける（実際に `#b-odds` の文が消えた）。
@@ -132,3 +132,10 @@
   - 「生まれる」画面では上の帯の時計（`#live`）を隠す（`body[data-screen]`、同じものが2つ並ぶので）。
   - 新しい時代が出たら、ほかの図鑑と同じ暗いポップアップ（`#dexnew`、`eraNew()`、kind `r`、22マスを4列）でマスが光って埋まる。結果の枠の NEW 印と図鑑のマスの光も残す。
   - 「開いてから流れた時間」を輪の上に弧で描く案は、1分で0.25度しか進まず見えないので入れていない。
+- **シアノバクテリアの道**（ユーザーの指摘：「シアノバクテリアも結構退屈」。シアノのままだと分かれ道が26億年で4つ、20億〜7.4億年前に何もなかった）：`cyanoN`（17億〜12億年前、窒素の取り込み方：専用の細胞・糸のように連なる・昼と夜で分ける）、`cyanoWhere`（12億〜8億年前、「退屈な10億年」：外洋へ漂う・ストロマトライト・湿った陸の岩）、`cyanoLand`（4.7億〜4億年前、microLand のかわり：菌と地衣類・植物の根・水に残る）。何も選ばない時間は最長で約4億年に。暮らしの出来事 `LIFE.cyano/lichen/ocean`。結末 No.48・49（`CYANO_ENDINGS`、場面は `TODAY.lichen`・`TODAY.openocean`）。
+- **「実際には」の位置**：場面の絵の上に重ねていたのをやめ、速度ボタンの欄のすぐ下（`#p-fact`、9秒・タップで閉じる）。
+- **選んだ道で場面の絵が変わる**（ユーザーの要望：「土の中に潜るとか植物と手を組むとか選んだら絵も変わって欲しい」）：
+  - `evo.js` の `OPT_PLACE`（`分かれ道id:ラベル` → 居場所）と `AGE_PLACE`（「どう生きる？」は言葉に場所があるもの13個だけ：サンゴ礁・落ち葉・森の地面・木の上・夜の森・海藻の森・氷の下・プランクトン・海底で小さく）。選ぶと `L.place`（文字か `[居場所, いつまで]`）。体のつくりが変わると消え、「どう生きる？」で場所のない選択肢を選んでも消える。`evo.placeAt(L, ya)` が今の居場所（期限切れは消える、`burrow` は陸なら soil・海なら mud）。
+  - 居場所の絵は `scenes.js` の `PLACE`（soil・litter・roots・gut・jar・mud・ice・tree・lichen・rock・ocean、stroma/reef/kelp は TODAY の絵、vent は熱水）。night は時代の風景を暗くして月と星。説明は `PLACE_CAPTION`。`drawScene` の opts に `place`。隕石の演出（fx impact）のときは隕石が優先。
+  - 生まれたときに砂にもぐる生き物（ゴカイ、`flags.burrow`）は最初から泥の中。
+  - 確認は `tools/gallery.html` の `&s=…,居場所`。

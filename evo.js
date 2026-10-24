@@ -190,7 +190,7 @@
       traits, flags: { ...(opt.flags || {}) },
       N: MICRO.has(opt.plan) ? 12 : opt.plan === 'human' ? 1 : 5,
       maxN: 5, alive: true, bornYa: ya, deathYa: null, deathCause: '',
-      taken: new Set(), path: [], log: [],
+      taken: new Set(), path: [], log: [], place: opt.flags && opt.flags.burrow ? 'burrow' : null,
     };
   }
   function setPlan(L, plan) {
@@ -255,6 +255,33 @@
           apply: (L) => { bump(L, { adapt: 10 }); } },
       ],
     },
+    // シアノバクテリアのまま生きる道（「退屈な10億年」も、実際にしてきたことで埋める）
+    {
+      id: 'cyanoN', from: 1.7e9, to: 1.2e9, when: (L) => L.plan === 'cyano',
+      q: '海の栄養が足りない。空気の窒素を、どうやって取り込む？',
+      ctx: '体をつくるには窒素がいる。けれど窒素を取り込む仕組みは、自分の出す酸素に弱い。',
+      opts: [
+        { label: '窒素を取り込む専用の細胞をつくる', desc: '仲間の細胞の一部が、窒素を取り込む係になる。栄養の少ない海でも増えられる。', real: '一部のシアノバクテリアは「異質細胞」という窒素を取り込む専用の細胞をつくる。いつ生まれたかは諸説ある。',
+          apply: (L) => { L.flags.nfix = 1; bump(L, { adapt: 8 }); L.N = Math.min(CAP, L.N * 1.2); } },
+        { label: '糸のように連なって暮らす', desc: '細胞がつながり、長い糸になる。体の大きな生き物への一歩。', real: '糸のようにつながったシアノバクテリアの化石は、とても古い地層から見つかっている。',
+          apply: (L) => { L.flags.filament = 1; bump(L, { size: 10, adapt: 3 }); } },
+        { label: '昼と夜で仕事を分ける', desc: '昼は光合成、夜は窒素の取り込み。1つの細胞で両方こなす。', real: '今の海のシアノバクテリアには、昼と夜で仕事を分けるものがいる。',
+          apply: (L) => { bump(L, { adapt: 5, speed: 5 }); } },
+      ],
+    },
+    {
+      id: 'cyanoWhere', from: 1.2e9, to: 8.0e8, when: (L) => L.plan === 'cyano',
+      q: '大きな変化の少ない時代。どこへ広がる？',
+      ctx: '18億〜8億年前は「退屈な10億年」とも呼ばれる。シアノバクテリアは静かにすみかを広げていた。',
+      opts: [
+        { label: '外洋へ漂う', desc: '岸を離れ、広い海の表面を漂う。どこまでも広がれるが、身を寄せる場所はない。', real: '今の外洋には、プロクロロコッカスという、地球でいちばん数の多い光合成の生き物がいる。',
+          apply: (L) => { L.flags.ocean = 1; bump(L, { adapt: 5 }); L.N = Math.min(CAP, L.N * 1.2); } },
+        { label: '浅い海で岩（ストロマトライト）を積み続ける', desc: '仲間と層を重ね、岩のような山をつくる。慣れた場所で確実に生きる。', real: 'ストロマトライトは、今もオーストラリアのシャーク湾などで育っている。',
+          apply: (L) => { bump(L, { armor: 10 }); } },
+        { label: '湿った陸の岩へ上がる', desc: '波打ち際から、雨にぬれる陸の岩へ。乾きに耐えれば、誰もいない場所を独り占めできる。', real: '10億年以上前の陸の地層にも、微生物がつくった薄い膜の跡が残っている。',
+          apply: (L) => { L.flags.rock = 1; bump(L, { adapt: 10, speed: -5 }); } },
+      ],
+    },
     {
       id: 'multi', from: 1.2e9, to: 6.4e8, when: (L) => L.plan === 'cell',
       q: '仲間の細胞と集まって、ひとつの体をつくる？',
@@ -294,7 +321,7 @@
       ],
     },
     {
-      id: 'microLand', from: 4.7e8, to: 4.0e8, when: (L) => MICRO.has(L.plan) && L.habitat !== 'deep' && !(L.plan === 'colony' && L.flags.photo),
+      id: 'microLand', from: 4.7e8, to: 4.0e8, when: (L) => MICRO.has(L.plan) && L.plan !== 'cyano' && L.habitat !== 'deep' && !(L.plan === 'colony' && L.flags.photo),
       q: '陸に、植物が根を下ろしはじめた。',
       ctx: 'それまで岩と砂だけだった陸に、小さな緑が広がっていく。',
       opts: [
@@ -303,6 +330,19 @@
         { label: '土の中へ広がる', desc: '陸の土で、枯れた植物や死骸を分解して暮らす。', real: 'ひとすくいの土には、何十億もの微生物がいる。',
           apply: (L) => { L.flags.soil = 1; L.habitat = 'land'; bump(L, { adapt: 10, speed: -5 }); } },
         { label: '海に残る', desc: 'なじんだ海で、これまでどおり暮らす。', real: '',
+          apply: (L) => { bump(L, { adapt: 3 }); } },
+      ],
+    },
+    {
+      id: 'cyanoLand', from: 4.7e8, to: 4.0e8, when: (L) => L.plan === 'cyano',
+      q: '陸に、植物が根を下ろしはじめた。',
+      ctx: 'それまで岩と砂だけだった陸に、小さな緑が広がっていく。手を組める相手が増えた。',
+      opts: [
+        { label: '菌と手を組んで地衣類になる', desc: '菌の体の中で光合成をして、かわりに水と住まいをもらう。むき出しの岩にも住める。', real: '地衣類は、菌と藻やシアノバクテリアの共同体。約4億年前の地層（ライニーチャート）から見つかっている。',
+          apply: (L) => { L.flags.lichen = 1; L.habitat = 'land'; bump(L, { adapt: 10, armor: 10 }); } },
+        { label: '植物の根やすきまに住みつく', desc: '植物に窒素を渡し、かわりに糖をもらう。', real: 'ソテツの根やアカウキクサの葉のすきまには、今もシアノバクテリアが住んでいる。',
+          apply: (L) => { L.flags.root = 1; L.habitat = 'land'; bump(L, { adapt: 5 }); } },
+        { label: '水の中に残る', desc: 'なじんだ水の中で、これまでどおり暮らす。', real: '',
           apply: (L) => { bump(L, { adapt: 3 }); } },
       ],
     },
@@ -1217,6 +1257,21 @@
       ['宿主の動物が子を産み、仲間もいっしょに次の世代へ移り住んだ。', { adapt: 2 }],
       ['おなかの中で、悪い菌が増えないように場所を守った。', { armor: 1 }],
     ],
+    cyano: [
+      ['朝の光を浴びて、海に小さな酸素の泡を出した。', null],
+      ['仲間と薄い膜をつくり、波に流されないように岩にはりついた。', { armor: 1 }],
+      ['強すぎる日差しを、色素の日がさでやわらげた。', { adapt: 1 }],
+    ],
+    lichen: [
+      ['岩の表面を少しずつ溶かし、何万年もかけて土のもとをつくった。', null],
+      ['何か月も雨が降らず、からからに乾いて眠った。雨がくると、すぐに目を覚ました。', { adapt: 2 }],
+      ['菌の糸に包まれて、強い日差しと寒さをしのいだ。', { armor: 1 }],
+    ],
+    ocean: [
+      ['見わたすかぎり、何もない青い海を漂った。', null],
+      ['海の表面で増えすぎ、海が緑に染まった。', { adapt: 1 }],
+      ['小さなプランクトンに食べられたが、それ以上に増えた。', null],
+    ],
     soil: [
       ['雨が降り、土の中に新しい水と栄養がしみこんできた。', null],
       ['落ち葉を分解して、森の土を少しずつ豊かにした。', null],
@@ -1265,6 +1320,7 @@
       if (L.flags.gut) pool = pool.concat(LIFE.gut);
       if (L.flags.root || L.flags.soil) pool = pool.concat(LIFE.soil);
       if (L.flags.ferment) pool = pool.concat(LIFE.ferment, LIFE.ferment);
+      if (L.plan === 'cyano') pool = pool.concat(LIFE.cyano, L.flags.lichen ? LIFE.lichen : [], L.flags.ocean ? LIFE.ocean : []);
     }
     if (L.plan === 'human') { if (L.flags.farm) pool = pool.concat(LIFE.farm); if (L.flags.industry) pool = pool.concat(LIFE.industry); if (L.flags.ai) pool = pool.concat(LIFE.ai); }
     const fresh = pool.filter((x) => !recent.includes(x[0]));
@@ -1334,7 +1390,12 @@
     ['seed', '針葉樹の森', 'forestnight', 'マツやスギの仲間は、恐竜の時代の森の主役でした。今も寒い土地で、大きな森をつくっています。'],
     ['flower', '花と虫の共生', 'meadow', '花を咲かせる植物は、虫や鳥に花粉を運んでもらうことで、今では陸の植物の9割近くを占めるまでになりました。'],
   ].map(([key, title, scene, desc]) => ({ id: `a-${key}`, key, alive: true, title, scene, desc, alt: false }));
-  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN, ...MICRO_ENDINGS, ...PLANT_ENDINGS];
+  // シアノバクテリアのまま、地衣類や外洋の道を選んだ生き残り
+  const CYANO_ENDINGS = [
+    ['lichen', '岩をいろどる地衣類', 'lichen', '菌と手を組んだあなたの子孫は、地衣類として今日も岩や木の幹をいろどっています。南極の岩の上にも、砂漠にも。'],
+    ['ocean', '外洋の光の粒', 'openocean', '外洋を漂う小さなシアノバクテリアは、地球でいちばん数の多い光合成の生き物です。その数は約10の27乗個。今も海で酸素をつくっています。'],
+  ].map(([key, title, scene, desc]) => ({ id: `a-${key}`, key, alive: true, title, scene, desc, alt: false }));
+  const ENDINGS = [...ALIVE_ENDINGS, ...DEAD_ENDINGS, UNBORN, ...MICRO_ENDINGS, ...PLANT_ENDINGS, ...CYANO_ENDINGS];
   ENDINGS.forEach((e, i) => (e.no = i + 1));
   // 記録（a: 生存, p: 体のつくり, h: 暮らす場所, c: 絶滅の原因）から結末を決める
   function endingOf(d) {
@@ -1347,6 +1408,11 @@
         if (key && (d.p === 'microbe' || key === 'ferment')) return MICRO_ENDINGS.find((e) => e.key === key);
       }
       if (PLANTS.has(d.p)) return PLANT_ENDINGS.find((e) => e.key === d.p);
+      if (d.p === 'cyano') {                             // あとで選んだ道（地衣類）を優先
+        const ks = d.k || [];
+        if (ks.includes('菌と手を組んで地衣類になる')) return CYANO_ENDINGS[0];
+        if (ks.includes('外洋へ漂う')) return CYANO_ENDINGS[1];
+      }
       const key = d.p === 'arthropod' ? (d.h === 'land' ? 'arthropod-land' : 'arthropod-sea') : d.p;
       return ALIVE_ENDINGS.find((e) => e.key === key) || ALIVE_ENDINGS[0];
     }
@@ -1354,8 +1420,48 @@
     return DEAD_ENDINGS.find((e) => e.match && c.includes(e.match)) || DEAD_ENDINGS[DEAD_ENDINGS.length - 1];
   }
 
+  /* ---------------- 選んだ道の居場所（場面の絵が変わる） ----------------
+     L.place：'soil' などの文字か、[居場所, いつまで（年前）]。体のつくりが変わったら消える。
+     「どう生きる？」は、言葉に場所があるものだけ（ないものを選んだら消える） */
+  const OPT_PLACE = {
+    'microAnimal:動物のおなかに住みつく': 'gut', 'microAnimal:サンゴや海綿と手を組む': 'reef', 'microAnimal:自由に暮らす': null,
+    'microLand:植物の根と手を組む': 'roots', 'microLand:土の中へ広がる': 'soil',
+    'microHuman:パンやチーズ、納豆をつくる仲間になる': 'jar', 'microHuman:人のおなかに住む': 'gut',
+    'snow:火山の熱がある海底へ': ['vent', 6.35e8], 'snow:休眠して、氷が解けるのを待つ': ['ice', 6.35e8], 'snow:氷の割れ目の薄い水で暮らす': ['ice', 6.35e8],
+    'cyanoWhere:外洋へ漂う': 'ocean', 'cyanoWhere:浅い海で岩（ストロマトライト）を積み続ける': 'stroma', 'cyanoWhere:湿った陸の岩へ上がる': 'rock',
+    'cyanoLand:菌と手を組んで地衣類になる': 'lichen', 'cyanoLand:植物の根やすきまに住みつく': 'roots',
+    'predator:砂にもぐって隠れる': 'burrow', 'arthroLand:海底の泥にもぐって暮らす': 'burrow', 'arthroLand:陸に上がる': null,
+    'ptPrep:穴を掘って暮らす': ['burrow', 2.45e8],
+    'night:夜に動く': 'night', 'night:木の上で暮らす': 'tree', 'night:地面に穴を掘る': 'burrow', 'night:体を大きくして対抗する': null,
+    'radiation:木の上で、目と手を使う': 'tree',
+  };
+  const AGE_PLACE = [['サンゴ礁', 'reef'], ['礁のかげ', 'reef'], ['落ち葉', 'litter'], ['森の地面', 'litter'], ['木の上', 'tree'], ['夜の森', 'night'],
+    ['海藻の森', 'kelp'], ['氷の下', 'ice'], ['プランクトン', 'ocean'], ['海底で小さく', 'mud']];
+  for (const n of NODES) {
+    const age = n.id.startsWith('age');
+    for (const o of n.opts) {
+      const key = `${n.id}:${o.label}`, base = o.apply;
+      let place;
+      if (key in OPT_PLACE) place = OPT_PLACE[key];
+      else if (age) { const m = AGE_PLACE.find(([w]) => o.label.includes(w)); place = m ? m[1] : null; }
+      o.apply = (L) => {
+        const p0 = L.plan;
+        base(L);
+        if (L.plan !== p0) L.place = null;
+        if (place !== undefined) L.place = place;
+      };
+    }
+  }
+  // 今の居場所（期限が過ぎたら消える。巣穴は、陸なら土の中・海なら泥の中）
+  function placeAt(L, ya) {
+    let p = L.place || null;
+    if (Array.isArray(p)) p = ya > p[1] ? p[0] : null;
+    if (p === 'burrow') p = L.habitat === 'land' || L.habitat === 'air' ? 'soil' : 'mud';
+    return p;
+  }
+
   E.evo = {
-    ENDINGS, endingOf,
+    ENDINGS, endingOf, placeAt,
     SUBS, CAP, REAL, realCount, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
     ABOUT, LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die,
   };

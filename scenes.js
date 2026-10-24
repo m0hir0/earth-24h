@@ -1704,13 +1704,156 @@
     }
   }
 
+
+  /* ---------------- 選んだ道の居場所（土の中・おなかの中・サンゴのすき間…）。時代の風景のかわりに描く ---------------- */
+  // 地面の上の草木（時代で変わる）。y は地面の高さ
+  function surfaceAt(P, ya, y) {
+    if (ya > 4.7e8) { for (let k = 0; k < 10; k++) P.dome(6 + k * 19, y, 2 + (k % 3), '#7a6a5a'); return; }          // 植物のない陸：岩だけ
+    if (ya > 3.85e8) { for (let k = 0; k < 24; k++) { const x = 3 + k * 8, h = 3 + (k % 3); P.rect(x, y - h, 1, h, '#5e8a44'); P.rect(x - 1, y - h, 3, 1, '#6e9a50'); } return; }
+    if (ya > 1.3e8) {                                                                                                   // シダ
+      for (let k = 0; k < 12; k++) { const x = 6 + k * 16; P.rect(x, y - 9, 1, 9, '#4a7a40'); for (let i = 0; i < 4; i++) { P.rect(x - 1.5 - i * 1.5, y - 3 - i * 2, 1.5, 1, '#3e6a3c'); P.rect(x + 1 + i * 1.5, y - 3 - i * 2, 1.5, 1, '#3e6a3c'); } }
+      return;
+    }
+    for (let k = 0; k < 40; k++) { const x = 2 + k * 4.8, h = 2 + (k * 7) % 4; P.rect(x, y - h, 1, h, k % 2 ? '#5a9a3e' : '#6eaa4e'); }   // 草と花
+    for (let k = 0; k < 7; k++) P.rect(12 + k * 27, y - 4, 2, 2, ['#f0a0c0', '#ffd84a', '#ffffff'][k % 3]);
+  }
+  const PLACE = {
+    soil(P, ya, t, o = {}) {
+      const top = 14, bare = ya > 4.7e8;
+      P.bands(bare ? ['#c9b8a0', '#d6c8b0'] : ['#a8cce0', '#c4dce8'], 0, top);
+      P.bands(['#6a4a30', '#5e4229', '#533a24', '#48321f', '#3e2b1b'], top, PH);
+      P.rect(0, top, PW, 1.5, bare ? '#8a7a68' : '#4a6a34');
+      surfaceAt(P, ya, top);
+      if (o.litter || (!bare && ya < 4.2e8)) for (let k = 0; k < 46; k++) P.rect((k * 23) % PW, top + 1.5 + (k * 7) % 5, 2.5, 1, ['#c87a3a', '#a85a2a', '#d8a04a', '#7a5a2a'][k % 4]);   // 落ち葉の層
+      for (let k = 0; k < 14; k++) P.disc((k * 41 + 7) % PW, 24 + (k * 13) % 36, k % 3 === 0 ? 2 : 1, k % 2 ? '#7a6a5a' : '#8a7a68');       // 石
+      for (let k = 0; k < 70; k++) P.rect((k * 29 + 3) % PW, 18 + (k * 11) % 45, 0.5, 0.5, 'rgba(240,220,180,0.35)');
+      if (!bare && !o.roots) for (let k = 0; k < 9; k++) { const x = 8 + k * 22; for (let y = top + 1; y < top + 9 + (k % 3) * 4; y++) P.rect(x + Math.round(Math.sin(y * 0.4 + k)), y, 0.5, 1, '#c8a878'); }   // 細い根
+      for (let k = 0; k < 3; k++) { const x0 = 16 + k * 66, y0 = 38 + (k * 9) % 16; for (let i = 0; i < 26; i++) P.rect(x0 + i, y0 + Math.round(Math.sin(i * 0.3 + k) * 3), 1.5, 2, '#2e2015'); }   // 小さな生き物のトンネル
+      if (ya < 1.3e8) { const x = wrapX(t * 0.3, PW, 20); for (let i = 0; i < 9; i++) P.rect(x + i, 52 + Math.round(Math.sin(i * 0.6 + t * 0.3)), 1, 1.5, '#c87a7a'); }   // ミミズ
+      for (let k = 0; k < 18; k++) P.rect(((k * 37 + t * 0.15 * ((k % 3) - 1)) % PW + PW) % PW, 20 + (k * 17) % 40, 0.5, 0.5, 'rgba(255,255,255,0.7)');           // 微生物
+      return 58;
+    },
+    litter(P, ya, t) { return PLACE.soil(P, ya, t, { litter: true }); },
+    roots(P, ya, t) {
+      PLACE.soil(P, ya, t, { roots: true });
+      for (let k = 0; k < 4; k++) {                                   // 太い根が分かれながら下へ
+        let x = 16 + k * 50, w = 3;
+        for (let y = 15; y < PH; y++) {
+          x += Math.sin(y * 0.15 + k * 2) * 0.6;
+          P.rect(x, y, w, 1, '#b8946a'); P.rect(x, y, 0.5, 1, '#d0b088');
+          if (y % 10 === 4) { const dir = (y + k) % 20 < 10 ? 1 : -1; for (let i = 0; i < 12; i++) P.rect(x + w / 2 + dir * i, y + i * 0.5, 1, 1, '#a8845a'); }
+          if (y % 16 === 0 && w > 1.5) w -= 0.5;
+        }
+      }
+      for (let k = 0; k < 34; k++) { const x = (k * 23 + 5) % PW, y = 22 + (k * 17) % 38; P.rect(x, y, 6, 0.5, 'rgba(245,240,225,0.7)'); P.rect(x + 3, y, 0.5, 4, 'rgba(245,240,225,0.55)'); }   // 菌の糸
+      for (let k = 0; k < 7; k++) P.disc(26 + k * 24, 28 + (k * 11) % 24, 1, '#e8c890');   // 根のこぶ
+      return 58;
+    },
+    gut(P, ya, t) {
+      P.bands(['#5a1e2a', '#7a2a36', '#9a3a44', '#ac4650', '#9a3a44', '#7a2a36', '#5a1e2a']);
+      for (let k = 0; k < 24; k++) {                                  // ひだ（柔毛）が上と下からゆれる
+        const x = k * 8 + 1, h = 7 + (k % 3) * 2 + Math.round(Math.sin(t * 0.2 + k) * 1.5);
+        P.rect(x, 0, 4, h, '#c8606a'); P.disc(x + 1.5, h - 1, 2, '#d8707a');
+        const h2 = 7 + ((k + 1) % 3) * 2 + Math.round(Math.sin(t * 0.2 + k + 2) * 1.5);
+        P.rect(x + 4, PH - h2, 4, h2, '#c8606a'); P.disc(x + 5.5, PH - h2, 2, '#d8707a');
+      }
+      for (let k = 0; k < 14; k++) { const x = wrapX(k * 17 + t * 0.8, PW, 10), y = 20 + (k * 7) % 24; P.rect(x, y, 2 + (k % 3), 1.5, ['#d8b070', '#a8c070', '#e0c890'][k % 3]); }   // 流れてくる食べ物
+      for (let k = 0; k < 24; k++) P.rect(wrapX(k * 31 + t * 0.5, PW, 4), 16 + (k * 13) % 32, 0.5, 0.5, 'rgba(255,240,240,0.8)');   // 仲間の細菌
+      return 58;
+    },
+    jar(P, ya, t) {
+      P.bands(['#3a2616', '#4a3220', '#3a2616']);                    // かめの内側（暗い）
+      oval(P, 96, 40, 96, 34, '#a8702e');                              // 中身（みそや酒のもと）
+      oval(P, 96, 42, 88, 28, '#b8803a');
+      P.rect(0, 0, PW, 9, '#2a1c10'); P.rect(0, 9, PW, 1, '#d8b878');   // 表面の泡の線
+      for (let k = 0; k < 30; k++) P.disc((k * 13) % PW, 9, k % 3 ? 1 : 2, 'rgba(250,240,210,0.7)');
+      for (let k = 0; k < 14; k++) { const ph = (t * 0.8 + k * 9) % 54, x = 8 + k * 13 + Math.round(Math.sin((t + k) * 0.3)); P.disc(x, 62 - ph, k % 3 ? 1 : 2, 'rgba(255,240,200,0.55)'); }   // のぼる泡
+      for (let k = 0; k < 16; k++) oval(P, (k * 29 + 6) % PW, 18 + (k * 11) % 40, 2, 1, k % 2 ? '#e8d8a8' : '#d8b878');   // 豆や米つぶ
+      return 58;
+    },
+    mud(P, ya, t) {
+      P.bands(['#2f7a9a', '#2a6e8c', '#25617c'], 0, 22);              // 上は海
+      for (let k = 0; k < 4; k++) for (let y = 0; y < 22; y++) P.rect(12 + k * 50 + y * 0.35, y, 2, 1, 'rgba(255,255,255,0.06)');
+      P.bands(['#8a7a62', '#7a6a54', '#6c5d4a', '#5e5040', '#524636'], 22, PH);
+      P.rect(0, 22, PW, 1, '#a89878');
+      for (let k = 0; k < 5; k++) {                                   // U字の巣穴と、出入り口の小山
+        const x = 10 + k * 40, d = 12 + (k % 3) * 6;
+        for (let y = 23; y < 23 + d; y++) { P.rect(x, y, 2, 1, '#3e3428'); P.rect(x + 12, y, 2, 1, '#3e3428'); }
+        for (let i = 0; i <= 12; i++) P.rect(x + i, 23 + d + Math.round(Math.sin(i / 12 * Math.PI) * 3), 2, 2, '#3e3428');
+        P.dome(x + 1, 22, 2, '#9a8a6a'); P.dome(x + 13, 22, 2, '#9a8a6a');
+      }
+      for (let k = 0; k < 40; k++) P.rect((k * 23) % PW, 26 + (k * 9) % 36, 1, 0.5, 'rgba(40,30,20,0.4)');
+      for (let k = 0; k < 8; k++) P.rect((k * 29 + t * 0.3) % PW, 4 + (k * 5) % 14, 1, 1, 'rgba(220,240,255,0.5)');
+      return 58;
+    },
+    ice(P, ya, t) {
+      P.bands(['#123250', '#0e2a44', '#0c243c', '#0a1f34', '#081a2c'], 14, PH);
+      P.bands(['#eef6fa', '#dcecf4', '#c4dcea'], 0, 14);              // 厚い氷を下から見上げる
+      for (let k = 0; k < 4; k++) {
+        const x = 20 + k * 48;
+        P.rect(x, 0, 2, 14, '#8ab8d0');                                 // 割れ目と、差しこむ光
+        for (let y = 14; y < 52; y++) P.rect(x - (y - 14) * 0.25, y, 2 + (y - 14) * 0.5, 1, `rgba(180,220,255,${(0.2 - (y - 14) * 0.005).toFixed(3)})`);
+      }
+      for (let k = 0; k < 40; k++) P.rect((k * 13) % PW, 14 + (k % 3) * 0.5, 1.5, 1, '#5a9a6a');   // 氷の裏の藻
+      for (let k = 0; k < 20; k++) P.rect((k * 37 + t * 0.2) % PW, (k * 11 + t * 0.4) % 48 + 15, 1, 1, 'rgba(230,245,255,0.6)');
+      return 58;
+    },
+    tree(P, ya, t) {
+      P.bands(ya < 6.6e7 ? ['#8ec5e6', '#a6d1ea', '#c0dcea'] : ['#9fc3b8', '#b1cfc1', '#c3dac9']);
+      const leaf = ya > 1.3e8 ? ['#3e6a3c', '#4e7a44', '#355e34'] : ['#3e7a3a', '#5a9a4a', '#4a8a40'];
+      for (let k = 0; k < 20; k++) P.disc((k * 37) % PW, (k * 13) % 34, 6 + (k % 3) * 2, leaf[k % 3]);
+      P.rect(156, 0, 12, PH, '#5a4030'); P.rect(158, 0, 3, PH, '#6a4e38');   // 幹
+      P.rect(0, 58, 162, 4, '#6a4a30'); P.rect(0, 58, 162, 1, '#7a5a3a');    // 太い枝（主役はこの上）
+      for (let k = 0; k < 6; k++) { const x = 10 + k * 25; P.rect(x, 52 - (k % 2) * 3, 1, 6 + (k % 2) * 3, '#6a4a30'); P.disc(x, 50 - (k % 2) * 3, 3, leaf[k % 3]); }
+      for (let k = 0; k < 5; k++) { const ph = (t * 0.5 + k * 13) % 64; P.rect((k * 41 + 9) % 150, ph, 1.5, 1, leaf[1]); }   // 舞う葉
+      return 58;
+    },
+    lichen(P, ya, t, o = {}) {
+      P.bands(['#9ec4dc', '#b4d2e2'], 0, 12);
+      P.bands(['#8a8a86', '#7e7e7a', '#74746f', '#6a6a66'], 12, PH);      // 岩の表面を近くから
+      P.rect(0, 12, PW, 1, '#a4a4a0');
+      for (let k = 0; k < 6; k++) { let x = 10 + k * 33; for (let i = 0; i < 46; i++) { x += Math.sin(i * 0.5 + k) * 0.8; P.rect(x, 14 + i, 1, 1, '#4e4e4a'); } }   // ひび
+      const col = o.rock ? ['#2e3a2a', '#3a4a30', '#24301e'] : ['#e09a3a', '#c8c060', '#9ab08a', '#d8d8b0'];
+      for (let k = 0; k < 16; k++) {
+        const x = (k * 47 + 9) % PW, y = 18 + (k * 19) % 42, r = 3 + (k % 4), c = col[k % col.length];
+        P.disc(x, y, r, c); P.disc(x, y, Math.max(1, r - 2), 'rgba(255,255,255,0.12)');
+        for (let i = 0; i < 6; i++) { const a = i * 1.05 + k; P.rect(x + Math.cos(a) * (r + 1), y + Math.sin(a) * (r + 1), 1, 1, c); }
+      }
+      if (o.rock) for (let k = 0; k < 8; k++) { const ph = (t + k * 4) % 20; P.rect((k * 23 + 5) % PW, ph, 0.5, 2, 'rgba(200,220,240,0.6)'); }   // 雨
+      return 58;
+    },
+    rock(P, ya, t) { return PLACE.lichen(P, ya, t, { rock: true }); },
+    ocean(P, ya, t) {
+      P.bands(['#3a8ac0', '#2f78ae', '#26669a', '#1e5686', '#174872', '#113a5e']);
+      for (let k = 0; k < 6; k++) for (let y = 0; y < 48; y++) P.rect(10 + k * 34 + y * 0.4, y, 2, 1, 'rgba(255,255,255,0.06)');
+      P.rect(0, 0, PW, 1.5, 'rgba(255,255,255,0.35)');               // 水面
+      for (let k = 0; k < 80; k++) P.rect(((k * 29 + t * 0.15 * (k % 3)) % PW + PW) % PW, (k * 17 + 400 + Math.round(Math.sin(t * 0.1 + k) * 1.5)) % 60 + 2, 0.5, 0.5, k % 4 ? 'rgba(120,220,140,0.8)' : 'rgba(220,250,220,0.6)');   // 光の粒
+      if (ya < 5e8) for (let k = 0; k < 5; k++) fish(P, wrapX(140 + k * 12 - t * 0.6, PW, 60), 44 + (k % 3) * 4, '#7f9fb4', true);
+      return 58;
+    },
+    stroma(P, ya, t) { return TODAY.stromatolite(P, t); },
+    reef(P, ya, t) { return TODAY.reef(P, t); },
+    kelp(P, ya, t) { return TODAY.kelp(P, t); },
+    vent(P, ya, t) { sceneVent(P, t); return 58; },
+  };
+  TODAY.lichen = (P, t) => PLACE.lichen(P, 0, t);
+  TODAY.openocean = (P, t) => PLACE.ocean(P, 0, t);
+  const PLACE_CAPTION = {
+    soil: '土の中・小さな生き物と微生物のすみか', litter: '落ち葉の下・湿った土の中', roots: '土の中・植物の根と菌の糸',
+    gut: 'おなかの中・食べ物の通り道', jar: '発酵のかめの中・ぷくぷくと泡が立つ', mud: '海の底の泥・巣穴の断面',
+    ice: '氷の下・割れ目から光が差しこむ', tree: '木の上・枝と葉のあいだ', night: '夜・月明かりの下で動く',
+    lichen: '岩の上・菌と手を組んだ地衣類', rock: '雨にぬれる陸の岩・薄い微生物の膜', ocean: '外洋・どこまでも続く青い海',
+    stroma: '浅い海・積み重なるストロマトライト', reef: 'サンゴ礁・すき間に生き物が集まる', kelp: '海藻の森', vent: '深海の熱水噴出孔・酸素の届かない場所',
+  };
+
   function drawScene(ctx, ya, t, opts = {}) {
     const P = painter(ctx);
     ctx.clearRect(0, 0, PW * K, PH * K);
     if (opts.ending) { drawEnding(P, opts.ending, t); return; }
-    const { fx, habitat, plan } = opts;
+    const { fx, habitat, plan, place } = opts;
     const micro = plan === 'microbe' || plan === 'cyano' || plan === 'cell' || plan === 'colony';
     if (fx === 'impact') sceneImpact(P, t);
+    else if (place && PLACE[place]) PLACE[place](P, ya, t);                // 選んだ道の居場所
     else if (habitat === 'deep') sceneVent(P, t);
     else if (habitat === 'sea' && ya <= 4.2e8) sceneSea(P, ya, t);
     else if (ya > 3.8e9) sceneHadean(P, ya, t);
@@ -1736,6 +1879,11 @@
       for (let k = 0; k < 40; k++) P.rect((k * 37 + t * 0.5 * (1 + k % 3)) % PW, (k * 13 + t * (1 + k % 2)) % PH, 1, 1, '#ffffff');
     }
     if (fx === 'oxygen') P.rect(0, 0, PW, PH, `rgba(160,40,30,${0.25 + 0.1 * Math.sin(t * 0.5)})`);
+    if (place === 'night') {                                          // 夜：その時代の風景を暗くして、月と星
+      P.rect(0, 0, PW, PH, 'rgba(8,14,44,0.62)');
+      P.disc(160, 10, 5, '#f4f0d8'); P.disc(162, 9, 4, 'rgba(8,14,44,0.9)');
+      for (let k = 0; k < 18; k++) P.rect((k * 47) % PW, 2 + (k * 7) % 22, 0.5, 0.5, (t + k) % 8 < 6 ? '#e8ecff' : '#8890b0');
+    }
     if (plan) drawPlayer(P, opts.look || plan, t, 58);
   }
 
@@ -1747,8 +1895,9 @@
   };
   const sceneCaption = (ya, opts) => E.tr(captionJa(ya, opts));
   function captionJa(ya, opts = {}) {
-    const { fx, habitat } = opts;
+    const { fx, habitat, place } = opts;
     if (fx && FX_CAPTION[fx]) return FX_CAPTION[fx];
+    if (place && PLACE_CAPTION[place]) return PLACE_CAPTION[place];
     if (habitat === 'deep') return '深海の熱水噴出孔・酸素の届かない場所';
     if (habitat === 'sea' && ya <= 4.2e8) {
       if (ya > 2.519e8) return '古生代の海・三葉虫とオウムガイの仲間';
@@ -1790,7 +1939,7 @@
       if (!v.canvas.offsetParent) continue;
       const st = v.getState(now);
       if (!st) continue;
-      const key = `${t}|${st.ya}|${st.fx}|${st.habitat}|${st.plan}|${st.ending ? st.ending.id + st.ending.plan : ''}|${JSON.stringify(st.look || (st.ending && st.ending.look) || '')}`;
+      const key = `${t}|${st.ya}|${st.fx}|${st.habitat}|${st.place}|${st.plan}|${st.ending ? st.ending.id + st.ending.plan : ''}|${JSON.stringify(st.look || (st.ending && st.ending.look) || '')}`;
       if (key === v.key) continue;
       v.key = key;
       drawScene(v.ctx, st.ya, t, st);

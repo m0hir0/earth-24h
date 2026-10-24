@@ -19,5 +19,5 @@ const ep=new URLSearchParams(location.search).get('e');
 if(ep){const plans=ep==='1'?['microbe','soft','arthropod','anomalo','fish','amphibian','reptile','theropod','sauropod','bird','mammal','whale','primate','hominin','insect','shark','armorfish','pterosaur','marine_reptile','synapsid']:ep.split(',');
   let i=0;for(const e of E24.evo.ENDINGS){const [plan,v]=plans[i++%plans.length].split(':');const c=document.createElement('canvas');c.width=S.CW;c.height=S.CH;
     S.drawScene(c.getContext('2d'),1,3,{ya:1,ending:{...e,plan,look:{plan,v}}});const d=document.createElement('div');d.append(c,`No.${e.no} ${e.title}（${plan}）`);scenes.append(d);}}
-for(const x of sc.split(';').filter(Boolean)){const [ya,plan,hab,v,size]=x.split(',');const c=document.createElement('canvas');c.width=S.CW;c.height=S.CH;S.drawScene(c.getContext('2d'),+ya,3,{plan,habitat:hab,look:{plan,v,size:+(size||45)}});const d=document.createElement('div');d.append(c,x);scenes.append(d);}
+for(const x of sc.split(';').filter(Boolean)){const [ya,plan,hab,v,size,place]=x.split(',');const c=document.createElement('canvas');c.width=S.CW;c.height=S.CH;S.drawScene(c.getContext('2d'),+ya,3,{plan,habitat:hab,place:place||null,look:{plan,v,size:+(size||45)}});const d=document.createElement('div');d.append(c,x);scenes.append(d);}
 </script>
