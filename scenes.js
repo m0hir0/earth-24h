@@ -1262,7 +1262,18 @@
   const DEFAULT_V = { microbe: 'rod', cyano: 'cyano', cell: 'euk', colony: 'alga', arthropod: 'trilo' };
   const lookOf = (x) => (typeof x === 'string' ? { plan: x, v: DEFAULT_V[x] || '' } : { ...x, v: x.v || DEFAULT_V[x.plan] || '' });
   const specOf = (look) => VARIANT_SPR[look.v] || PLAYER_SPR[look.plan];
-  const formScale = (look, base) => Math.max(1, Math.min(3, Math.round(base * (0.7 + (look.size == null ? 45 : look.size) / 150))));
+  // 大きさ（特徴）を絵の大きさに。その体のつくりのふつうの大きさ（生まれたとき）とくらべて、
+  // 「大きくなる」「小さく」を選んだぶんだけ変わる（前は大きさ83以上でしか変わらなかった）
+  function sizeMul(look) {
+    const sz = look.size == null ? 45 : look.size;
+    const pl = E.evo && E.evo.PLANS[look.plan], b = pl ? pl.base[0] : 45;
+    return { m: Math.max(0.6, Math.min(2.2, (sz + 20) / (b + 20))), b };
+  }
+  // 細かい点（d=2）は1きざみ、ふつうの点は0.5きざみ（画面の点がそろうように）
+  function formScale(look, base, d) {
+    const { m, b } = sizeMul(look), step = d > 1 ? 1 : 0.5;
+    return Math.max(step, Math.round(base * (0.7 + b / 150) * m / step) * step);
+  }
 
   // 顕微鏡で見る微生物。変種ごとに形が違う
   function drawMicro(P, v, cx, cy, r, t, frame = true) {
@@ -1319,16 +1330,19 @@
     look = lookOf(look);
     const plan = look.plan, sz = look.size == null ? 45 : look.size;
     if (MICRO_PLANS.includes(plan)) { const r = card ? 22 : 20, cy = card ? 24 : 30; drawMicro(P, look.v, cx, cy, r, t, !card); return cy - r - 1; }
-    if (plan === 'soft') {                                   // ゴカイのような、くねる体（細かい点）
-      const n = 14 + Math.round(sz / 5), y0 = ground - 3, x0 = cx - Math.round(n / 2);
-      const yy = (i) => y0 + Math.round(Math.sin(i * 0.45 + t * 0.4) * 3) / 2;
+    if (plan === 'soft') {                                   // ゴカイのような、くねる体（細かい点）。大きくなるほど太く長く
+      const u = card ? 1 : Math.max(1, Math.round(sizeMul(look).m * 2) / 2);
+      const n = 14 + Math.round(sz / 5), y0 = ground - 3 * u, x0 = cx - Math.round(n * u / 2);
+      const yy = (i) => y0 + Math.round(Math.sin(i * 0.45 + t * 0.4) * 3 * u) / 2;
       for (let i = 0; i < n; i++) {
-        P.rect(x0 + i, yy(i), 1, 1.5, i % 2 ? '#d0607a' : '#e07a8a');
-        if (i % 2 === 0) { P.rect(x0 + i + 0.5, yy(i) - 0.5, 0.5, 0.5, '#f0b0b8'); P.rect(x0 + i + 0.5, yy(i) + 1.5, 0.5, 0.5, '#f0b0b8'); }
+        const x = x0 + i * u;
+        P.rect(x, yy(i), u, 1.5 * u, i % 2 ? '#d0607a' : '#e07a8a');
+        if (i % 2 === 0) { P.rect(x + 0.5 * u, yy(i) - 0.5 * u, 0.5 * u, 0.5 * u, '#f0b0b8'); P.rect(x + 0.5 * u, yy(i) + 1.5 * u, 0.5 * u, 0.5 * u, '#f0b0b8'); }
       }
-      P.rect(x0 + n, yy(n) - 0.5, 2, 2, '#a03a50'); P.rect(x0 + n + 1, yy(n), 0.5, 0.5, '#1a1a1a');
-      P.rect(x0 + n + 2, yy(n) - 0.5, 1, 0.5, '#a03a50'); P.rect(x0 + n + 2, yy(n) + 1, 1, 0.5, '#a03a50');
-      return y0 - 4;
+      const hx = x0 + n * u, hy = yy(n);
+      P.rect(hx, hy - 0.5 * u, 2 * u, 2 * u, '#a03a50'); P.rect(hx + u, hy, 0.5 * u, 0.5 * u, '#1a1a1a');
+      P.rect(hx + 2 * u, hy - 0.5 * u, u, 0.5 * u, '#a03a50'); P.rect(hx + 2 * u, hy + u, u, 0.5 * u, '#a03a50');
+      return y0 - 4 * u;
     }
     const spec = specOf(look);
     if (!spec) return ground;
@@ -1336,7 +1350,8 @@
     let spr = SPR[name];
     let rows = spr.rows || spr;
     const d = spr.d || 1;
-    let s = formScale(look, spec[2]);
+    let s = formScale(look, spec[2], d);
+    if (!card) { const step = d > 1 ? 1 : 0.5; while (s > step && (rows.length * s / d > 50 || rows[0].length * s / d > 150)) s -= step; }   // 場面からはみ出さない
     if (card) s = Math.max(1, Math.min(2 * d, Math.floor(56 * d / rows[0].length), Math.floor(38 * d / rows.length)));   // カードでは大きく（細かさは保つ）
     const cell = s / d, w = rows[0].length * cell, h = rows.length * cell;
     const swim = ['jawless', 'fish', 'shark', 'armorfish', 'marine_reptile', 'whale', 'anomalo'].includes(plan) || look.v === 'penguin';
