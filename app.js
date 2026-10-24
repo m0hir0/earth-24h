@@ -1090,18 +1090,21 @@
     $('p-choice').hidden = true;
     P.pending = null;
     showFact(o.real);
-    const after = lookOfL(L);
-    const tn = formKey(before) === formKey(after) && tierName(before, after);
-    if (tn) L.name = tn;
-    if (formKey(before) !== formKey(after) || tn) {
-      if (!tn && tr(L.name) === beforeName.replace(/ [②-⑤]$/, '')) L.name = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
-      L.forms.push({ ya: P.ya, look: after, name: L.name });
-      plog(P.ya, T('{a}は、{b}に進化した！', { a: beforeName, b: nameOf(L) }), 'evo');
-      playEvolution(before, after, beforeName, nameOf(L), () => { renderPlay(true); checkNode(); });
-      return;
-    }
+    if (evolveIf(before, beforeName)) return;
     renderPlay(true);
     checkNode();                                                   // 同じ時代に続けて訪れる分かれ道
+  }
+  // 姿（体のつくり・変種・大きさや守りの段階）が変わっていたら、進化の演出と系譜に残す。分かれ道でも、暮らしの出来事で守りが増えたとき（カメになる）でも
+  function evolveIf(before, beforeName) {
+    const L = P.L, after = lookOfL(L);
+    const tn = formKey(before) === formKey(after) && tierName(before, after);
+    if (tn) L.name = tn;
+    if (formKey(before) === formKey(after) && !tn) return false;
+    if (!tn && tr(L.name) === beforeName.replace(/ [②-⑤]$/, '')) L.name = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
+    L.forms.push({ ya: P.ya, look: after, name: L.name });
+    plog(P.ya, T('{a}は、{b}に進化した！', { a: beforeName, b: nameOf(L) }), 'evo');
+    playEvolution(before, after, beforeName, nameOf(L), () => { renderPlay(true); checkNode(); });
+    return true;
   }
 
   // 選んだ道の「実際には…」を、場面の上にしばらく出す（タップで閉じる。プレイは止めない）
@@ -1256,9 +1259,10 @@
     P.lifeT = 0; P.lifeNext = 13 + P.rnd() * 9;
     const ep = evo.lifeEpisode(P.L, P.rnd, P.lifeRecent, P.ya);
     P.lifeRecent = [ep.text, ...P.lifeRecent].slice(0, 5);
-    const before = { ...P.L.traits };
+    const before = { ...P.L.traits }, look0 = lookOfL(P.L), name0 = nameOf(P.L);
     if (ep.fx) evo.bump(P.L, ep.fx);
     plog(P.ya, tr(ep.text), 'life', traitDelta(before, P.L));
+    if (!P.pending && evolveIf(look0, name0)) return;
     renderPlay(true);
   }
 
@@ -1345,6 +1349,8 @@
     P.on = false;
     const L = P.L, alive = L.alive;
     const endYa = alive ? 0 : L.deathYa;
+    const lastF = L.forms[L.forms.length - 1];                      // 結末は最後の姿で決まるので、系譜の最後とずれないように
+    if (!lastF || formKey(lastF.look) !== formKey(lookOfL(L))) L.forms.push({ ya: endYa, look: lookOfL(L), name: L.name });
     Object.assign(R, endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L), L.path.map((x) => x.label)));
     const isNew = !foundEndings().has(R.ending.id);
     $('r-ending').textContent = endingLabel(R.ending);
@@ -1441,7 +1447,6 @@
     };
     setTimeout(tick, 30);
   }
-  const rvCause = (c) => (c.includes('背景') ? T('少しずつ数を減らして') : mid(tr(c)));
   const pct = (a, n) => Math.round(a / n * 100);
   function review(L0, forks, L) {
     const id = ++RV.id, box = $('r-review');
@@ -1477,10 +1482,9 @@
     };
     let refined = false;
     rvRun(id, jobs, () => {
-      drawDots(false);
-      if (res.length < RV_N) wait.textContent = T('計算中…（{n}/100）', { n: res.length });
-      else wait.textContent = T('分かれ道を計算中…');
-      if (res.length === RV_N && !$('rv-again').textContent) showAgain();
+      if (res.length < RV_N) { drawDots(false); wait.textContent = T('計算中…（{n}/100）', { n: res.length }); return; }
+      wait.textContent = T('分かれ道を計算中…');
+      if (!$('rv-again').textContent) showAgain();                 // 100がそろったら、生き残りから順に並べ直す
     }, () => {
       if (!refined && fs.length) {                               // いちばん大きな分かれ目だけ、もう少し試して確かめる
         refined = true;
@@ -1499,7 +1503,8 @@
       const by = {};
       res.forEach((r) => { if (!r.alive) by[r.cause] = (by[r.cause] || 0) + 1; });
       const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
-      if (top) note += ' ' + T('消えた系統の最期でいちばん多いのは「{c}」（{k}）。', { c: rvCause(top[0]), k: top[1] });
+      if (top) note += ' ' + (top[0].includes('背景') ? T('消えた系統の最期でいちばん多いのは、大量絶滅ではなく、少しずつ数を減らして消えること（{k}）。', { k: top[1] })
+        : T('消えた系統の最期でいちばん多いのは「{c}」（{k}）。', { c: mid(tr(top[0])), k: top[1] }));
       $('rv-again-note').textContent = note;
     }
     function finish() {

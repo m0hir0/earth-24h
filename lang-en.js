@@ -865,7 +865,7 @@
     'あなたは、その{n}のうちの1つ。': 'You are one of those {n}.',
     'あなたは、消えた{n}のうちの1つ。': 'You are one of the {n} that vanished.',
     '消えた系統の最期でいちばん多いのは「{c}」（{k}）。': 'The most common end was "{c}" ({k}).',
-    '少しずつ数を減らして': 'slowly dwindling away',
+    '消えた系統の最期でいちばん多いのは、大量絶滅ではなく、少しずつ数を減らして消えること（{k}）。': 'The most common end was not a mass extinction, but slowly dwindling away ({k}).',
     '計算中…（{n}/100）': 'Calculating… ({n}/100)', '分かれ道を計算中…': 'Calculating the forks…',
     'あなた': 'You',
     '今日まで続く確率（それぞれ{n}回ずつ試した目安）': 'Chance of lasting to today (estimated from {n} tries each)',
