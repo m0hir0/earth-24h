@@ -23,6 +23,12 @@
 
 各ページの `<head>` の最初に `move.js`（引っ越し）と canonical（earth24h.com の住所）。`robots.txt`（/tools/ は除外）と `sitemap.xml` は earth24h.com 向け。Cloudflare は `/guide.html` を `/guide` に転送する。
 
+**地球をもう一度**（試作、`again.html` + `again.js`、earth24h.com/again）：作り直しの試作。伝えたいこと＝「地球規模で見ると人類はほんの最近。今この星に生きている偶然（奇跡）」。進化には意志がなく偶然、という考え方（ユーザーの指摘）に合わせ、どの場面も「たまたま」で語る。
+- 1. 46億年を1000回やり直す：10の「偶然の関門」（`GATES`、確率は想像のための仮の数字と画面に明記）。くぐれなかった地球は別の星になる（`FATES`）。人類が現れる地球はほぼ0。◎がこの地球（いつも通過）。
+- 2. この地球の糸（`THREAD`）：最初の細胞→飲みこんで消化しそこねた（ミトコンドリア）→多細胞→魚→上陸→ペルム紀の生き残り→隕石を越えた小さな哺乳類→サル→二足歩行→ホモ・サピエンス。絵は scenes.js の drawScene。
+- 3. あなた：両親にない新しい変化を数十個持って生まれた、46億年分の偶然のいちばん新しい1つ。生まれた年（任意、`earth24.birthYear`）で人生が地球時計の何秒か。Xでシェア・もう一度・進化ガチャへ。
+- 今のサイト（進化ガチャ）からはまだリンクしていない（試作。sitemap にも入れていない）。暗い画面で固定。
+
 **化石の博物館**（みんなの系統の展示室）：`museum.html` + `museum.js`（ページ）と `functions/`（Cloudflare Pages Functions のサーバー）。
 - 展示は結末画面の「この系統を化石の博物館に展示する」を押したときだけ（`R.data` を POST）。自由な文章はなく、反応は「心に留める」だけ。
 - API：`GET /api/exhibits?sort=new|loved|random&kind=all|dead|alive`、`POST /api/exhibits`、`GET /api/exhibits/<id>`、`POST /api/exhibits/<id>/heart`。
