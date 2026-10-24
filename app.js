@@ -740,12 +740,55 @@
     r.drawn = true;
     const b = $('b-born'); b.disabled = true;
     const opts = evo.birthOptions(r.t);
-    const done = () => { b.hidden = true; $('br-done').hidden = false; setPrimary(false); onBorn(r.t); };
-    if (opts.length < 2 || REDUCE) { done(); return; }
-    let k = Math.floor(Math.random() * opts.length);
-    const iv = setInterval(() => { b.textContent = tr(opts[k++ % opts.length].name); }, 80);   // 候補の名前が入れ替わって、止まる
-    setTimeout(() => { clearInterval(iv); done(); }, 900);
+    const finish = (o) => { b.hidden = true; $('br-done').hidden = false; setPrimary(false); onBorn(r.t, null, o); };
+    if (!opts.length) { finish(null); return; }                     // 生命が生まれる前の時代
+    gachaShow(opts, r.t, finish);
   });
+  // 生き物のガチャの演出：候補の影が入れ替わりながら遅くなって止まり、光って色がつく
+  function gachaShow(opts, t, done) {
+    const m = $('gacha'), cv = $('g-cv'), ctx = cv.getContext('2d'), row = $('g-row');
+    const win = Math.floor(Math.random() * opts.length);
+    const looks = opts.map((o) => lookOfL(evo.makeLineage(o, t, false)));
+    cv.width = CARD_W; cv.height = CARD_H;
+    row.textContent = '';
+    const thumbs = looks.map((lk) => {
+      const c = document.createElement('canvas'); c.width = CARD_W; c.height = CARD_H;
+      drawCreatureCard(c.getContext('2d'), lk, 0, '#56607a');
+      row.appendChild(c);
+      return c;
+    });
+    m.classList.remove('done');
+    $('g-msg').textContent = T('この時代の{n}種類から、1つ', { n: opts.length });
+    $('g-name').textContent = '？？？';
+    $('g-sub').textContent = '';
+    m.hidden = false;
+    let i = Math.floor(Math.random() * opts.length), gap = 60, timer = 0, over = false;
+    const show = (k) => {
+      drawCreatureCard(ctx, looks[k], 0, '#ffffff');
+      thumbs.forEach((c, j) => c.classList.toggle('on', j === k));
+    };
+    const reveal = () => {
+      if (over) return;
+      over = true; clearTimeout(timer);
+      drawCreatureCard(ctx, looks[win], 3);
+      thumbs.forEach((c, j) => { c.classList.toggle('on', j === win); if (j === win) drawCreatureCard(c.getContext('2d'), looks[win], 3); });
+      m.classList.add('done');
+      $('g-msg').textContent = T('出た！');
+      $('g-name').textContent = tr(opts[win].name);
+      $('g-sub').textContent = T('{p}分の1', { p: opts.length });
+      timer = setTimeout(close, REDUCE ? 600 : 1600);
+    };
+    const close = () => { clearTimeout(timer); m.hidden = true; m.onclick = null; done(opts[win]); };
+    // 速く回り、だんだん遅くなって、当たりの1つで止まる
+    const tick = () => {
+      show(i % opts.length);
+      if (gap > 320 && i % opts.length === win) { timer = setTimeout(reveal, 380); return; }
+      i++; gap = Math.min(gap * 1.13, 420);
+      timer = setTimeout(tick, gap);
+    };
+    m.onclick = () => (over ? close() : reveal());                      // タップで飛ばす
+    if (REDUCE || opts.length < 2) reveal(); else tick();
+  }
   $('b-spin').addEventListener('click', () => spinTo(Math.random() * S));
   // ホモ・サピエンスとして生まれる確率：時代ごとの候補の数から計算する（30万年前より後だけ）
   {
@@ -843,7 +886,7 @@
     requestAnimationFrame(stepAnim);
   }
 
-  function onBorn(t, daily = null) {
+  function onBorn(t, daily = null, chosen = null) {
     G.follow = false; G.handYa = t; G.angle = fracOf(t) * 360; bDial.set(G.angle);
     const options = evo.birthOptions(t);
     if (!options.length) {
@@ -859,7 +902,7 @@
     }
     const rand = daily ? daily.rnd : Math.random;                     // 今日の地球は、日付から決まる乱数で選ぶ
     const pick = () => options[Math.floor(rand() * options.length)];
-    const player = evo.makeLineage(pick(), t, true);
+    const player = evo.makeLineage(chosen || pick(), t, true);     // ガチャで当たった生き物
     const rivals = [0, 1, 2, 3].map(() => evo.makeLineage(pick(), t, false));
     dedupeNames([player, ...rivals]);
     player.firstName = player.name;
