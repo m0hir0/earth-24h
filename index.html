@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<script src="move.js?v=202610240102"></script>
+<script src="move.js?v=202610240344"></script>
 <link rel="canonical" href="https://earth24h.com/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>地球の24時間</title>
@@ -533,6 +533,28 @@
   .hero p { color: var(--text-2); margin: 0; font-size: 15px; max-width: 34em; }
   .birth-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 12px 0 6px; }
   .birth-actions .sub { font-size: 12.5px; color: var(--muted); text-align: center; }
+  /* 時代のルーレットの結果と、生き物のガチャ */
+  .roll { width: min(100%, 360px); border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); padding: 12px 14px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .roll .br-head { display: flex; align-items: center; justify-content: center; gap: 7px; flex-wrap: wrap; }
+  .roll .br-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+  .roll .br-name { font-size: 19px; font-weight: 900; }
+  .roll .br-new { font-size: 11px; font-weight: 900; color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 1px 8px; }
+  .roll .br-when, .roll .br-prob { font-size: 12.5px; color: var(--text-2); }
+  .roll .br-who { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
+  .roll .br-done { font-size: 12px; color: var(--muted); margin: 0; }
+  .roll .btn { width: 100%; }
+  /* 時代の図鑑 */
+  .era-dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 8px; }
+  .ed { display: grid; grid-template-columns: 10px 1fr; column-gap: 6px; align-items: center; padding: 4px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); min-width: 0; }
+  .ed .ed-dot { width: 10px; height: 10px; border-radius: 50%; opacity: .35; }
+  .ed b { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ed small { grid-column: 2; font-size: 10.5px; color: var(--muted); }
+  .ed.got { background: var(--surface); }
+  .ed.got .ed-dot { opacity: 1; }
+  .ed.got b { color: var(--text); }
+  .ed.new { animation: ednew 1.6s ease-out; }
+  @keyframes ednew { 0% { box-shadow: 0 0 0 0 rgba(255, 216, 74, .95); background: #fff6c8; } 100% { box-shadow: 0 0 18px 6px rgba(255, 216, 74, 0); } }
+  @media (prefers-reduced-motion: reduce) { .ed.new { animation: none; } }
   .shared { border: 2px solid var(--accent); }
   .shared .kick { font-size: 12px; font-weight: 800; color: var(--accent); letter-spacing: .06em; margin-bottom: 8px; }
   .shared .ttl { font-size: 22px; font-weight: 900; margin: 10px 0 4px; }
@@ -654,7 +676,7 @@
       <span class="brand" data-i18n>地球の24時間</span>
       <button class="tab" role="tab" data-tab="evo" aria-selected="true" data-i18n>生まれる</button>
       <button class="tab" role="tab" data-tab="home" aria-selected="false" data-i18n>いまの地球</button>
-      <button class="tab" role="tab" data-tab="now" aria-selected="false"><span data-i18n>今を拡大</span><svg class="lockmark" id="tab-lock" viewBox="0 0 10 12" aria-hidden="true" hidden><path d="M2.5 5V3.5a2.5 2.5 0 0 1 5 0V5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="1" y="5" width="8" height="6.5" rx="1.2" fill="currentColor"/></svg></button>
+      <button class="tab" role="tab" data-tab="now" aria-selected="false"><span data-i18n>46億年を流す</span><svg class="lockmark" id="tab-lock" viewBox="0 0 10 12" aria-hidden="true" hidden><path d="M2.5 5V3.5a2.5 2.5 0 0 1 5 0V5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="1" y="5" width="8" height="6.5" rx="1.2" fill="currentColor"/></svg></button>
     </nav>
     <div class="liverow">
     <button class="livebar" id="live" aria-label="いまの地球を見る" data-i18n-label="いまの地球を見る">
@@ -730,8 +752,8 @@
       <button class="btn btn-primary" id="z-go" data-i18n>生まれる</button>
     </div>
     <div id="z-body">
-    <h2 style="margin:0 0 6px" data-i18n>24:00の直前を拡大する</h2>
-    <p class="lead" data-i18n>23:57からの最後の3分間を、時間をゆるめながら再生します。人類の歴史は最後の5.6秒。最後の区間は、AIが台頭したこの十数年です。</p>
+    <h2 style="margin:0 0 6px" data-i18n>46億年を流す</h2>
+    <p class="lead" data-i18n>地球が生まれた0:00から、24:00の今までを約5分で流します。はじめの約2分で、46億年のほとんどが過ぎていきます。最後の3分間（23:57〜）は時間をゆるめて、人類の歴史（最後の5.6秒）とAIの時代を見ていきます。</p>
     <div class="z-top">
       <span class="chip" id="z-chip"></span>
       <span class="z-rate num" id="z-rate"></span>
@@ -768,6 +790,26 @@
       <button class="btn" data-zspeed="16">×16</button>
       <button class="btn" id="z-restart" data-i18n>最初から</button>
     </div>
+    <div class="home-grid">
+      <div>
+        <div class="dial-wrap">
+          <canvas class="globe" id="z-globe" aria-hidden="true"></canvas>
+          <svg id="z-dial" aria-hidden="true"></svg>
+        </div>
+        <div class="dial-under">
+          <div class="era" id="z-era"></div>
+          <div class="gcap" id="z-globe-cap"></div>
+        </div>
+      </div>
+      <div class="card" style="margin:0">
+        <h3 data-i18n>このときの地球</h3>
+        <div class="bars">
+          <div class="bar"><div class="row"><span data-i18n>大気中の酸素</span><b id="z-o2"></b></div><div class="track"><div class="fill" id="z-o2-f"></div></div><div class="note" data-i18n>今は21%</div></div>
+          <div class="bar"><div class="row"><span data-i18n>1日の長さ</span><b id="z-day"></b></div><div class="track"><div class="fill" id="z-day-f"></div></div><div class="note" data-i18n>月の引力で、地球の自転は少しずつ遅くなってきた（目安）</div></div>
+          <div class="bar"><div class="row"><span data-i18n>太陽の明るさ</span><b id="z-sun"></b></div><div class="track"><div class="fill" id="z-sun-f"></div></div><div class="note" data-i18n>今を100とした値</div></div>
+        </div>
+      </div>
+    </div>
     <details class="card" id="n-ai">
       <summary data-i18n>AIの歩みを一覧で読む</summary>
       <div class="ai-head" id="n-ai-head" style="margin-top:12px"></div>
@@ -792,7 +834,7 @@
     <div class="hero">
       <div class="hero-top"><div class="kicker" data-i18n>進化ガチャ</div><a class="hero-link" href="guide.html" data-i18n>遊び方を見る</a></div>
       <h1 data-i18n="hero.h1">46億年のどこかに、<br>生まれる。</h1>
-      <p data-i18n>どの時代に、何として生まれるかは選べません。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
+      <p data-i18n>まず時代のルーレットを何度でも回し、気に入った時代が出たら、その時代の生き物のガチャを1回だけ引けます。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
     </div>
     <div class="dial-wrap">
       <svg id="b-dial" aria-hidden="true"></svg>
@@ -810,9 +852,17 @@
       </div>
     </div>
     <div class="birth-actions">
-      <button class="btn btn-primary" id="b-spin" data-i18n>生まれる</button>
+      <div class="roll" id="b-roll" hidden aria-live="polite">
+        <div class="br-head"><span class="br-dot" id="br-dot"></span><span class="br-name" id="br-name"></span><span class="br-new" id="br-new" hidden data-i18n>NEW 時代の図鑑に登録！</span></div>
+        <div class="br-when num" id="br-when"></div>
+        <div class="br-prob num" id="br-prob"></div>
+        <p class="br-who" id="br-who"></p>
+        <button class="btn btn-primary" id="b-born"></button>
+        <p class="br-done" id="br-done" hidden data-i18n>この時代では、もう生まれました。別の生き物になるには、ルーレットから回し直します。</p>
+      </div>
+      <button class="btn btn-primary" id="b-spin" data-i18n>時代のルーレットを回す</button>
       <button class="daily-btn" id="b-daily"><span class="dt" id="b-daily-t"></span><span class="ds" id="b-daily-s"></span></button>
-      <button class="btn" id="b-now" data-i18n>いまの地球時計の時代に生まれる</button>
+      <button class="btn" id="b-now" data-i18n>いまの地球時計の時代を引く</button>
       <div class="sub since num" id="b-since"></div>
       <div class="sub" id="b-odds">生まれる時代は46億年のうちから均等に選ばれます。わたしたちと同じホモ・サピエンスとして生まれる確率は0.0024%（約4.1万分の1）。</div>
     </div>
@@ -824,6 +874,11 @@
         <h3 data-i18n>同じ瞬間に生まれた4つの系統</h3>
         <ul class="rivals" id="b-rivals"></ul>
       </div>
+    </div>
+    <div class="card" id="eras">
+      <h3><span data-i18n>時代の図鑑</span> <span class="num muted" id="eras-n"></span></h3>
+      <p class="muted small num" id="eras-sum" style="margin:0"></p>
+      <div class="era-dex" id="era-dex"></div>
     </div>
     <a class="museum-link" href="museum.html"><span class="ml-t" data-i18n>化石の博物館</span><span class="ml-s" id="b-museum-s" data-i18n>みんなが生きた系統を見て回る</span><span class="ml-a" aria-hidden="true">›</span></a>
     <div class="card" id="hist">
@@ -970,7 +1025,7 @@
         <div class="big" id="b-none-h" data-i18n>生まれることができませんでした</div>
         <p class="muted" id="b-none-t"></p>
         <p class="none-rec" id="b-none-rec"></p>
-        <div class="start-box"><button class="btn btn-primary" id="b-none-again" data-i18n>もう一度生まれる</button></div>
+        <div class="start-box"><button class="btn btn-primary" id="b-none-again" data-i18n>ルーレットを回す</button></div>
       </div>
     </div>
   </div>
@@ -986,12 +1041,12 @@
           <dl>
             <div><dt data-i18n>体のつくり</dt><dd id="b-plan"></dd></div>
             <div><dt data-i18n>生まれた場所</dt><dd><span id="b-hab"></span><small class="hab-note" id="b-hab-note" data-i18n>この時代の仲間の化石の産地</small></dd></div>
-            <div><dt data-i18n>この時代を引く確率</dt><dd id="b-prob" class="num"></dd></div>
+            <div><dt data-i18n>この生き物として生まれる確率</dt><dd><span id="b-prob" class="num"></span><small class="hab-note num" id="b-prob-note"></small></dd></div>
             <div><dt data-i18n>今日まで</dt><dd id="b-left" class="num"></dd></div>
           </dl>
           <div class="start-box">
             <button class="btn btn-primary" id="b-start" data-i18n>この生き物で進化を始める</button>
-            <button class="btn" id="b-again" data-i18n>もう一度生まれる</button>
+            <button class="btn" id="b-again" data-i18n>ルーレットから回し直す</button>
           </div>
         </div>
       </div>
@@ -1054,13 +1109,13 @@
   </footer>
 </div>
 
-<script src="i18n.js?v=202610240102"></script>
-<script src="data.js?v=202610240102"></script>
-<script src="scenes.js?v=202610240102"></script>
-<script src="globe.js?v=202610240102"></script>
-<script src="evo.js?v=202610240102"></script>
-<script src="lang-en.js?v=202610240102"></script>
-<script src="story.js?v=202610240102"></script>
-<script src="app.js?v=202610240102"></script>
+<script src="i18n.js?v=202610240344"></script>
+<script src="data.js?v=202610240344"></script>
+<script src="scenes.js?v=202610240344"></script>
+<script src="globe.js?v=202610240344"></script>
+<script src="evo.js?v=202610240344"></script>
+<script src="lang-en.js?v=202610240344"></script>
+<script src="story.js?v=202610240344"></script>
+<script src="app.js?v=202610240344"></script>
 </body>
 </html>
