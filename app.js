@@ -107,6 +107,9 @@
   }
   // 「生まれる」タブ：プレイ中ならその続きへ、それ以外はガチャの画面へ
   document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => show(t.dataset.tab === 'evo' ? (evoScreen === 'play' && P.on ? 'play' : 'birth') : t.dataset.tab)));
+  // 「いまの地球」タブは「46億年を流す」と重なるので休止中。true に戻せば元どおり出る
+  const HOME_TAB = false;
+  if (!HOME_TAB) document.querySelector('.tab[data-tab="home"]').style.display = 'none';
 
   /* ============================================================
      いまの地球（現地時間と同期）
@@ -221,9 +224,9 @@
     $('live-jst').textContent = t;
     $('live-ago').textContent = fmtAgo(ya);
     $('live-era').textContent = `${E.LANG === 'en' ? '· ' : '・'}${periodLabel(ya)}`;
-    if (!G.spinning) $('b-now').textContent = T('いまの地球時計の時代（{a}）に生まれる', { a: fmtAgo(ya) });
+    if (!G.spinning) $('b-now').textContent = T('いまの地球時計の時代（{a}）を引く', { a: fmtAgo(ya) });
     sinceTick();
-    if (G.day !== new Date().getDate()) { G.day = new Date().getDate(); if (G.ready) renderDaily(); }   // 日付が変わったら今日のお題も変わる
+    if (DAILY && G.day !== new Date().getDate()) { G.day = new Date().getDate(); if (G.ready) renderDaily(); }   // 日付が変わったら今日のお題も変わる
   }
   let lastHomeTick = 0;
   function homeLoop() {
@@ -236,23 +239,25 @@
     liveTick();
     if (!$('screen-home').hidden && performance.now() - lastHomeTick > 400) { homeTick(); lastHomeTick = performance.now(); }
   }, 500);
-  $('live').addEventListener('click', () => show('home'));
+  $('live').addEventListener('click', () => show(HOME_TAB ? 'home' : 'now'));
+  if (!HOME_TAB) $('live').setAttribute('aria-label', T('46億年を流す'));
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !$('screen-home').hidden) homeInit(); });
 
   /* ============================================================
-     今を拡大：23:57からの最後の3分間を、時間をゆるめながら再生する
+     46億年を流す：0:00から同じ速さで流し、23:57からの最後の3分間は時間をゆるめる（前の版と「今を拡大」を合わせたもの）
      ============================================================ */
   const ZSEG = [
-    { a: S * 3 / 1440, b: 3e5, f: 0.12, sub: T('人類の祖先から、ホモ・サピエンスへ') },
-    { a: 3e5, b: 1.2e4, f: 0.14, sub: T('サピエンスが世界へ広がる') },
-    { a: 1.2e4, b: ago(1769), f: 0.16, sub: T('農耕から、文明と国へ') },
-    { a: ago(1769), b: ago(1956.6), f: 0.16, sub: T('産業革命から、AIという言葉が生まれるまで') },
-    { a: ago(1956.6), b: ago(2012.8), f: 0.16, sub: T('コンピュータとAIの研究') },
-    { a: ago(2012.8), b: 0, f: 0.26, sub: T('AIの台頭') },
+    { a: S, b: S * 3 / 1440, f: 0.4, sub: T('地球の誕生から、人類の祖先が現れる直前まで') },
+    { a: S * 3 / 1440, b: 3e5, f: 0.072, sub: T('人類の祖先から、ホモ・サピエンスへ') },
+    { a: 3e5, b: 1.2e4, f: 0.084, sub: T('サピエンスが世界へ広がる') },
+    { a: 1.2e4, b: ago(1769), f: 0.096, sub: T('農耕から、文明と国へ') },
+    { a: ago(1769), b: ago(1956.6), f: 0.096, sub: T('産業革命から、AIという言葉が生まれるまで') },
+    { a: ago(1956.6), b: ago(2012.8), f: 0.096, sub: T('コンピュータとAIの研究') },
+    { a: ago(2012.8), b: 0, f: 0.156, sub: T('AIの台頭') },
   ];
-  const ZDEC = [0, 2, 4, 6, 7, 8];
-  const Z_T = 180;                                                  // ×1で約3分
-  const segLabel = (i) => T('最後の{t}', { t: fmtSec(ZSEG[i].a / S * DAY) });
+  const ZDEC = [0, 0, 2, 4, 6, 7, 8];
+  const Z_T = 300;                                                  // ×1で約5分（はじめの2分で23:57まで、残りの3分で最後の3分間）
+  const segLabel = (i) => (i === 0 ? T('0:00〜23:57') : T('最後の{t}', { t: fmtSec(ZSEG[i].a / S * DAY) }));
   // 出来事：EVENTS に、AIの歩みの詳しい説明を合わせる
   const AI_BY_YEAR = new Map(AI_STORY.map(([y, t, d]) => [y, { t, d }]));
   const ZEV = EVENTS.filter((e) => e.ya <= ZSEG[0].a && e.ya > 0).map((e) => {
@@ -267,9 +272,30 @@
   }
   ZEV.sort((x, y) => y.ya - x.ya);
 
-  const Z_INTRO = { ya: ZSEG[0].a, name: T('最後の3分間へ'), note: T('人類の祖先が現れる直前から、今日までを再生します。'), kind: '' };
-  const Z = { p: 0, speed: 1, playing: false, seg: -1, next: 0, ya: ZSEG[0].a, last: 0, ended: false, cap: '' };
-  sceneView($('z-scene'), () => ({ ya: Math.max(Z.ya, 0.3) }));
+  const Z_INTRO = { ya: ZSEG[0].a, name: T('地球の誕生'), note: T('0:00に地球が生まれ、24:00が今。46億年を同じ速さで流し、最後の3分間は時間をゆるめていきます。'), kind: '' };
+  const Z = { p: 0, speed: 1, playing: false, seg: -1, next: 0, ya: ZSEG[0].a, last: 0, ended: false, cap: '', fx: null, fxUntil: 0, glLast: 0, barSec: -1 };
+  sceneView($('z-scene'), (now) => ({ ya: Math.max(Z.ya, 0.3), fx: now < Z.fxUntil ? Z.fx : null }));
+  // 回る地球と、塗られていく24時間の時計、このときの地球（酸素・1日の長さ・太陽）
+  const zDial = buildDial($('z-dial'), { reveal: true });
+  const ZG = $('z-globe'); ZG.width = ZG.height = E.globe.N;
+  const zGlobe = ZG.getContext('2d');
+  function zEarth(ya) {
+    zDial.set(fracOf(ya) * 360);
+    const nowMs = performance.now();
+    if (nowMs - Z.glLast > 100) { Z.glLast = nowMs; E.globe.draw(zGlobe, ya, REDUCE ? 0.6 : nowMs * 0.00028); }
+    const key = Math.round(fracOf(ya) * 2000);
+    if (key === Z.barSec) return;
+    Z.barSec = key;
+    $('z-era').textContent = eraOf(ya).name;
+    $('z-globe-cap').textContent = T('地球のすがた：{x}', { x: E.globe.label(ya) });
+    const o2 = status.oxygen(ya), day = status.dayLength(ya), sun = status.sun(ya);
+    $('z-o2').textContent = o2 < 0.01 ? T('ほぼ0%') : T('約{v}%', { v: o2 < 1 ? o2.toFixed(1) : Math.round(o2) });
+    $('z-o2-f').style.width = `${Math.min(100, (o2 / 35) * 100)}%`;
+    $('z-day').textContent = T('約{v}時間', { v: day.toFixed(1) });
+    $('z-day-f').style.width = `${(day / 24) * 100}%`;
+    $('z-sun').textContent = `${Math.round(sun)}`;
+    $('z-sun-f').style.width = `${sun}%`;
+  }
   function zYa(p) {
     if (p >= 1) return 0;
     let cum = 0;
@@ -292,14 +318,15 @@
       const g = ZSEG[i];
       el('line', { x1: 24, y1: 40, x2: 616, y2: 40, class: 'strip-axis' }, svg);
       this.fill = el('line', { x1: 24, y1: 40, x2: 24, y2: 40, class: 'strip-fill' }, svg);
-      this.dots = ZEV.filter((e) => e.ya <= g.a && e.ya >= g.b).map((e) => ({
-        e, node: el('circle', { cx: this.x(e.ya), cy: 40, r: 5.5, class: `strip-dot${e.kind === 'ai' ? ' ai' : ''}` }, svg),
+      const list = ZEV.filter((e) => e.ya <= g.a && e.ya >= g.b), r = list.length > 30 ? 3.2 : 5.5;   // 46億年の区間は出来事が多いので小さく
+      this.dots = list.map((e) => ({
+        e, node: el('circle', { cx: this.x(e.ya), cy: 40, r, class: `strip-dot${e.kind === 'ai' ? ' ai' : ''}` }, svg),
       }));
       this.label = el('text', { x: 24, y: 22, class: 'strip-label' }, svg);
       this.cursor = el('path', { d: 'M0,0', class: 'strip-cursor' }, svg);
       el('text', { x: 24, y: 70, class: 'strip-end' }, svg).textContent = fmtAgo(g.a);
       el('text', { x: 616, y: 70, class: 'strip-end', 'text-anchor': 'end' }, svg).textContent = g.b > 0 ? fmtAgo(g.b) : T('今');
-      $('z-strip-cap').textContent = T('{s}を拡大中：{sub}', { s: mid(segLabel(i)), sub: g.sub });
+      $('z-strip-cap').textContent = i === 0 ? T('0:00〜23:57：{sub}', { sub: g.sub }) : T('{s}を拡大中：{sub}', { s: mid(segLabel(i)), sub: g.sub });
     },
     update(ya) {
       const x = this.x(ya);
@@ -348,8 +375,12 @@
     const cap = sceneCaption(Math.max(ya, 0.3));
     if (cap !== Z.cap) { Z.cap = cap; $('z-cap').textContent = cap; }
     zStrip.update(ya);
+    zEarth(ya);
     let fired = null;
-    while (Z.next < ZEV.length && ZEV[Z.next].ya >= ya) fired = ZEV[Z.next++];
+    while (Z.next < ZEV.length && ZEV[Z.next].ya >= ya) {
+      fired = ZEV[Z.next++];
+      if (FX_BY_EVENT[fired.key] && !Z.dragging) { Z.fx = FX_BY_EVENT[fired.key]; Z.fxUntil = performance.now() + 4000; }   // 大酸化・全球凍結・隕石などは場面にも
+    }
     if (fired) zEvent(fired, true);
   }
   function zLoop(ts) {
@@ -386,7 +417,8 @@
   {
     const box = $('z-seek-labels');
     box.style.gridTemplateColumns = ZSEG.map((g) => `${g.f}fr`).join(' ');
-    ZSEG.forEach((g, i) => { const sp = document.createElement('span'); sp.textContent = i === ZSEG.length - 1 ? T('AIの台頭') : fmtSec(ZSEG[i].a / S * DAY); box.appendChild(sp); });
+    // 最後の3分間の区間は細いので、目盛りは 0:00・23:57・AI だけ
+    ZSEG.forEach((g, i) => { const sp = document.createElement('span'); sp.textContent = i === 0 ? '0:00' : i === 1 ? '23:57' : i === ZSEG.length - 1 ? 'AI' : ''; if (i === 1) sp.style.overflow = 'visible'; box.appendChild(sp); });
   }
   const zCum = (i) => ZSEG.slice(0, i).reduce((a, g) => a + g.f, 0);
   function zSeek(p) {
@@ -418,9 +450,11 @@
   strip.addEventListener('pointercancel', stripEnd);
   $('z-again').addEventListener('click', zReset);
 
-  // 今を拡大は、一度「生まれる」を最後まで遊ぶと見られる
+  // 前は、一度「生まれる」を最後まで遊ぶと見られた（鍵）。46億年を流す体験は入口なので、今は鍵なし。true に戻せば鍵が戻る
+  const ZOOM_LOCK = false;
   const ZOOM_KEY = 'earth24.zoom';
   function zoomUnlocked() {
+    if (!ZOOM_LOCK) return true;
     try { if (localStorage.getItem(ZOOM_KEY)) return true; } catch (e) { /* 保存できない環境 */ }
     return histLoad().some((d) => !d.u);
   }
@@ -540,7 +574,7 @@
     const span = (e) => `${T('地球時計 {a}〜{b}', { a: fmtClock(e.from, 0), b: fmtClock(e.to, 0) })}${SEP}${fmtAgo(e.from)} → ${e.to > 0 ? fmtAgo(e.to) : T('今')}`;
     $('ei-when').textContent = late ? span({ from: list[0].from, to: 0 }) : span(ERAS[i]);
     if (late) {
-      $('ei-note').textContent = T('人類の祖先から今日までが、時計のこの細いすき間に入っています。くわしくは「今を拡大」で。');
+      $('ei-note').textContent = T('人類の祖先から今日までが、時計のこの細いすき間に入っています。くわしくは「46億年を流す」で。');
       $('ei-who').textContent = list.map((e) => T('{n}（{c}〜）', { n: e.name, c: fmtClock(e.from, 0) })).join(E.LANG === 'en' ? ' / ' : '、');
     } else {
       $('ei-note').textContent = T(ERA_NOTE[i]);
@@ -605,6 +639,83 @@
     });
   }
 
+  /* ---------- 時代のルーレット：何度でも回せる。出た時代は「時代の図鑑」に残り、生き物のガチャはその時代で1回だけ ---------- */
+  // マスは地質年代（data.js の PERIODS、解説ページの表と同じ）。最後の更新世だけは、人類の歴史で細かく分ける
+  const SLOTS = [
+    ...E.PERIODS.filter((p) => p.to >= 2.58e6).map((p) => ({ from: p.from, to: p.to, name: p.name || p.era })),
+    { from: 2.58e6, to: 3e5, name: '更新世（氷河時代）' },
+    { from: 3e5, to: 1.17e4, name: 'ホモ・サピエンスの時代' },
+    { from: 1.17e4, to: ago(1769), name: '農耕と文明の時代' },
+    { from: ago(1769), to: 0, name: '産業革命以後' },
+  ].map((s) => ({ ...s, p: (s.from - s.to) / S, color: eraOf((s.from + s.to) / 2).color }));
+  const slotOf = (ya) => { const i = SLOTS.findIndex((s) => ya <= s.from && ya > s.to); return i < 0 ? SLOTS.length - 1 : i; };
+  const EKEY = 'earth24.eras';                                     // 時代の図鑑：{s:[マスごとに出た回数]}
+  let memEras = null;
+  function erasLoad() {
+    let raw = memEras;
+    try { raw = JSON.parse(localStorage.getItem(EKEY)) || raw; } catch (e) { /* 保存できない環境 */ }
+    return { s: SLOTS.map((_, i) => Math.max(0, Math.floor(Number(raw && Array.isArray(raw.s) && raw.s[i])) || 0)) };
+  }
+  function erasSave(R) {
+    memEras = R;
+    try { localStorage.setItem(EKEY, JSON.stringify(R)); } catch (e) { /* 保存できなくても、このページの間は残る */ }
+  }
+  function renderEras(newI = -1) {
+    const R = erasLoad(), box = $('era-dex');
+    if (!box.children.length) {
+      SLOTS.forEach((s) => {
+        const d = document.createElement('div'); d.className = 'ed';
+        d.innerHTML = '<span class="ed-dot"></span><b></b><small class="num"></small>';
+        d.children[0].style.background = s.color;
+        box.appendChild(d);
+      });
+    }
+    const got = R.s.filter((c) => c > 0).length, total = R.s.reduce((a, b) => a + b, 0);
+    SLOTS.forEach((s, i) => {
+      const d = box.children[i], c = R.s[i];
+      d.classList.toggle('got', c > 0);
+      d.classList.remove('new');
+      if (i === newI && !REDUCE) { void d.offsetWidth; d.classList.add('new'); }
+      d.children[1].textContent = c ? tr(s.name) : '？？？';
+      d.children[2].textContent = c ? T('{p}分の1・{c}回', { p: fmtOneIn(1 / s.p), c: c.toLocaleString() }) : T('{p}分の1', { p: fmtOneIn(1 / s.p) });
+    });
+    $('eras-n').textContent = `${got} / ${SLOTS.length}`;
+    $('eras-sum').textContent = total ? T('ルーレットを回した回数：{n}回', { n: total.toLocaleString() }) : T('ルーレットで出た時代が、ここに集まります。まだの時代は、出る確率だけが見えます。');
+  }
+  const setPrimary = (rolled) => { $('b-spin').classList.toggle('btn-primary', !rolled); $('b-born').classList.toggle('btn-primary', rolled); };
+  function onRoll(t) {
+    const i = slotOf(t), R = erasLoad(), isNew = !R.s[i], s = SLOTS[i];
+    R.s[i]++; erasSave(R);
+    G.roll = { t, drawn: false };
+    $('br-new').hidden = !isNew;
+    $('br-dot').style.background = s.color;
+    $('br-name').textContent = tr(s.name);
+    $('br-when').textContent = `${T('地球時計 {c}', { c: fmtClock(t) })}${SEP}${fmtAgo(t)}`;
+    $('br-prob').textContent = T('この時代が出る確率：{p}', { p: fmtProb(s.p) });
+    const opts = evo.birthOptions(t);
+    $('br-who').textContent = opts.length ? T('生まれる可能性のある生き物：{n}', { n: opts.map((o) => tr(o.name)).join(E.LANG === 'en' ? ', ' : '、') }) : T('この時代には、まだ生命がいません。');
+    const b = $('b-born');
+    b.hidden = false; b.disabled = false;
+    b.textContent = opts.length ? T('この時代に生まれる（1回だけ）') : T('この時代に生まれてみる');
+    $('br-done').hidden = true;
+    $('b-roll').hidden = false;
+    $('b-roll').scrollIntoView({ block: 'nearest', behavior: REDUCE ? 'auto' : 'smooth' });   // 「この時代に生まれる」が画面に入るように
+    setPrimary(true);
+    renderEras(isNew ? i : -1);
+  }
+  // 生き物のガチャ：1つの時代で1回だけ。気に入らなければ、時代から回し直す
+  $('b-born').addEventListener('click', () => {
+    const r = G.roll;
+    if (!r || r.drawn || G.spinning) return;
+    r.drawn = true;
+    const b = $('b-born'); b.disabled = true;
+    const opts = evo.birthOptions(r.t);
+    const done = () => { b.hidden = true; $('br-done').hidden = false; setPrimary(false); onBorn(r.t); };
+    if (opts.length < 2 || REDUCE) { done(); return; }
+    let k = Math.floor(Math.random() * opts.length);
+    const iv = setInterval(() => { b.textContent = tr(opts[k++ % opts.length].name); }, 80);   // 候補の名前が入れ替わって、止まる
+    setTimeout(() => { clearInterval(iv); done(); }, 900);
+  });
   $('b-spin').addEventListener('click', () => spinTo(Math.random() * S));
   // ホモ・サピエンスとして生まれる確率：時代ごとの候補の数から計算する（30万年前より後だけ）
   {
@@ -613,7 +724,7 @@
       const o = evo.birthOptions(ya);
       if (o.some((x) => x.plan === 'human')) p += 100 / o.length;
     }
-    $('b-odds').textContent = T('生まれる時代は46億年のうちから均等に選ばれます。わたしたちと同じホモ・サピエンスとして生まれる確率は{p}。', { p: fmtProb(p / S) });
+    $('b-odds').textContent = T('ルーレットは46億年のうちのどこかに均等に止まり、生き物のガチャは1つの時代で1回だけ。わたしたちと同じホモ・サピエンスとして生まれる確率は{p}。', { p: fmtProb(p / S) });
   }
   // 誕生の記録はポップアップ。閉じても「誕生の記録を見る」で開き直せる
   const openCert = (v) => { $('b-cert-modal').hidden = !v; if (v) { $('b-cert').scrollTop = 0; $('b-start').focus({ preventScroll: true }); } };
@@ -621,7 +732,7 @@
   $('b-reopen').addEventListener('click', () => openCert(true));
   $('b-cert-modal').addEventListener('click', (ev) => { if (ev.target === ev.currentTarget) openCert(false); });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') { if (!$('b-cert-modal').hidden) openCert(false); $('b-none').hidden = true; } });
-  $('b-again').addEventListener('click', () => { openCert(false); spinTo(Math.random() * S); });
+  $('b-again').addEventListener('click', () => { openCert(false); spinTo(Math.random() * S); });   // 生き物だけの引き直しはなし。時代から回し直す
   // 生まれられなかったときも、同じようなポップアップ（その時代の地球の絵つき）
   sceneView($('b-none-scene'), () => ($('b-none').hidden ? null : { ya: G.noneYa }));
   $('b-none-x').addEventListener('click', () => { $('b-none').hidden = true; });
@@ -638,6 +749,9 @@
   try { localStorage.removeItem('earth24.birthYear'); } catch (e) { /* 生まれた年の比較は廃止。前に入れた値を消す */ }
 
   /* ---------- 今日の地球：その日（端末の日付）は、全員が同じ時代・同じ生き物・同じ4つの系統で生まれる ---------- */
+  // 時代のルーレットと合わないので休止中。true に戻せばボタンが出る（前の記録の「今日の地球 No.N」はそのまま読める）
+  const DAILY = false;
+  if (!DAILY) $('b-daily').style.display = 'none';
   const DAILY_KEY = 'earth24.daily';
   function dailyInfo(now = new Date()) {
     const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
@@ -653,6 +767,7 @@
   const dailyDone = (no) => dailyLoad().no === no;
   const dailySave = (v) => { try { localStorage.setItem(DAILY_KEY, JSON.stringify(v)); } catch (e) { /* 保存できなくても遊べる */ } renderDaily(); };
   function renderDaily() {
+    if (!DAILY) return;
     const di = dailyInfo(), done = dailyLoad();
     $('b-daily-t').textContent = T('今日の地球 No.{n}', { n: di.no });
     $('b-daily-s').textContent = done.no === di.no
@@ -668,12 +783,13 @@
     $('b-daily').disabled = true;
     $('b-none').hidden = true;
     $('b-cert-wrap').hidden = true;
+    $('b-roll').hidden = true;
     openCert(false);
-    G.birth = null;
+    G.birth = null; G.roll = null;
     const target = fracOf(t) * 360;
     const start = G.angle % 360;
     const end = start + 360 * 3 + ((target - start + 360) % 360);
-    const dur = REDUCE ? 300 : 2400, t0 = performance.now();
+    const dur = REDUCE ? 300 : 1800, t0 = performance.now();
     const stepAnim = (now) => {
       const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
       const deg = start + (end - start) * e;
@@ -681,15 +797,15 @@
       const ya = Math.max(1, (1 - (deg % 360) / 360) * S);
       setClock($('b-clock'), fmtClock(ya));
       $('b-ago').textContent = fmtAgo(ya);
-      $('b-era').textContent = eraOf(ya).name;
+      $('b-era').textContent = tr(SLOTS[slotOf(ya)].name);
       if (k < 1) { requestAnimationFrame(stepAnim); return; }
       G.angle = target; bDial.set(target);
       G.spinning = false;
       $('b-spin').disabled = false;
       $('b-now').disabled = false;
       $('b-daily').disabled = false;
-      $('b-spin').textContent = T('もう一度生まれる');
-      onBorn(t, daily);
+      $('b-spin').textContent = T('もう一度回す');
+      if (daily) onBorn(t, daily); else onRoll(t);
       renderDaily();
     };
     requestAnimationFrame(stepAnim);
@@ -698,7 +814,7 @@
   function onBorn(t, daily = null) {
     setClock($('b-clock'), fmtClock(t));
     $('b-ago').textContent = fmtAgo(t);
-    $('b-era').textContent = eraOf(t).name;
+    $('b-era').textContent = tr(SLOTS[slotOf(t)].name);
     const options = evo.birthOptions(t);
     if (!options.length) {
       G.noneYa = t;
@@ -721,7 +837,6 @@
     G.birth = { t, player, rivals, daily: daily ? daily.no : 0 };
     $('b-daily-tag').hidden = !daily;
     if (daily) $('b-daily-tag').textContent = T('今日の地球 No.{n}', { n: daily.no });
-    const era = eraOf(t);
     $('b-no').textContent = `No. ${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
     $('b-who').textContent = T('あなたは、{n}として生まれました', { n: nameOf(player) });
     $('b-about').textContent = evo.ABOUT[player.name] || '';
@@ -731,7 +846,9 @@
     const pl = placeOf(t, player.plan, lookOfL(player).v);
     $('b-hab').textContent = pl.name;
     $('b-hab-note').hidden = !pl.found;
-    $('b-prob').textContent = fmtProb((era.from - era.to) / S);
+    const sl = SLOTS[slotOf(t)];                                    // 時代が出る確率 × その時代の生き物から1つ
+    $('b-prob').textContent = fmtProb(sl.p / options.length);
+    $('b-prob-note').textContent = T('時代 {a} × 生き物 {k}分の1', { a: fmtProb(sl.p), k: options.length });
     $('b-left').textContent = T('{y}（地球時計で{t}）', { y: fmtSpan(t), t: fmtSec(t / S * DAY) });
     drawCreatureCard($('b-pic').getContext('2d'), lookOfL(player), 3);
     const ul = $('b-rivals'); ul.textContent = '';
@@ -1416,7 +1533,7 @@
     renderZukan();
     renderDex();
     const F = foundLoad();
-    $('dex-clear').hidden = !Object.keys(F.e).length && !Object.keys(F.f).length;
+    $('dex-clear').hidden = !Object.keys(F.e).length && !Object.keys(F.f).length && !erasLoad().s.some((c) => c);
     if (!list.length) { $('hist-sum').textContent = ''; return; }
     const born = list.filter((d) => !d.u), unborn = list.length - born.length;
     const alive = born.filter((d) => d.a).length;
@@ -1640,7 +1757,7 @@
   let dexClearArmed = 0;
   $('dex-clear').addEventListener('click', () => {
     if (Date.now() - dexClearArmed > 4000) { dexClearArmed = Date.now(); $('dex-clear').textContent = T('もう一度押すと、図鑑をすべて消します'); return; }
-    foundSave({ e: {}, f: {} }); dexClearArmed = 0; $('dex-clear').textContent = T('図鑑をすべて消す');
+    foundSave({ e: {}, f: {} }); erasSave({ s: [] }); renderEras(); dexClearArmed = 0; $('dex-clear').textContent = T('図鑑をすべて消す');
     closeDex();
     renderHist();
   });
@@ -1733,12 +1850,13 @@
   liveTick();
   requestAnimationFrame(homeLoop);
   renderHist();
+  renderEras();
   updateZoomLock();
   renderDaily();
   museumCount();
   G.ready = true;
   const shared = readShared();
   if (shared) showShared(shared);
-  if (location.hash === '#clock') show('home');
+  if (location.hash === '#clock') show(HOME_TAB ? 'home' : 'now');
   else if (location.hash === '#now') show('now');
 })();
