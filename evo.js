@@ -1546,8 +1546,9 @@
         if (ks.includes('湿った陸の岩へ上がる')) return MORE_ENDINGS.find((e) => e.key === 'crust');
         if (ks.includes('外洋へ漂う')) return CYANO_ENDINGS[1];
       }
-      // 姿（変種）で決まる結末（ペンギン・カニ・シーラカンス・深海魚）。記録の系譜の最後の姿を見る
-      const v = d.v != null ? d.v : d.g && d.g.length ? d.g[d.g.length - 1][1] : '';
+      // 姿（変種）で決まる結末（ペンギン・カニ・シーラカンス・深海魚）。lv（今の姿）か、記録の系譜の最後の姿を見る
+      //   記録の v は形式の版（いつも1）なので、姿には使わない。前は d.v を見ていて、保存した記録ではこの結末にならなかった
+      const v = d.lv != null ? d.lv : d.g && d.g.length ? d.g[d.g.length - 1][1] : '';
       const ve = v && MORE_ENDINGS.find((e) => e.key === v && e.plan === d.p);
       if (ve) return ve;
       const key = d.p === 'arthropod' ? (d.h === 'land' ? 'arthropod-land' : 'arthropod-sea') : d.p;

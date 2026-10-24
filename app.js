@@ -1710,6 +1710,9 @@
     const F = { e: {}, f: {} };
     const ids = new Set(evo.ENDINGS.map((e) => e.id));
     for (const id in raw.e || {}) { const d = cleanRec(raw.e[id]); if (d && ids.has(id)) F.e[id] = d; }
+    // 姿で決まる結末（ペンギン・シーラカンスなど）が、前は別の結末として残っていた。記録から付け直す
+    for (const id in F.e) { const r = evo.endingOf(F.e[id]).id; if (!F.e[r]) F.e[r] = F.e[id]; }
+    histLoad().forEach((x) => { const d = cleanRec(x); if (d && !d.u) { const r = evo.endingOf(d).id; if (!F.e[r]) F.e[r] = d; } });
     for (const k in raw.f || {}) {
       const x = raw.f[k], d = x && cleanRec(x.d);
       if (d && DEX.includes(k)) F.f[k] = { n: Math.max(1, Math.floor(Number(x.n)) || 1), names: (Array.isArray(x.names) ? x.names : []).slice(-12).map((n) => String(n).slice(0, 40)), d };
