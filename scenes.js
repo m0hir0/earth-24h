@@ -1334,7 +1334,8 @@
     if (!spec) return ground;
     const [name, pal] = spec;
     let spr = SPR[name];
-    const rows = spr.rows || spr, d = spr.d || 1;
+    let rows = spr.rows || spr;
+    const d = spr.d || 1;
     let s = formScale(look, spec[2]);
     if (card) s = Math.max(1, Math.min(2 * d, Math.floor(56 * d / rows[0].length), Math.floor(38 * d / rows.length)));   // カードでは大きく（細かさは保つ）
     const cell = s / d, w = rows[0].length * cell, h = rows.length * cell;
@@ -1343,7 +1344,9 @@
     const y = card ? ground - h - (swim || fly ? 6 : 0) : fly ? 14 + Math.round(Math.sin(t * 0.2) * 3) : swim ? 30 - Math.round(h / 2) + Math.round(Math.sin(t * 0.15) * 2) : ground - h;
     const x = cx - Math.round(w / 2) + (card ? 0 : Math.round(Math.sin(t * 0.07) * 4));
     if (fly && name === 'pteroA' && t % 4 >= 2 && !card) spr = SPR.pteroB;
-    P.sprite(spr, pal, x, y, false, s);
+    const back = !card && (fly || swim) && Math.cos(t * 0.07) < 0;          // 左へ動くときは左を向く（絵はもともと右向き）
+    P.sprite(spr, pal, x, y, back, s);
+    if (back) rows = rows.map((r) => [...r].reverse().join(''));
     if ((look.armor || 0) >= 65 && !['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned', 'plant', 'fern', 'seed', 'flower', 'grass'].includes(look.v || plan) && plan !== 'arthropod' && plan !== 'armorfish') spikes(P, rows, x, y, cell, '#5a4a3a');
     if (look.feather && (plan === 'dino_small' || plan === 'theropod')) {    // 羽毛：頭のとさかと、背中・しっぽの羽
       const f = cell;
