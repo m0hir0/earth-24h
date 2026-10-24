@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<script src="move.js?v=202610240344"></script>
+<script src="move.js?v=202610240845"></script>
 <link rel="canonical" href="https://earth24h.com/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>地球の24時間</title>
@@ -531,6 +531,23 @@
   .hero .kicker { font-size: 12.5px; font-weight: 800; color: var(--muted); letter-spacing: .08em; }
   .hero h1 { font-size: clamp(30px, 8.6vw, 46px); line-height: 1.2; margin: 6px 0 10px; letter-spacing: .01em; }
   .hero p { color: var(--text-2); margin: 0; font-size: 15px; max-width: 34em; }
+  /* 生まれる画面の入口：いまの地球時計 */
+  .now-hero { padding: 4px 0 6px; }
+  .now-hero .concept { font-size: 13.5px; line-height: 1.5; color: var(--text-2); font-weight: 700; }
+  .now-line { font-size: 15px; color: var(--text-2); margin-top: 4px; }
+  .now-line b { font-size: 22px; color: var(--text); font-weight: 900; }
+  .now-line b.ago { color: var(--accent); }
+  .now-line .nm { color: var(--text); font-size: 12px; margin-right: 2px; }
+  body[data-screen="birth"] #live { display: none; }
+  body[data-screen="birth"] .liverow { justify-content: flex-end; }
+  .since-box { text-align: center; font-size: 13.5px; line-height: 1.55; color: var(--text-2); margin: 6px auto 0; max-width: 30em; }
+  .since-box b { color: var(--accent); font-size: 17px; font-weight: 900; }
+  .now-mark path { fill: var(--text); stroke: var(--dial-gap); stroke-width: 2; }
+  .gacha-intro { width: 100%; max-width: 34em; margin-top: 10px; text-align: left; }
+  .gacha-intro h2 { font-size: 22px; line-height: 1.3; margin: 0 0 6px; }
+  .gacha-intro p { color: var(--text-2); margin: 0; font-size: 14px; }
+  .dn-grid.eras { grid-template-columns: repeat(4, 1fr); }
+  .dn-cell.era { aspect-ratio: auto; min-height: 36px; padding: 3px; font-size: 10px; line-height: 1.25; font-weight: 800; text-align: center; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); word-break: keep-all; overflow-wrap: anywhere; }
   .birth-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 12px 0 6px; }
   .birth-actions .sub { font-size: 12.5px; color: var(--muted); text-align: center; }
   /* 時代のルーレットの結果と、生き物のガチャ */
@@ -669,7 +686,7 @@
   }
 </style>
 </head>
-<body>
+<body data-screen="birth">
 <div class="app">
   <header class="topbar">
     <nav class="tabs" role="tablist" aria-label="画面" data-i18n-label="画面">
@@ -831,18 +848,13 @@
       <ol id="s-path"></ol>
       <div style="display:flex;justify-content:center"><button class="btn btn-primary" id="s-play" data-i18n>あなたも生まれてみる</button></div>
     </div>
-    <div class="hero">
-      <div class="hero-top"><div class="kicker" data-i18n>進化ガチャ</div><a class="hero-link" href="guide.html" data-i18n>遊び方を見る</a></div>
-      <h1 data-i18n="hero.h1">46億年のどこかに、<br>生まれる。</h1>
-      <p data-i18n>まず時代のルーレットを何度でも回し、気に入った時代が出たら、その時代の生き物のガチャを1回だけ引けます。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
+    <div class="hero now-hero">
+      <div class="hero-top"><p class="concept" data-i18n="lbl.concept">46億年を24時間にした時計。<br>0:00に地球が生まれ、24:00が今。</p><a class="hero-link" href="guide.html" data-i18n>遊び方を見る</a></div>
+      <div class="now-line num" id="b-live"></div>
     </div>
     <div class="dial-wrap">
+      <canvas class="globe" id="b-globe" aria-hidden="true"></canvas>
       <svg id="b-dial" aria-hidden="true"></svg>
-      <div class="dial-center">
-        <div class="era" id="b-era"></div>
-        <div class="clock num" id="b-clock">?</div>
-        <div class="ago num" id="b-ago"></div>
-      </div>
       <div class="era-info" id="b-era-info" hidden aria-live="polite">
         <div class="ei-head"><span class="ei-dot" id="ei-dot"></span><b id="ei-name"></b><button class="ei-x" id="ei-x" aria-label="閉じる" data-i18n-label="閉じる">×</button></div>
         <div class="ei-when num" id="ei-when"></div>
@@ -851,7 +863,9 @@
         <div class="ei-prob num" id="ei-prob"></div>
       </div>
     </div>
+    <p class="since-box num" id="b-since"></p>
     <div class="birth-actions">
+      <button class="btn btn-primary" id="b-spin" data-i18n>時代のルーレットを回す</button>
       <div class="roll" id="b-roll" hidden aria-live="polite">
         <div class="br-head"><span class="br-dot" id="br-dot"></span><span class="br-name" id="br-name"></span><span class="br-new" id="br-new" hidden data-i18n>NEW 時代の図鑑に登録！</span></div>
         <div class="br-when num" id="br-when"></div>
@@ -860,11 +874,14 @@
         <button class="btn btn-primary" id="b-born"></button>
         <p class="br-done" id="br-done" hidden data-i18n>この時代では、もう生まれました。別の生き物になるには、ルーレットから回し直します。</p>
       </div>
-      <button class="btn btn-primary" id="b-spin" data-i18n>時代のルーレットを回す</button>
       <button class="daily-btn" id="b-daily"><span class="dt" id="b-daily-t"></span><span class="ds" id="b-daily-s"></span></button>
       <button class="btn" id="b-now" data-i18n>いまの地球時計の時代を引く</button>
-      <div class="sub since num" id="b-since"></div>
-      <div class="sub" id="b-odds">生まれる時代は46億年のうちから均等に選ばれます。わたしたちと同じホモ・サピエンスとして生まれる確率は0.0024%（約4.1万分の1）。</div>
+      <div class="sub num" id="b-human"></div>
+      <div class="gacha-intro">
+        <h2 data-i18n="hero.h1">46億年のどこかに、<br>生まれる。</h2>
+        <p data-i18n>まず時代のルーレットを何度でも回し、気に入った時代が出たら、その時代の生き物のガチャを1回だけ引けます。分かれ道で進化を選び、大量絶滅をくぐり抜けて、今日まで系統をつなげられるでしょうか。</p>
+      </div>
+      <div class="sub" id="b-odds"></div>
     </div>
 
 
@@ -1109,13 +1126,13 @@
   </footer>
 </div>
 
-<script src="i18n.js?v=202610240344"></script>
-<script src="data.js?v=202610240344"></script>
-<script src="scenes.js?v=202610240344"></script>
-<script src="globe.js?v=202610240344"></script>
-<script src="evo.js?v=202610240344"></script>
-<script src="lang-en.js?v=202610240344"></script>
-<script src="story.js?v=202610240344"></script>
-<script src="app.js?v=202610240344"></script>
+<script src="i18n.js?v=202610240845"></script>
+<script src="data.js?v=202610240845"></script>
+<script src="scenes.js?v=202610240845"></script>
+<script src="globe.js?v=202610240845"></script>
+<script src="evo.js?v=202610240845"></script>
+<script src="lang-en.js?v=202610240845"></script>
+<script src="story.js?v=202610240845"></script>
+<script src="app.js?v=202610240845"></script>
 </body>
 </html>
