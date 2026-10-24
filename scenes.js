@@ -1329,7 +1329,10 @@
   function drawForm(P, look, t, cx, ground, card = false) {
     look = lookOf(look);
     const plan = look.plan, sz = look.size == null ? 45 : look.size;
-    if (MICRO_PLANS.includes(plan)) { const r = card ? 22 : 20, cy = card ? 24 : 30; drawMicro(P, look.v, cx, cy, r, t, !card); return cy - r - 1; }
+    if (MICRO_PLANS.includes(plan)) {
+      if (card) { drawMicro(P, look.v, cx, 24, 22, t, false); return 1; }
+      return drawTinyMicro(P, look, t, cx, ground);
+    }
     if (plan === 'soft') {                                   // ゴカイのような、くねる体（細かい点）。大きくなるほど太く長く
       const u = card ? 1 : Math.max(1, Math.round(sizeMul(look).m * 2) / 2);
       const n = 14 + Math.round(sz / 5), y0 = ground - 3 * u, x0 = cx - Math.round(n * u / 2);
@@ -1720,7 +1723,8 @@
     if (e.alive) {
       const sc = (e.sceneBy && e.look && e.sceneBy[e.look.v]) || e.scene;      // 同じ結末でも姿で場面が変わる（ウナギは川）
       const ground = (TODAY[sc] || TODAY.meadow)(P, t);
-      if (e.plan !== 'human') drawPlayer(P, e.look || e.plan, t, ground);
+      if (e.key === 'gut' && MICRO_PLANS.includes(e.plan)) { const top = drawTinyMicro(P, lookOf(e.look || e.plan), t, 97, 40); marker(P, 97, top, t); }   // 人のおなかの中
+      else if (e.plan !== 'human') drawPlayer(P, e.look || e.plan, t, ground);
     } else {
       sceneFossil(P, e.plan, e.layer, t, e.look);
     }
@@ -1937,13 +1941,119 @@
     stroma: '浅い海・積み重なるストロマトライト', reef: 'サンゴ礁・すき間に生き物が集まる', kelp: '海藻の森', vent: '深海の熱水噴出孔・酸素の届かない場所',
   };
 
+
+  /* ---------------- ミクロの世界（微生物のときの場面） ----------------
+     顕微鏡の窓のかわりに、場面ぜんたいを微生物の目線で描く（横幅 約0.1ミリ）。
+     砂つぶは大岩、まわりには仲間や、ほかの微生物がただよう。時代と居場所で世界が変わる */
+  const MICRO_PLACE = { gut: 'gut', jar: 'jar', soil: 'soil', litter: 'soil', roots: 'roots', lichen: 'lichen', rock: 'rock', ocean: 'ocean', ice: 'ice', vent: 'deep', stroma: 'stroma', reef: 'coral' };
+  function microEnv(ya, habitat, place) {
+    if (place && MICRO_PLACE[place]) return MICRO_PLACE[place];
+    if (habitat === 'deep') return 'deep';
+    if (ya <= 7.2e8 && ya > 6.35e8) return 'ice';
+    return 'water';
+  }
+  // ほかの微生物（主役ではない、小さく色の薄い仲間）がただよう
+  function microDrift(P, t, n, cols, seed = 0) {
+    for (let k = 0; k < n; k++) {
+      const x = wrapX((k * 53 + seed * 17) % PW + t * (0.15 + (k % 3) * 0.08) * (k % 2 ? 1 : -1), PW, 10), y = 6 + (k * 23 + seed * 7) % 52, c = cols[k % cols.length];
+      if (Math.abs(x - 92) < 24 && Math.abs(y - 30) < 22) continue;          // 主役のまわりはあける
+      if (k % 3 === 0) { P.rect(x - 2, y, 5, 1.5, c); P.rect(x - 1.5, y - 0.5, 4, 2.5, c); }
+      else if (k % 3 === 1) P.disc(x, y, 1, c);
+      else { P.rect(x - 1, y - 2, 2, 5, c); }
+    }
+  }
+  function microRays(P, a = 0.07) { for (let k = 0; k < 5; k++) for (let y = 0; y < 50; y++) P.rect(14 + k * 40 + y * 0.45, y, 3, 1, `rgba(255,255,255,${a})`); }
+  function microGrains(P, y0, cols, n = 9, big = 10) {                    // 砂つぶ（この大きさでは大岩）
+    for (let k = 0; k < n; k++) {
+      const x = 6 + k * (PW / n) + (k % 2) * 6, r = big - (k % 3) * 2, c = cols[k % cols.length];
+      P.disc(x, y0 + r * 0.6, r, c); P.disc(x - r * 0.3, y0 + r * 0.3, r * 0.45, 'rgba(255,255,255,0.12)');
+    }
+  }
+  function microWorld(P, ya, t, env) {
+    const sea = ya > 2.4e9 ? ['#5f7a5a', '#566f52', '#4c644a', '#435a42'] : ya > 5.4e8 ? ['#3f7f86', '#38747a', '#31686e', '#2a5c62'] : ['#3a86b0', '#3279a2', '#2a6b92', '#235e84'];
+    const kin = ya > 2.4e9 ? ['rgba(180,200,150,0.55)', 'rgba(150,170,120,0.5)'] : ['rgba(200,230,220,0.5)', 'rgba(170,210,190,0.45)', 'rgba(220,200,160,0.45)'];
+    if (env === 'water' || env === 'stroma' || env === 'ocean') {
+      P.bands(env === 'ocean' ? ['#2f7ab8', '#2a6ea8', '#246298', '#1f5688'] : sea);
+      microRays(P);
+      if (env === 'water') microGrains(P, 54, ya > 2.4e9 ? ['#8a7a5a', '#7a6a4e', '#9a8a68'] : ['#b8a888', '#a89878', '#c8b898']);
+      if (env === 'stroma') for (let i = 0; i < 6; i++) { const y = 46 + i * 3; for (let x = 0; x < PW; x += 1) P.rect(x, y + Math.round(Math.sin(x * 0.12 + i) * 1.5), 1, 3, i % 2 ? '#4a8a4a' : '#7a6a4a'); }   // 積み重なる層
+      if (env === 'ocean' && ya < 2e8) for (let k = 0; k < 4; k++) { const x = wrapX(k * 50 + t * 0.2, PW, 20), y = 10 + k * 13; if (Math.abs(x - 92) > 26) { P.disc(x, y, 4, 'rgba(220,240,230,0.35)'); P.disc(x, y, 3, 'rgba(160,210,190,0.35)'); } }   // けい藻
+      microDrift(P, t, 22, kin);
+      for (let k = 0; k < 30; k++) P.rect((k * 31 + t * 0.1) % PW, (k * 17 + t * 0.2) % 60, 0.5, 0.5, 'rgba(255,255,255,0.35)');   // ただよう粒
+    } else if (env === 'deep') {
+      P.bands(['#141c2a', '#10182a', '#0c1422', '#08101c']);
+      P.rect(150, 0, 42, PH, '#2a2628'); for (let y = 0; y < PH; y += 3) P.rect(146 + (y * 7) % 6, y, 6, 2, '#3a3234');   // 熱水の煙突の壁
+      P.rect(146, 0, 2, PH, `rgba(255,140,60,${0.35 + 0.15 * Math.sin(t * 0.3)})`);
+      for (let k = 0; k < 14; k++) { const ph = (t * 0.7 + k * 9) % 64; P.disc(120 + (k * 13) % 26, 64 - ph, k % 3 ? 1 : 2, 'rgba(200,210,220,0.35)'); }   // のぼる泡
+      for (let k = 0; k < 24; k++) P.rect((k * 29 + t * 0.15) % 140, (k * 13) % 60, 1, 1, k % 2 ? 'rgba(230,210,90,0.6)' : 'rgba(120,140,160,0.5)');   // 硫黄の粒
+      microDrift(P, t, 12, ['rgba(220,140,80,0.5)', 'rgba(180,120,90,0.45)'], 3);
+    } else if (env === 'ice') {
+      P.bands(['#1a3a58', '#163250', '#122a46', '#0e223c']);
+      for (let k = 0; k < 6; k++) {                                   // 大きな氷の結晶
+        const x = 12 + k * 34, y = 6 + (k % 2) * 8, r = 7 + (k % 3) * 2;
+        for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; for (let d = 0; d < r; d++) P.rect(x + Math.cos(a) * d, y + Math.sin(a) * d * 0.8, 1, 1, 'rgba(220,240,255,0.7)'); }
+      }
+      P.rect(0, 0, PW, 3, 'rgba(230,245,255,0.6)');
+      microDrift(P, t, 10, ['rgba(160,200,220,0.45)'], 5);
+    } else if (env === 'gut') {
+      P.bands(['#6a2632', '#7e3240', '#8e3e4a', '#7e3240', '#6a2632']);
+      for (let k = 0; k < 7; k++) { const x = 6 + k * 30, h = 14 + (k % 3) * 4 + Math.sin(t * 0.15 + k) * 1.5; P.rect(x - 5, PH - h, 10, h, '#c8606a'); P.disc(x, PH - h, 5, '#d8707a'); P.rect(x - 3, PH - h, 1, h, 'rgba(255,255,255,0.15)'); }   // 巨大なひだ
+      P.rect(0, 0, PW, 6, 'rgba(240,200,200,0.25)');                  // 粘液の層
+      for (let k = 0; k < 5; k++) { const x = wrapX(k * 45 + t * 0.4, PW, 30), y = 10 + (k * 9) % 20; if (Math.abs(x - 92) > 28) { P.disc(x, y, 5, '#c8a060'); P.disc(x - 1, y - 1, 3, '#d8b878'); } }   // 食べ物のかけら
+      microDrift(P, t, 20, ['rgba(240,210,210,0.6)', 'rgba(220,180,200,0.55)'], 2);
+    } else if (env === 'jar') {
+      P.bands(['#9a6a28', '#a8762e', '#b88236', '#a8762e']);
+      for (let k = 0; k < 7; k++) { const ph = (t * 0.6 + k * 11) % 80, x = 10 + k * 28; if (Math.abs(x - 92) > 22 || ph > 50) { P.disc(x, 70 - ph, 3 + (k % 3), 'rgba(255,240,200,0.4)'); P.disc(x - 1, 69 - ph, 1, 'rgba(255,255,255,0.6)'); } }   // 大きな泡
+      for (let k = 0; k < 6; k++) { const x = (k * 37 + 8) % PW, y = 46 + (k * 7) % 14; if (Math.abs(x - 92) > 20) oval(P, x, y, 6, 4, '#e8d8a8'); }   // でんぷんのつぶ
+      microDrift(P, t, 14, ['rgba(250,230,190,0.55)', 'rgba(230,200,150,0.5)'], 4);
+    } else if (env === 'soil' || env === 'roots') {
+      P.bands(['#4a3626', '#42301f', '#3a2a1a']);
+      const cols = ['#8a7a68', '#7a6248', '#9a8a70', '#6a5a48', '#a86a3a'];
+      for (let k = 0; k < 16; k++) { const x = (k * 47 + 9) % PW, y = (k * 29 + 5) % 64, r = 7 + (k % 4) * 3; if (Math.abs(x - 92) < 26 && Math.abs(y - 30) < 24) continue; P.disc(x, y, r, cols[k % cols.length]); P.disc(x - r * 0.3, y - r * 0.3, r * 0.4, 'rgba(255,255,255,0.1)'); }   // 土のつぶ（大岩のよう）
+      for (let k = 0; k < 20; k++) P.rect((k * 41) % PW, (k * 19) % 64, 3, 0.5, 'rgba(160,200,230,0.35)');   // 水の膜
+      if (env === 'roots') {
+        for (let y = 0; y < PH; y++) { const x = 30 + y * 0.9; P.rect(x, y, 12, 1, 'rgba(230,210,170,0.55)'); P.rect(x + 1, y, 1, 1, 'rgba(255,240,210,0.5)'); }   // 根毛（巨大な管）
+        for (let x = 0; x < PW; x++) { const y = 54 + Math.sin(x * 0.07) * 4; P.rect(x, y, 1, 2, 'rgba(245,240,225,0.75)'); }   // 菌の糸
+      }
+      microDrift(P, t, 14, ['rgba(220,200,160,0.55)', 'rgba(200,180,140,0.5)'], 6);
+    } else if (env === 'lichen' || env === 'rock') {
+      P.bands(env === 'rock' ? ['#8aa8b8', '#7a98a8', '#6a8898'] : ['#c8c8b8', '#b8b8a8', '#a8a898']);
+      for (let k = 0; k < 9; k++) { const x = 4 + k * 23, r = 9 + (k % 3) * 3; P.disc(x, 66, r, k % 2 ? '#7a7a74' : '#8a8a84'); P.rect(x - r * 0.5, 66 - r * 0.8, r * 0.6, 1, 'rgba(255,255,255,0.25)'); }   // 岩の結晶
+      if (env === 'lichen') for (let k = 0; k < 9; k++) { for (let x = 0; x < PW; x++) { const y = 6 + k * 6 + Math.sin(x * 0.05 + k * 1.3) * 4; if (Math.abs(x - 92) > 24 || Math.abs(y - 30) > 22) P.rect(x, y, 1, 1.5, 'rgba(245,242,230,0.75)'); } }   // 菌の糸のあみ
+      if (env === 'rock') { P.rect(0, 44, PW, 6, 'rgba(180,220,240,0.35)'); for (let k = 0; k < 6; k++) P.disc((k * 37 + 10) % PW, 10 + (k * 11) % 26, 2, 'rgba(220,240,255,0.4)'); }   // 薄い水の膜としずく
+      microDrift(P, t, 10, ['rgba(80,130,80,0.5)', 'rgba(110,150,90,0.45)'], 7);
+    } else if (env === 'coral') {
+      P.bands(['#e8b8a0', '#dca890', '#d09880', '#c48870']);          // サンゴの体の中
+      for (let k = 0; k < 14; k++) { const x = (k * 37) % PW, y = (k * 23) % 64; if (Math.abs(x - 92) > 26 || Math.abs(y - 30) > 22) { P.disc(x, y, 5, 'rgba(250,220,200,0.6)'); P.disc(x, y, 2, 'rgba(160,110,80,0.5)'); } }   // サンゴの細胞
+      microDrift(P, t, 10, ['rgba(160,120,60,0.6)'], 8);
+    }
+    // 目もり（白い線＝約0.01ミリ）
+    P.rect(6, 60, 19, 0.5, 'rgba(255,255,255,0.8)'); P.rect(6, 59, 0.5, 2, 'rgba(255,255,255,0.8)'); P.rect(24.5, 59, 0.5, 2, 'rgba(255,255,255,0.8)');
+  }
+  const MICRO_CAPTION = {
+    water: '砂つぶのあいだの水', stroma: '積み重なる微生物の層', ocean: '外洋の水の中', deep: '熱水の煙突のそば', ice: '氷の結晶のあいだ',
+    gut: 'おなかのひだのあいだ', jar: '発酵のかめの泡のあいだ', soil: '土のつぶのすき間', roots: '根毛と菌の糸のそば',
+    lichen: '菌の糸のあみの中', rock: '岩の上の薄い水の膜', coral: 'サンゴの体の中',
+  };
+  // 結末や大きな出来事の場面では、目に見えない小さな点の群れとして（矢印で場所を示す）
+  const TINY_COL = { rod: '#c8d898', archaea: '#f0a060', oxy: '#a8c8f0', hunter: '#d8b0f0', cyano: '#7ad87a', euk: '#d0f0c0', para: '#c0d8f0', volvox: '#9ae09a', alga: '#e07a80' };
+  function drawTinyMicro(P, look, t, cx, ground) {
+    const c = TINY_COL[look.v] || '#e0f0d0', y = ground - 2;
+    P.disc(cx, y, 3, 'rgba(255,255,255,0.18)');
+    for (let k = 0; k < 6; k++) { const a = k * 1.05 + t * 0.05; P.rect(cx + Math.cos(a) * 2, y + Math.sin(a) * 1.2, 0.5, 0.5, c); }
+    P.rect(cx, y, 0.5, 0.5, c);
+    return y - 3;
+  }
+
   function drawScene(ctx, ya, t, opts = {}) {
     const P = painter(ctx);
     ctx.clearRect(0, 0, PW * K, PH * K);
     if (opts.ending) { drawEnding(P, opts.ending, t); return; }
     const { fx, habitat, plan, place } = opts;
     const micro = plan === 'microbe' || plan === 'cyano' || plan === 'cell' || plan === 'colony';
-    if (fx === 'impact') sceneImpact(P, t);
+    const microView = micro && fx !== 'impact' && ya <= 3.8e9;           // 微生物は、ミクロの世界の中に
+    if (microView) microWorld(P, ya, t, microEnv(ya, habitat, place));
+    else if (fx === 'impact') sceneImpact(P, t);
     else if (place && PLACE[place]) PLACE[place](P, ya, t);                // 選んだ道の居場所
     else if (habitat === 'deep') sceneVent(P, t);
     else if (habitat === 'sea' && ya <= 4.2e8) sceneSea(P, ya, t);
@@ -1970,12 +2080,16 @@
       for (let k = 0; k < 40; k++) P.rect((k * 37 + t * 0.5 * (1 + k % 3)) % PW, (k * 13 + t * (1 + k % 2)) % PH, 1, 1, '#ffffff');
     }
     if (fx === 'oxygen') P.rect(0, 0, PW, PH, `rgba(160,40,30,${0.25 + 0.1 * Math.sin(t * 0.5)})`);
-    if (place === 'night') {                                          // 夜：その時代の風景を暗くして、月と星
+    if (place === 'night' && !microView) {                            // 夜：その時代の風景を暗くして、月と星
       P.rect(0, 0, PW, PH, 'rgba(8,14,44,0.62)');
       P.disc(160, 10, 5, '#f4f0d8'); P.disc(162, 9, 4, 'rgba(8,14,44,0.9)');
       for (let k = 0; k < 18; k++) P.rect((k * 47) % PW, 2 + (k * 7) % 22, 0.5, 0.5, (t + k) % 8 < 6 ? '#e8ecff' : '#8890b0');
     }
-    if (plan) drawPlayer(P, opts.look || plan, t, 58);
+    if (plan && microView) {                                          // 主役のまわりを、うっすら明るく（ほかの微生物と見分けやすく）
+      P.disc(92, 30, 19, 'rgba(255,255,240,0.10)'); P.disc(92, 30, 14, 'rgba(255,255,240,0.08)');
+      drawMicro(P, lookOf(opts.look || plan).v, 92, 30, 20, t, false); marker(P, 92, 8, t);
+    }
+    else if (plan) drawPlayer(P, opts.look || plan, t, 58);
   }
 
   const FX_CAPTION = {
@@ -1984,7 +2098,10 @@
     ice: '氷河が広がる・海が冷え込む',
     oxygen: '酸素が増える・酸素は多くの微生物にとって毒',
   };
-  const sceneCaption = (ya, opts) => E.tr(captionJa(ya, opts));
+  // 微生物のときは、ミクロの世界の説明（大きな出来事の演出中はそちら）
+  const sceneCaption = (ya, opts = {}) => (MICRO_PLANS.includes(opts.plan) && ya <= 3.8e9 && !(opts.fx && FX_CAPTION[opts.fx])
+    ? E.T('ミクロの世界（横幅 約0.1ミリ・白い線＝0.01ミリ）・{p}', { p: E.tr(MICRO_CAPTION[microEnv(ya, opts.habitat, opts.place)]) })
+    : E.tr(captionJa(ya, opts)));
   function captionJa(ya, opts = {}) {
     const { fx, habitat, place } = opts;
     if (fx && FX_CAPTION[fx]) return FX_CAPTION[fx];
