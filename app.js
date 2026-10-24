@@ -1286,7 +1286,7 @@
     const p = pAtYa(ya);
     const rate = (2 * P.ya0 * (1 - p) / P.T) * (P.skipping ? 80 : P.speed);
     $('p-rate').textContent = T('1秒 = {y}年', { y: fmtYears(Math.max(rate, 0.1)) });
-    $('p-cap').textContent = sceneCaption(ya, { fx: performance.now() < P.fxUntil ? P.fx : null, habitat: L.habitat, place: evo.placeAt(L, ya) });
+    $('p-cap').textContent = sceneCaption(ya, { fx: performance.now() < P.fxUntil ? P.fx : null, habitat: L.habitat, place: evo.placeAt(L, ya), plan: L.alive ? L.plan : null });
     const now = performance.now();
     if (!force && now - lastSlow < 250) return;
     lastSlow = now;
