@@ -520,7 +520,7 @@
     return '';
   }
   // 大きさ・守りがはっきり変わったときの名前（「大型の三葉虫の仲間」など）。体のつくりと変種は同じまま
-  const NO_SPIKE = ['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned', 'plant', 'fern', 'seed', 'flower'];
+  const NO_SPIKE = ['arthropod', 'armorfish', 'turtle', 'horseshoe', 'puffer', 'hedgehog', 'beetle', 'rhino', 'horned', 'plant', 'fern', 'seed', 'flower', 'soft', 'sponge', 'ediacaran'];   // とげの絵を描かない体は「とげのある〜」にしない
   const tierOf = (k) => ({ big: k.size >= 70, small: k.size <= 25, spiky: k.armor >= 65 && !NO_SPIKE.includes(k.v) && !NO_SPIKE.includes(k.plan) });
   function tierName(before, after) {
     if (MICRO_LOOK.includes(after.plan) || ['human', 'hominin'].includes(after.plan)) return null;
@@ -955,7 +955,9 @@
       pending: null, last: 0, fx: null, fxUntil: 0, rnd: evo.rng(Math.floor(Math.random() * 2 ** 31)),
       done: new Set(), log: [], startedAt: t, lifeT: 0, lifeNext: 4, lifeRecent: [], daily,
       wi: EVENTS.findIndex((e) => e.ya < t),
+      L0: evo.cloneL(player), forks: [],                            // 振り返り用：生まれたときと、分かれ道ごとの写し
     });
+    RV.id++;
     $('p-log').textContent = '';
     $('p-fact').hidden = true;
     player.forms = [{ ya: t, look: lookOfL(player), name: player.name }];
@@ -1024,11 +1026,13 @@
     const node = evo.nodeFor(P.L, P.ya);
     if (!node) return false;
     P.pending = { type: 'choice', node };
+    const opts = evo.optsFor(node, P.L);
+    P.forks.push({ ya: P.ya, node, L: evo.cloneL(P.L), opts, pick: -1 });
     P.skipping = false;
     $('p-q').textContent = node.q;
     $('p-ctx').textContent = node.ctx;
     const box = $('p-opts'); box.textContent = '';
-    evo.optsFor(node, P.L).forEach((o) => {
+    opts.forEach((o) => {
       const b = document.createElement('button'); b.className = 'opt';
       b.innerHTML = '<b></b><span></span><div class="chips"></div><em class="fut"></em>';
       b.children[0].textContent = tr(o.label); b.children[1].textContent = o.desc;
@@ -1078,6 +1082,7 @@
   function choose(node, o) {
     const L = P.L;
     const before = lookOfL(L), beforeName = nameOf(L), beforeTraits = { ...L.traits };
+    const fk = P.forks.find((f) => f.node === node); if (fk) fk.pick = fk.opts.indexOf(o);
     o.apply(L);
     L.taken.add(node.id);
     L.path.push({ ya: P.ya, label: o.label });
@@ -1085,18 +1090,21 @@
     $('p-choice').hidden = true;
     P.pending = null;
     showFact(o.real);
-    const after = lookOfL(L);
-    const tn = formKey(before) === formKey(after) && tierName(before, after);
-    if (tn) L.name = tn;
-    if (formKey(before) !== formKey(after) || tn) {
-      if (!tn && tr(L.name) === beforeName.replace(/ [②-⑤]$/, '')) L.name = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
-      L.forms.push({ ya: P.ya, look: after, name: L.name });
-      plog(P.ya, T('{a}は、{b}に進化した！', { a: beforeName, b: nameOf(L) }), 'evo');
-      playEvolution(before, after, beforeName, nameOf(L), () => { renderPlay(true); checkNode(); });
-      return;
-    }
+    if (evolveIf(before, beforeName)) return;
     renderPlay(true);
     checkNode();                                                   // 同じ時代に続けて訪れる分かれ道
+  }
+  // 姿（体のつくり・変種・大きさや守りの段階）が変わっていたら、進化の演出と系譜に残す。分かれ道でも、暮らしの出来事で守りが増えたとき（カメになる）でも
+  function evolveIf(before, beforeName) {
+    const L = P.L, after = lookOfL(L);
+    const tn = formKey(before) === formKey(after) && tierName(before, after);
+    if (tn) L.name = tn;
+    if (formKey(before) === formKey(after) && !tn) return false;
+    if (!tn && tr(L.name) === beforeName.replace(/ [②-⑤]$/, '')) L.name = VARIANT_NAMES[after.v] || evo.PLANS[after.plan].ja;
+    L.forms.push({ ya: P.ya, look: after, name: L.name });
+    plog(P.ya, T('{a}は、{b}に進化した！', { a: beforeName, b: nameOf(L) }), 'evo');
+    playEvolution(before, after, beforeName, nameOf(L), () => { renderPlay(true); checkNode(); });
+    return true;
   }
 
   // 選んだ道の「実際には…」を、場面の上にしばらく出す（タップで閉じる。プレイは止めない）
@@ -1177,7 +1185,7 @@
     function finish() {
       if (finished) return;
       finished = true;
-      drawCreatureCard(ctx, toLook, 3);
+      drawCreatureCard(ctx, toLook, 3, null, true);
       m.classList.add('done');
       $('evo-msg').textContent = T('{a}は、{b}に進化した！', { a: fromName, b: toName });
       $('evo-sub').textContent = evo.PLANS[toLook.plan].name;
@@ -1190,8 +1198,8 @@
       if (k >= 1) { finish(); return; }
       if (now - last > 40) {
         last = now;
-        if (k < 0.15) drawCreatureCard(ctx, fromLook, Math.floor(now / 125));
-        else if (k < 0.9) { const q = (k - 0.15) / 0.75; drawCreatureCard(ctx, Math.sin(q * q * 70) > 0 ? toLook : fromLook, 0, '#ffffff'); }
+        if (k < 0.15) drawCreatureCard(ctx, fromLook, Math.floor(now / 125), null, true);   // 大きさの段階も見えるように
+        else if (k < 0.9) { const q = (k - 0.15) / 0.75; drawCreatureCard(ctx, Math.sin(q * q * 70) > 0 ? toLook : fromLook, 0, '#ffffff', true); }
         else { ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, CARD_W, CARD_H); }
       }
       requestAnimationFrame(frame);
@@ -1251,9 +1259,10 @@
     P.lifeT = 0; P.lifeNext = 13 + P.rnd() * 9;
     const ep = evo.lifeEpisode(P.L, P.rnd, P.lifeRecent, P.ya);
     P.lifeRecent = [ep.text, ...P.lifeRecent].slice(0, 5);
-    const before = { ...P.L.traits };
+    const before = { ...P.L.traits }, look0 = lookOfL(P.L), name0 = nameOf(P.L);
     if (ep.fx) evo.bump(P.L, ep.fx);
     plog(P.ya, tr(ep.text), 'life', traitDelta(before, P.L));
+    if (!P.pending && evolveIf(look0, name0)) return;
     renderPlay(true);
   }
 
@@ -1340,6 +1349,8 @@
     P.on = false;
     const L = P.L, alive = L.alive;
     const endYa = alive ? 0 : L.deathYa;
+    const lastF = L.forms[L.forms.length - 1];                      // 結末は最後の姿で決まるので、系譜の最後とずれないように
+    if (!lastF || formKey(lastF.look) !== formKey(lookOfL(L))) L.forms.push({ ya: endYa, look: lookOfL(L), name: L.name });
     Object.assign(R, endScene(alive, endYa, L.plan, L.habitat, L.deathCause, lookOfL(L), L.path.map((x) => x.label)));
     const isNew = !foundEndings().has(R.ending.id);
     $('r-ending').textContent = endingLabel(R.ending);
@@ -1401,6 +1412,7 @@
     $('r-save').hidden = EMBEDDED;
     $('r-hint').hidden = !EMBEDDED;
     lifeScale($('r-scale'), data, true);
+    review(P.L0, P.forks, L);
     $('r-epi').textContent = `― ${epithetOf(data)} ―`;
     const firstLife = !zoomUnlocked();
     const before = foundLoad();
@@ -1417,6 +1429,115 @@
     const newE = before.e[R.ending.id] ? null : R.ending.id;
     const newF = [...new Set(data.g.map((g) => `${g[0]}:${g[1]}`))].filter((k) => !before.f[k] && DEX.includes(k));
     if (newE || newF.length) setTimeout(() => dexNew(before, newE, newF), REDUCE ? 0 : 500);
+  }
+
+  /* ---------------- 振り返り：同じ瞬間に100回生まれていたら・いちばん大きな分かれ目 ----------------
+     プレイと同じ進め方（evo.runOut）で、写しを何度も今日まで進める。結論は書かず、数字だけ（一生のものさしと同じ）。
+     重いので少しずつ（1回に約8ミリ秒）計算して、できたところから出す。新しく生まれたら止める（RV.id） */
+  const RV = { id: 0 };
+  const RV_N = 100, RV_TRY = 10, RV_MORE = 40;                      // 生まれ直し100回（うち1つは今回）・分かれ道は選択肢ごとに10回→いちばんの分かれ目だけ+40回
+  function rvRun(id, jobs, onTick, done) {
+    let i = 0;
+    const tick = () => {
+      if (RV.id !== id) return;
+      const t0 = performance.now();
+      while (i < jobs.length && performance.now() - t0 < 8) jobs[i++]();
+      onTick(i);
+      if (i < jobs.length) setTimeout(tick, 0); else done();
+    };
+    setTimeout(tick, 30);
+  }
+  const pct = (a, n) => Math.round(a / n * 100);
+  function review(L0, forks, L) {
+    const id = ++RV.id, box = $('r-review');
+    box.hidden = !L0;
+    if (!L0) return;
+    $('rv-again-h').textContent = T('もし、{a}に「{f}」として100回生まれていたら', { a: fmtAgo(L0.bornYa), f: tr(L0.name) });
+    const dots = $('rv-dots'); dots.textContent = '';
+    for (let i = 0; i < RV_N; i++) dots.appendChild(document.createElement('i'));
+    ['rv-again', 'rv-again-note'].forEach((k) => ($(k).textContent = ''));
+    $('rv-fork').hidden = true;
+    const wait = $('rv-wait'); wait.hidden = false;
+    // 1. 生まれ直し：99回 ＋ 今回のあなた
+    const res = [{ alive: L.alive, cause: L.deathCause, me: true }];
+    const jobs = [];
+    for (let i = 1; i < RV_N; i++) jobs.push(() => {
+      const c = evo.runOut(evo.cloneL(L0), L0.bornYa, evo.rng(i * 7919 + 13), L0.bornYa * 0.9025);   // プレイと同じく、はじめの少しのあいだは背景の絶滅を止める
+      res.push({ alive: c.alive, cause: c.deathCause });
+    });
+    // 2. 分かれ道：選択肢ごとに写しで試す（最後の8つまで）
+    const fs = forks.filter((f) => f.pick >= 0 && f.opts.length > 1).slice(-8);
+    fs.forEach((f) => { f.win = f.opts.map(() => 0); f.n = 0; });
+    const tryFork = (f, n, seed) => { for (let r = 0; r < n; r++) f.opts.forEach((o, j) => jobs.push(() => {
+      const c = evo.cloneL(f.L);
+      o.apply(c); c.taken.add(f.node.id); c.path.push(o.label);
+      evo.runOut(c, f.ya, evo.rng(seed + r * 101 + j * 7));
+      if (c.alive) f.win[j]++;
+      if (j === 0) f.n++;
+    })); };
+    fs.forEach((f, i) => tryFork(f, RV_TRY, 5000 + i * 977));
+    const drawDots = (sorted) => {
+      const list = sorted ? [...res].sort((a, b) => b.alive - a.alive) : res;
+      [...dots.children].forEach((d, i) => { const r = list[i]; d.className = r ? `${r.alive ? 'live' : 'dead'}${r.me ? ' me' : ''}` : ''; });
+    };
+    let refined = false;
+    rvRun(id, jobs, () => {
+      if (res.length < RV_N) { drawDots(false); wait.textContent = T('計算中…（{n}/100）', { n: res.length }); return; }
+      wait.textContent = T('分かれ道を計算中…');
+      if (!$('rv-again').textContent) showAgain();                 // 100がそろったら、生き残りから順に並べ直す
+    }, () => {
+      if (!refined && fs.length) {                               // いちばん大きな分かれ目だけ、もう少し試して確かめる
+        refined = true;
+        const best = rvBest(fs); best.top = true;
+        jobs.length = 0; tryFork(best, RV_MORE, 90000);
+        rvRun(id, jobs, () => {}, finish);
+        return;
+      }
+      finish();
+    });
+    function showAgain() {
+      drawDots(true);
+      const live = res.filter((r) => r.alive).length, dead = RV_N - live;
+      $('rv-again').textContent = T('今日まで続いたのは、100のうち{n}。', { n: live });
+      let note = L.alive ? T('あなたは、その{n}のうちの1つ。', { n: live }) : T('あなたは、消えた{n}のうちの1つ。', { n: dead });
+      const by = {};
+      res.forEach((r) => { if (!r.alive) by[r.cause] = (by[r.cause] || 0) + 1; });
+      const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0];
+      if (top) note += ' ' + (top[0].includes('背景') ? T('消えた系統の最期でいちばん多いのは、大量絶滅ではなく、少しずつ数を減らして消えること（{k}）。', { k: top[1] })
+        : T('消えた系統の最期でいちばん多いのは「{c}」（{k}）。', { c: mid(tr(top[0])), k: top[1] }));
+      $('rv-again-note').textContent = note;
+    }
+    function finish() {
+      if (RV.id !== id) return;
+      if (!$('rv-again').textContent) showAgain();
+      wait.hidden = true;
+      if (!fs.length) return;
+      const f = fs.find((x) => x.top) || fs[0];
+      const ps = f.win.map((w) => pct(w, f.n)), lo = Math.min(...ps), hi = Math.max(...ps);
+      $('rv-fork-h').textContent = `${fmtAgo(f.ya)} · ${f.node.q}`;
+      const ul = $('rv-opts'); ul.textContent = '';
+      f.opts.forEach((o, j) => {
+        const li = document.createElement('li'); if (j === f.pick) li.className = 'mine';
+        li.innerHTML = '<span class="l"></span><span class="bar"><i></i></span><span class="p"></span>';
+        li.children[0].textContent = tr(o.label);
+        if (j === f.pick) { const em = document.createElement('em'); em.textContent = T('あなた'); li.children[0].appendChild(em); }
+        li.children[1].firstChild.style.width = `${ps[j]}%`;
+        li.children[2].textContent = `${ps[j]}%`;
+        ul.appendChild(li);
+      });
+      $('rv-fork-sub').textContent = T('今日まで続く確率（それぞれ{n}回ずつ試した目安）', { n: f.n });
+      $('rv-fork-note').textContent = hi === lo ? T('どの道を選んでも、今日まで続く確率は約{p}%でした。', { p: hi })
+        : hi - lo < 10
+        ? T('どの道を選んでも、ほとんど変わりませんでした（約{lo}〜{hi}%）。', { lo, hi })
+        : T('選び方で変えられたのは、約{lo}%から約{hi}%のあいだ。', { lo, hi });
+      $('rv-fork').hidden = false;
+    }
+  }
+  // 選択肢で今日まで続く確率がいちばん開いた分かれ道（同じなら、あとのほう）
+  function rvBest(fs) {
+    let best = fs[0], gap = -1;
+    for (const f of fs) { const ps = f.win.map((w) => w / f.n), g = Math.max(...ps) - Math.min(...ps); if (g >= gap) { gap = g; best = f; } }
+    return best;
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -1589,6 +1710,9 @@
     const F = { e: {}, f: {} };
     const ids = new Set(evo.ENDINGS.map((e) => e.id));
     for (const id in raw.e || {}) { const d = cleanRec(raw.e[id]); if (d && ids.has(id)) F.e[id] = d; }
+    // 姿で決まる結末（ペンギン・シーラカンスなど）が、前は別の結末として残っていた。記録から付け直す
+    for (const id in F.e) { const r = evo.endingOf(F.e[id]).id; if (!F.e[r]) F.e[r] = F.e[id]; }
+    histLoad().forEach((x) => { const d = cleanRec(x); if (d && !d.u) { const r = evo.endingOf(d).id; if (!F.e[r]) F.e[r] = d; } });
     for (const k in raw.f || {}) {
       const x = raw.f[k], d = x && cleanRec(x.d);
       if (d && DEX.includes(k)) F.f[k] = { n: Math.max(1, Math.floor(Number(x.n)) || 1), names: (Array.isArray(x.names) ? x.names : []).slice(-12).map((n) => String(n).slice(0, 40)), d };

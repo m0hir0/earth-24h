@@ -460,6 +460,12 @@
     '恐竜のいない世界。哺乳類と鳥が広がっていく。': 'A world without dinosaurs. Mammals and birds are spreading.',
     '地球が寒く乾いていき、草原が広がる。': 'Earth is growing colder and drier, and grasslands are spreading.',
     '氷期と間氷期がくり返す。': 'Glacial and interglacial periods take turns.',
+    'オルドビス紀の陸。まだコケのような小さな植物しかない。': 'Ordovician land. There are only small, moss-like plants so far.',
+    '石炭紀の海。サメの仲間がいろいろな形に分かれ、浅い海にはウミユリの林が広がる。': 'The Carboniferous sea. Sharks are branching into many shapes, and sea lilies form forests in the shallows.',
+    '超大陸パンゲアを囲む、ひとつの大きな海。': 'One vast ocean surrounding the supercontinent Pangaea.',
+    '暖かい海に、今の魚につながる仲間が増えはじめた。': 'In the warm seas, the ancestors of today\'s fish are starting to multiply.',
+    '首長竜やモササウルスが消えた海。魚やサメ、クジラの祖先が広がっていく。': 'Seas emptied of plesiosaurs and mosasaurs. Fish, sharks and the ancestors of whales are spreading.',
+    '海が冷えていき、海藻の森や大きなサメが広がる。': 'The seas are cooling, and kelp forests and big sharks are spreading.',
   };
   const AGE_OPTS = [
     ['体を大きくする', 'Get bigger', 'Stronger, but you need more food and suffer more from sudden change.'],
@@ -851,6 +857,21 @@
   /* ---------------- 画面の文言 ---------------- */
   const UI = {
     // HTML
+    // 振り返り
+    '振り返り': 'Looking back', '今日まで続いた': 'Made it to today', '絶滅した': 'Went extinct', '今回のあなた': 'This life of yours',
+    'いちばん大きな分かれ目': 'The fork that mattered most',
+    'もし、{a}に「{f}」として100回生まれていたら': 'If you had been born {a} as "{f}" 100 times',
+    '今日まで続いたのは、100のうち{n}。': '{n} out of 100 made it to today.',
+    'あなたは、その{n}のうちの1つ。': 'You are one of those {n}.',
+    'あなたは、消えた{n}のうちの1つ。': 'You are one of the {n} that vanished.',
+    '消えた系統の最期でいちばん多いのは「{c}」（{k}）。': 'The most common end was "{c}" ({k}).',
+    '消えた系統の最期でいちばん多いのは、大量絶滅ではなく、少しずつ数を減らして消えること（{k}）。': 'The most common end was not a mass extinction, but slowly dwindling away ({k}).',
+    '計算中…（{n}/100）': 'Calculating… ({n}/100)', '分かれ道を計算中…': 'Calculating the forks…',
+    'あなた': 'You',
+    '今日まで続く確率（それぞれ{n}回ずつ試した目安）': 'Chance of lasting to today (estimated from {n} tries each)',
+    'どの道を選んでも、今日まで続く確率は約{p}%でした。': 'Whichever path you took, the chance of lasting to today was about {p}%.',
+    'どの道を選んでも、ほとんど変わりませんでした（約{lo}〜{hi}%）。': 'Whichever path you took, it barely changed (about {lo}–{hi}%).',
+    '選び方で変えられたのは、約{lo}%から約{hi}%のあいだ。': 'Your choice could only move it between about {lo}% and {hi}%.',
     '地球の24時間': 'Earth in 24 Hours', '生まれる': 'Be born', 'いまの地球': 'Earth now', '今を拡大': 'Zoom into now',
     'lbl.clock': '<span data-tz></span>: 0:00 is the birth of Earth, 24:00 is now.',
     'このときの地球': 'Earth at this moment', '大気中の酸素': 'Oxygen in the air', '今は21%': 'Today: 21%', '1日の長さ': 'Length of a day',
@@ -986,6 +1007,7 @@
     "この時代の{n}種類から、1つ": "One of the {n} creatures of this era",
     "出た！": "You got…!",
     // 前の版の「どう生きる？」のラベル（古い記録の表示用）
+    "大きな体で海の上に立つ": "Rule the sea with a big body",
     "殻を厚くし、丸まって身を守る": "Thicken your shell and curl up for safety",
     "分厚い殻と毒で身を守る": "Defend yourself with a thick shell and venom",
     "とげのある殻で身を守る": "Protect yourself with a spiny shell",
@@ -1122,7 +1144,12 @@
       n.ctx = AGE_CTX[n.ctx] || n.ctx;
       const [, i, g] = n.id.match(/^age(\d+)-(\w+)$/) || [];
       const tx = (AGE_TEXT[i] || {})[g];
-      n.opts.forEach((o, k) => { dict[o.label] = tx ? tx[k][0] : AGE_OPTS[k][1]; o.desc = (AGE_MOD[i] || {})[k] || AGE_DESC[k]; o.real = tx ? tx[k][1] : ''; });
+      n.opts.forEach((o) => {
+        const k = o.k;
+        if (!o.alt) dict[o.label] = tx ? tx[k][0] : AGE_OPTS[k][1];               // ふつうの言葉の選択肢（alt）のラベルは AGE_OPTS の英語
+        o.desc = o.mod ? (AGE_MOD[i] || {})[k] || AGE_DESC[k] : AGE_DESC[k];
+        o.real = tx && !o.alt ? tx[k][1] : '';
+      });
     }
   }
   for (const ev of evo.EXTINCTIONS) { const x = EXTINCTIONS[ev.name]; if (x) { dict[ev.name] = x[0]; ev.fact = x[1]; } }

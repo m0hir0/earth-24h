@@ -850,8 +850,11 @@
   // その仲間の中での姿の変化は、同じ体のつくりのあいだに1回だけ（ペンギンが飛べない大きな鳥に戻る、のような横すべりをしない）
   const hasSub = (L) => SUBS.some((s) => s.v === L.flags.sub && s.plan === L.plan);
   const subFor = (L, k, from, to) => !hasSub(L) && SUBS.find((s) => s.plan === L.plan && s.k === k && s.from > to && s.to < from && (!s.need || s.need === L.habitat));
-  const ageFx = (i, k) => {
-    const [d, n] = (AGE_MOD[i] && AGE_MOD[i][k]) || AGE_BASE[k];
+  // 時代ごとの効き目のうち、海だけ・陸だけの話（石炭紀の濃い酸素は陸と空、デボン紀の海の酸素不足は海、など）
+  const AGE_MOD_G = { '0:2': 'sea', '1:3': 'sea', '2:0': 'sea', '2:2': 'sea', '3:0': 'land air', '6:0': 'land', '7:3': 'land', '10:3': 'land' };
+  const modFor = (i, k, g) => { const m = AGE_MOD[i] && AGE_MOD[i][k], only = AGE_MOD_G[`${i}:${k}`]; return m && (!only || only.split(' ').includes(g)) ? m : null; };
+  const ageFx = (i, k, g) => {
+    const [d, n] = modFor(i, k, g) || AGE_BASE[k];
     const prep = AGE_PREP[i][k], [from, to] = AGES[i];
     return (L) => {
       bump(L, d); if (n !== 1) L.N = Math.min(CAP, L.N * n); if (prep) L.flags.prep = { ev: prep[0], m: prep[1] };
@@ -871,7 +874,7 @@
     { sea: [['サメの仲間のように大きくなる', '石炭紀は、さまざまな形のサメが栄えた「サメの黄金時代」だった。'], ['ウミユリの林で何でも食べる', '石炭紀の浅い海には、ウミユリが林のように広がっていた。'], ['河口の湿地へ広がる', '石炭紀の海辺には、広い湿地と川の河口があった。'], ['とげで身を守る', 'とげのある殻を持つ腕足類（貝に似た生き物）が、海底にあふれていた。']],
       land: [['酸素の濃い空気で大きくなる', '石炭紀の空気は酸素が今より多く、体長2メートルを超えるヤスデの仲間（アースロプレウラ）がいた。'], ['石炭の森の落ち葉で何でも食べる', '石炭紀の森の木が積もって、今の石炭になった。'], ['湿った森のすみずみに広がる', '石炭紀の陸は、シダや巨大なトクサの湿った森におおわれていた。'], ['うろこをまとい、乾きから身を守る', 'うろこと殻のある卵で、は虫類の祖先は水辺から離れられるようになった。']],
       air: [['巨大トンボのように大きくなる', '石炭紀の終わりには、羽を広げると約70センチの巨大トンボ（メガネウラ）がいた。'], ['小さな羽虫として何でも食べる', '石炭紀に、空を飛ぶ最初の動物として昆虫が現れた。'], ['森の上の空に広がる', '空にはまだ、虫を食べる鳥もコウモリもいなかった。'], ['硬い体で身を守る', '昆虫の硬い外骨格は、飛ぶ体を守る鎧にもなった。']] },
-    { sea: [['大きな体で海の上に立つ', 'ペルム紀の海には、渦巻きのような歯の列を持つ魚（ヘリコプリオン）がいた。'], ['礁のかげで何でも食べる', 'ペルム紀の海には、海綿や藻がつくる大きな礁があった。'], ['超大陸のまわりの海に広がる', 'ペルム紀には、陸がひとつの超大陸パンゲアにまとまっていた。'], ['アンモナイトのように硬く身を守る', 'アンモナイトの仲間も、殻で身を守りながら栄えた。']],
+    { sea: [['大きな体で海の頂点に立つ', 'ペルム紀の海には、渦巻きのような歯の列を持つ魚（ヘリコプリオン）がいた。'], ['礁のかげで何でも食べる', 'ペルム紀の海には、海綿や藻がつくる大きな礁があった。'], ['超大陸のまわりの海に広がる', 'ペルム紀には、陸がひとつの超大陸パンゲアにまとまっていた。'], ['アンモナイトのように硬く身を守る', 'アンモナイトの仲間も、殻で身を守りながら栄えた。']],
       land: [['帆のある背中で大きくなる', 'ペルム紀の陸の主役は、ディメトロドンなどの単弓類だった。'], ['乾いた大地で小さく、何でも食べる', '超大陸の内側は、海から遠く乾いた土地だった。'], ['超大陸のあちこちに広がる', '陸がつながっていたので、生き物は大陸じゅうを歩いて広がれた。'], ['厚い皮ふとうろこで身を守る', '乾いた土地では、体の水分を逃がさないことが大事になった。']],
       air: [['大きな羽で空を行く', 'ペルム紀にも、大きなトンボの仲間が飛んでいた。'], ['小さな甲虫として何でも食べる', 'ペルム紀に、最初の甲虫が現れた。'], ['乾いた空を遠くまで渡る', '超大陸の空は、内陸に行くほど乾いていた。'], ['硬い前羽で体を守る', '甲虫は、前の羽を硬い殻に変えて体を守った。']] },
     { sea: [['魚竜のように大きくなる', '三畳紀の海には、体長15メートルを超える魚竜がいた。'], ['大絶滅のあとの海で何でも食べる', '史上最大の絶滅のあと、海の生き物はゆっくりと回復していった。'], ['がらんとした海に広がる', 'ライバルが消えた海では、生き残った仲間が一気に広がった。'], ['カメのような甲らをまとう', '板歯類は、カメのような甲らを持つ海のは虫類だった。']],
@@ -898,13 +901,53 @@
   ];
   const AGE_GROUPS = ['sea', 'land', 'air'];
   const ageGroup = (L) => (L.habitat === 'air' ? 'air' : L.habitat === 'land' ? 'land' : 'sea');
+  // その時代の説明のうち、海・陸・空で違うもの（石炭紀の「巨大なシダの森」は海の生き物には関係ない、など）
+  const AGE_CTX_G = {
+    0: { land: 'オルドビス紀の陸。まだコケのような小さな植物しかない。' },
+    3: { sea: '石炭紀の海。サメの仲間がいろいろな形に分かれ、浅い海にはウミユリの林が広がる。' },
+    4: { sea: '超大陸パンゲアを囲む、ひとつの大きな海。' },
+    7: { sea: '暖かい海に、今の魚につながる仲間が増えはじめた。' },
+    9: { sea: '首長竜やモササウルスが消えた海。魚やサメ、クジラの祖先が広がっていく。' },
+    10: { sea: '海が冷えていき、海藻の森や大きなサメが広がる。' },
+  };
+  // 「〜のように」がその生き物自身を指すもの（サメに「サメのように」）と、
+  // 持てない体の特徴を言うもの（サメに「とげ」、魚に「殻」）は出さず、かわりにふつうの言葉の選択肢を出す
+  const KIN = [
+    [/サメ|メガロドン/, (L) => L.plan === 'shark'], [/魚竜|首長竜|モササウルス/, (L) => L.plan === 'marine_reptile'],
+    [/クジラ/, (L) => L.plan === 'whale'], [/ティラノサウルス/, (L) => L.plan === 'theropod'], [/首の長い恐竜/, (L) => L.plan === 'sauropod'],
+    [/恐竜と張り合う|恐竜の足もと|イグアノドン/, (L) => ['dino_small', 'sauropod', 'theropod'].includes(L.plan)], [/マンモス/, (L) => L.plan === 'mammal_large'],
+    [/トンボ/, (L) => L.plan === 'insect'], [/翼竜のように/, (L) => L.plan === 'pterosaur'], [/ウミサソリ/, (L) => subIs(L, 'eurypterid')],
+    [/三葉虫/, (L) => !!L.flags.trilobite], [/カニ/, (L) => subIs(L, 'crab')], [/カメ/, (L) => subIs(L, 'turtle')], [/セイウチ/, (L) => L.plan === 'whale'],
+  ];
+  const BODY = [
+    [/とげで|トゲ/, ['shark', 'whale', 'marine_reptile', 'bird', 'pterosaur', 'jawless', 'sponge', 'soft', 'mammal_large', 'primate']],
+    [/殻|甲ら/, ['sponge', 'ediacaran', 'fish', 'shark', 'whale', 'marine_reptile', 'jawless', 'anomalo', 'bird', 'pterosaur', 'mammal', 'mammal_large', 'primate', 'amphibian', 'dino_small', 'sauropod', 'theropod', 'synapsid', 'armorfish']],
+    [/丸まって/, ['fish', 'shark', 'jawless', 'anomalo', 'whale', 'marine_reptile', 'sponge', 'armorfish']],
+    [/骨の|よろい|鎧/, ['soft', 'sponge', 'arthropod', 'insect', 'shark', 'anomalo', 'ediacaran']],
+    [/うろこ/, ['soft', 'sponge', 'arthropod', 'insect', 'mammal', 'mammal_large', 'primate', 'bird', 'whale', 'amphibian']],
+    [/硬く身を守る/, ['whale', 'soft', 'sponge']], [/巣/, ['mammal']],
+  ];
+  // その仲間にしか言えない言葉（昆虫に「小さな鳥として」、鳥に「翼竜になる」、魚に「海のは虫類として」は出さない）
+  const ONLY = [
+    [/鳥として|鳥になる/, ['bird']], [/翼竜になる/, ['pterosaur']], [/海のは虫類として/, ['marine_reptile']], [/帆のある背中/, ['synapsid']],
+    [/体の節/, ['arthropod', 'insect']], [/背中の板とトゲの尾|えりかざり/, ['dino_small']], [/骨の鎧で体じゅう/, ['dino_small', 'reptile']],
+    [/羽虫として|甲虫として|硬い前羽/, ['insect']], [/翼の膜/, ['pterosaur', 'insect', 'mammal']],
+  ];
+  const fitsAge = (L, label) => !KIN.some(([w, me]) => w.test(label) && me(L)) && !BODY.some(([w, no]) => w.test(label) && no.includes(L.plan)) && !ONLY.some(([w, ok]) => w.test(label) && !ok.includes(L.plan));
   AGES.forEach(([from, to, age, ctx], i) => AGE_GROUPS.forEach((g) => {
     const tx = AGE_TEXT[i][g];
+    const opts = AGE_BASE.map((_, k) => {
+      const m = modFor(i, k, g), label = tx ? tx[k][0] : AGE_GENERIC[k];
+      return { k, mod: !!m, label, desc: m ? m[2] : AGE_DESC[k], real: tx ? tx[k][1] : '', apply: ageFx(i, k, g), only: (L) => fitsAge(L, label) };
+    });
+    // 合わないときの、ふつうの言葉の選択肢（効き目は同じ。並びの最後に足すので、英語や ages.js の番号はそのまま）
+    // alt の「実際には」は出さない（元の選択肢の話なので）
+    opts.slice().forEach((o) => { if (tx) opts.push({ ...o, alt: true, label: AGE_GENERIC[o.k], real: '', only: (L) => !fitsAge(L, o.label) }); });
     NODES.push({
       id: `age${i}-${g}`, from, to,
       when: (L) => !MICRO.has(L.plan) && !PLANTS.has(L.plan) && L.plan !== 'human' && ageGroup(L) === g && !AGE_GROUPS.some((x) => L.taken.has(`age${i}-${x}`)),
-      q: `${age}を、どう生きる？`, ctx,
-      opts: AGE_BASE.map((_, k) => ({ label: tx ? tx[k][0] : AGE_GENERIC[k], desc: (AGE_MOD[i][k] || [])[2] || AGE_DESC[k], real: tx ? tx[k][1] : '', apply: ageFx(i, k) })),
+      q: `${age}を、どう生きる？`, ctx: (AGE_CTX_G[i] && AGE_CTX_G[i][g]) || ctx,
+      opts,
     });
   }));
 
@@ -1113,7 +1156,7 @@
 
   // ライバルは分かれ道でランダムに選ぶ
   // その系統に出す選択肢（only があれば、その体・暮らしに合うものだけ。コケに「高く育つ」は出さない）
-  const optsFor = (node, L) => node.opts.filter((o) => !o.only || o.only(L));
+  const optsFor = (node, L) => node.opts.filter((o) => !o.only || o.only(L)).sort((a, b) => (a.k == null || b.k == null ? 0 : a.k - b.k));   // 「どう生きる？」は効き目の順
   function autoChoose(L, node, rnd) {
     const os = optsFor(node, L), o = os[Math.floor(rnd() * os.length)];
     o.apply(L);
@@ -1121,6 +1164,28 @@
     L.path.push(o.label);
   }
   const nodeFor = (L, ya) => NODES.find((n) => !L.taken.has(n.id) && ya <= n.from && ya > n.to && n.when(L));
+
+  // 振り返りの「もしも」：系統の写しを作り、今日まで（か絶滅まで）一気に進める。分かれ道はランダムに選ぶ
+  //   進め方はプレイ（app.js の advance）と同じ。graceAbove：その年前より前で、まだ分かれ道を選んでいなければ背景の絶滅を止める
+  const cloneL = (L) => ({ ...L, isPlayer: false, traits: { ...L.traits }, flags: { ...L.flags }, taken: new Set(L.taken), path: [...L.path], log: [], forms: null, envLog: null });
+  function runOut(L, ya, rnd, graceAbove = Infinity) {
+    const check = () => { let n; while (L.alive && (n = nodeFor(L, ya))) autoChoose(L, n, rnd); };
+    let guard = 0;
+    check();
+    while (ya > 0 && L.alive && guard++ < 20000) {
+      const ev = EXTINCTIONS.find((e) => e.ya < ya);
+      let b = Math.max(0, ya - Math.max(ya * 0.02, 0.5));
+      if (ev) b = Math.max(b, ev.ya);
+      for (const n of NODES) if (n.from < ya && n.from > b) b = n.from;
+      const span = ya - b, k = Math.max(1, Math.ceil(span / 1e6)), dt = span / k;
+      for (let i = 0; i < k && L.alive; i++) step(L, ya - dt * (i + 0.5), dt, rnd, L.path.length === 0 && ya > graceAbove);
+      if (!L.alive) break;
+      ya = b;
+      if (ev && b === ev.ya) applyExtinction(L, ev, rnd);
+      check();
+    }
+    return L;
+  }
 
   // 乱数（種あり：シェアしたときの再現用）
   function rng(seed) {
@@ -1481,8 +1546,9 @@
         if (ks.includes('湿った陸の岩へ上がる')) return MORE_ENDINGS.find((e) => e.key === 'crust');
         if (ks.includes('外洋へ漂う')) return CYANO_ENDINGS[1];
       }
-      // 姿（変種）で決まる結末（ペンギン・カニ・シーラカンス・深海魚）。記録の系譜の最後の姿を見る
-      const v = d.v != null ? d.v : d.g && d.g.length ? d.g[d.g.length - 1][1] : '';
+      // 姿（変種）で決まる結末（ペンギン・カニ・シーラカンス・深海魚）。lv（今の姿）か、記録の系譜の最後の姿を見る
+      //   記録の v は形式の版（いつも1）なので、姿には使わない。前は d.v を見ていて、保存した記録ではこの結末にならなかった
+      const v = d.lv != null ? d.lv : d.g && d.g.length ? d.g[d.g.length - 1][1] : '';
       const ve = v && MORE_ENDINGS.find((e) => e.key === v && e.plan === d.p);
       if (ve) return ve;
       const key = d.p === 'arthropod' ? (d.h === 'land' ? 'arthropod-land' : 'arthropod-sea') : d.p;
@@ -1535,6 +1601,6 @@
   E.evo = {
     ENDINGS, endingOf, placeAt, optsFor,
     SUBS, CAP, REAL, realCount, PLANS, TRAITS, TRAIT_LABEL, TRAIT_SHORT, HAB_LABEL, MICRO, NODES, EXTINCTIONS,
-    ABOUT, LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die,
+    ABOUT, LIFE, lifeEpisode, bump, birthOptions, makeLineage, step, applyExtinction, autoChoose, nodeFor, rates, rng, die, cloneL, runOut,
   };
 })();
