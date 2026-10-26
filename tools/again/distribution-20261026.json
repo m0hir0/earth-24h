@@ -1,0 +1,91 @@
+{
+  "kind": "synthetic-data-only",
+  "seed": 20261026,
+  "runs": 100000,
+  "random": "Mulberry32",
+  "trialsPerRun": 999,
+  "referenceEarthsExcluded": 1,
+  "perEarthProbability": 0.000006615,
+  "perEarthPercent": 0.0006615,
+  "expectedHumansPerRun": 0.0066083850000000005,
+  "observedMeanHumans": 0.00693,
+  "distribution": [
+    {
+      "humans": "0",
+      "count": 99312,
+      "percent": 99.312,
+      "theoreticalPercent": 99.3413380643304
+    },
+    {
+      "humans": "1",
+      "count": 684,
+      "percent": 0.6839999999999999,
+      "theoreticalPercent": 0.656490151026599
+    },
+    {
+      "humans": "2",
+      "count": 3,
+      "percent": 0.003,
+      "theoreticalPercent": 0.0021670128269612858
+    },
+    {
+      "humans": "3+",
+      "count": 1,
+      "percent": 0.001,
+      "theoreticalPercent": 0.000004771816042303811
+    }
+  ],
+  "gates": [
+    {
+      "gate": 1,
+      "meanSurvivors": 699.34458,
+      "theoreticalMean": 699.3
+    },
+    {
+      "gate": 2,
+      "meanSurvivors": 349.68096,
+      "theoreticalMean": 349.65
+    },
+    {
+      "gate": 3,
+      "meanSurvivors": 34.98474,
+      "theoreticalMean": 34.964999999999996
+    },
+    {
+      "gate": 4,
+      "meanSurvivors": 24.49879,
+      "theoreticalMean": 24.475499999999997
+    },
+    {
+      "gate": 5,
+      "meanSurvivors": 12.25401,
+      "theoreticalMean": 12.237749999999998
+    },
+    {
+      "gate": 6,
+      "meanSurvivors": 4.89291,
+      "theoreticalMean": 4.8951
+    },
+    {
+      "gate": 7,
+      "meanSurvivors": 1.46458,
+      "theoreticalMean": 1.46853
+    },
+    {
+      "gate": 8,
+      "meanSurvivors": 0.21982,
+      "theoreticalMean": 0.2202795
+    },
+    {
+      "gate": 9,
+      "meanSurvivors": 0.02233,
+      "theoreticalMean": 0.02202795
+    },
+    {
+      "gate": 10,
+      "meanSurvivors": 0.00693,
+      "theoreticalMean": 0.0066083850000000005
+    }
+  ],
+  "checks": "passed (6-sigma tolerance; histogram tail pooled as 2+; fixed seed)"
+}
