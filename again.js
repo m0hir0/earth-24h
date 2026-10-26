@@ -1,6 +1,6 @@
 /* 地球の24時間 — 地球をもう一度
-   1. 46億年を1000回やり直す：偶然の関門をくぐれなかった地球は、そこで別の姿の星になる。人類が現れる地球はほとんどない
-   2. この地球の糸：この地球では、すべての偶然が起きた。最初の細胞から、あなたの祖先をたどる
+   1. 999個の仮想地球を試す＋今の地球の印1個。抽選と集計は仮想地球のみ
+   2. この地球の糸：現実には人類が生まれた。最初の細胞から、あなたの祖先をたどる
    3. あなた：両親にない新しい変化を持って生まれた、46億年分の偶然のいちばん新しい1つ
    進化に意志はない。どの場面も「たまたま」で語る。関門の確率は、想像のための仮の数字 */
 (function () {
@@ -11,9 +11,10 @@
   const $ = (id) => document.getElementById(id);
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sleep = (ms) => new Promise((r) => setTimeout(r, REDUCE ? Math.min(ms, 200) : ms));
-  const N = 1000, COLS = 40, CELL = 8;
+  const N = 1000, TRIALS = N - 1, COLS = 40, CELL = 8;
 
-  // 偶然の関門。p は「くぐれる」確率（仮の数字）、fate はくぐれなかった地球がなる星
+  // p は前の関門まで通過した条件下の仮の通過率。地球ごとに独立に抽選する。
+  // 確率・順序・fate は演出用の仮定。実際の進化の必須条件や再現確率の推定ではない。
   const GATES = [
     { ya: 3.8e9, q: '生命が生まれるか', p: 0.7, fate: 'lifeless' },
     { ya: 2.4e9, q: '光で酸素をつくる生き物が現れ、空気に酸素がたまるか', p: 0.5, fate: 'microbes' },
@@ -105,11 +106,12 @@
     ctx.globalAlpha = 1;
   }
   function reset() {
+    G.humans = 0;
     G.st = new Array(N).fill(null); G.fx = new Array(N).fill(0);
     clearInterval(G.timer);
     G.timer = setInterval(drawGrid, 33);
     $('a-grid').hidden = false; $('a-scene').hidden = true;
-    $('a-ours').textContent = T('◎ がこの地球');
+    $('a-ours').textContent = T('◎ 今の地球・抽選外');
   }
   const alive = () => G.st.reduce((n, s, i) => n + (!s && i !== G.ours ? 1 : 0), 0);
   // 星の内訳。midway のときは、まだ進んでいる地球を数えない
@@ -122,44 +124,54 @@
     return `<ul class="legend">${Object.keys(FATES).filter((k) => c[k]).map((k) => `<li><i style="background:${FATES[k][1]}"></i><span>${esc(T(FATES[k][0]))}</span><span class="n">${c[k]}</span></li>`).join('')}</ul>`;
   }
 
+  // 抽選は999個のみ。◎は人類が存在する現実を示す参照点で、成功例の標本ではない。
+  function passGate(g, random = Math.random, t0 = performance.now()) {
+    let failed = 0;
+    for (let i = 0; i < N; i++) {
+      if (G.st[i] || i === G.ours) continue;
+      if (random() >= g.p) { G.st[i] = g.fate; G.fx[i] = t0 + random() * (REDUCE ? 0 : 1400); failed++; }
+    }
+    return failed;
+  }
+
   async function replay() {
     reset();
     clock(S);
-    say(`<div class="kick">${esc(T('地球をもう一度'))}</div><h1>${esc(T('46億年を、\n1000回やり直したら。'))}</h1>
+    say(`<div class="kick">${esc(T('地球をもう一度'))}</div><h1>${esc(T('46億年を、\nもう一度。'))}</h1>
       <p class="body">${esc(T('地球が生まれた日から、もう一度。生命が生まれるか、隕石が落ちるか——偶然の関門をくぐれなかった地球は、そこで別の姿の星になります。わたしたちのような人類が現れる地球は、いくつあるでしょう。'))}</p>
-      <p class="note">${esc(T('関門の確率は、想像のための仮の数字です。本当の値は、科学でもまだわかっていません。'))}</p>`);
+      <p class="body">${esc(T('画面の{total}個は、仮想地球{all}個と、今の地球を示す◎1個です。◎は抽選・集計に含めません。', { total: N, all: TRIALS }))}</p>
+      <p class="note">${esc(T('関門の確率は科学的にわかっていないため、ここでは想像のための仮の数字を使います。関門の並びと別の星の姿も単純化した仮定です。この結果は、人類やあなたが生まれる本当の確率を推定するものではありません。'))}</p>`);
     await buttons([[T('やり直しを始める'), '', 1]]);
     for (let gi = 0; gi < GATES.length; gi++) {
       const g = GATES[gi];
       clock(g.ya);
       const left = alive();
       say(`<div class="kick">${esc(T('関門 {n} / {all}', { n: gi + 1, all: GATES.length }))}</div><div class="big">${esc(T(g.q))}</div>
-        <p class="count">${esc(T('まだ進んでいる地球'))} <b>${left}</b> / ${N}</p>
-        <p class="note">${esc(T('くぐれる確率：{p}（仮）', { p: `${Math.round(g.p * 100)}%` }))}</p>`);
+        <p class="count">${esc(T('まだ進んでいる仮想地球'))} <b>${left}</b> / ${TRIALS}</p>
+        <p class="note">${esc(T('ここまで進んだ仮想地球が、次へ進む確率：{p}（仮）', { p: `${Math.round(g.p * 100)}%` }))}</p>`);
       await sleep(1300);
       // くぐれなかった地球が、ばらばらに別の星へ
-      let failed = 0;
-      const t0 = performance.now();
-      for (let i = 0; i < N; i++) {
-        if (G.st[i] || i === G.ours) continue;
-        if (Math.random() >= g.p) { G.st[i] = g.fate; G.fx[i] = t0 + Math.random() * (REDUCE ? 0 : 1400); failed++; }
-      }
+      const failed = passGate(g);
       await sleep(1700);
       const now = alive();
       say(`<div class="kick">${esc(T('関門 {n} / {all}', { n: gi + 1, all: GATES.length }))}</div><div class="big">${esc(T(g.q))}</div>
-        <p class="count">${esc(T('まだ進んでいる地球'))} <b>${now}</b> / ${N}</p>
-        <p class="body">${failed ? esc(T('{n}個の地球が、ここで「{f}」になりました。', { n: failed, f: T(FATES[g.fate][0]) })) : now ? '' : esc(T('もう、進んでいる地球はありません。'))}</p>
-        <p class="ours">${esc(T('◎ この地球は、くぐり抜けた。'))}</p>${legend(tally(true))}`);
+        <p class="count">${esc(T('まだ進んでいる仮想地球'))} <b>${now}</b> / ${TRIALS}</p>
+        <p class="body">${failed ? esc(T('{n}個の仮想地球が、ここで「{f}」になりました。', { n: failed, f: T(FATES[g.fate][0]) })) : now ? '' : esc(T('もう、進んでいる仮想地球はありません。'))}</p>
+        <p class="ours">${esc(T('◎ は今の地球。人類が生まれた事実を示す印です。'))}</p>${legend(tally(true))}`);
       await sleep(now || failed ? 2000 : 1300);
     }
     // 結果
     clock(0.5);
+    // 抽選で残った仮想地球と、現実を示す◎を人類の色にそろえる。◎は集計外のまま。
+    G.st = G.st.map((s) => s || 'humans');
     const c = tally(), humans = c.humans || 0;
     G.humans = humans;
-    say(`<div class="kick">${esc(T('1000回のやり直しの結果'))}</div>
-      <div class="big">${esc(humans ? T('人類が現れた地球は、\n1000個のうち{n}個。', { n: humans }) : T('人類が現れた地球は、\nひとつもありませんでした。'))}</div>
+    say(`<div class="kick">${esc(T('仮の条件で試した{all}個の内訳（◎は集計外）', { all: TRIALS }))}</div>
+      <div class="big">${esc(humans ? T('{all}個の仮想地球のうち、\nわたしたちのような人類が現れたのは{n}個。', { all: TRIALS, n: humans }) : T('{all}個の仮想地球では、\nわたしたちのような人類は現れませんでした。', { all: TRIALS }))}</div>
       ${legend(c)}
-      <p class="body"><b>${esc(T('でも、この地球では、すべての偶然が起きました。'))}</b></p>`);
+      <p class="ours">${esc(T('◎ 今の地球：人類が存在する1個（抽選・集計外）'))}</p>
+      <p class="note">${esc(T('この結果は仮の確率を置いた物語です。実際に地球をやり直したときの確率はわかっていません。'))}</p>
+      <p class="body"><b>${esc(T('現実の地球では、人類が生まれ、今あなたがいます。'))}</b></p>`);
     await buttons([[T('この地球の糸をたどる'), '', 1]]);
     await thread();
   }
@@ -218,7 +230,7 @@
 
   async function finale() {
     const n = G.humans || 0;
-    const line = n ? T('地球を1000回やり直して、人類が現れたのは{n}回。それでも、わたしはここにいる。', { n }) : T('地球を1000回やり直しても、人類は現れなかった。それでも、わたしはここにいる。');
+    const line = T('仮の確率で試した{all}個の仮想地球で、わたしたちのような人類が現れたのは{n}個。本当の確率はわからない。それでも、今この地球に、わたしはいる。', { all: TRIALS, n });
     say(`<div class="final"><div class="big">${esc(T('46億年分の偶然の、\nいちばん新しい1つが、\nあなたです。'))}</div>
       <p class="body">${esc(line)}</p></div>`);
     const url = 'https://earth24h.com/again';
