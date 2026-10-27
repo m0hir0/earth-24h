@@ -1,7 +1,7 @@
 /* 地球の24時間 — 地球をさかのぼる
    下へスクロールすると時間がさかのぼる。画面にはいつも「今（いちばん上）」から「あなたのいる時点（いちばん下）」までが入る。
    なので進むほど縮尺がなめらかに変わり、上にあるもの（人の一生、ホモ・サピエンス、恐竜のあと…）は細く縮んでいく。
-   ×100 のような区切りは置かない（途中で単位を変えない、ユーザー判断）。前半は倍率、後半は地球時計の進み方がそろうように配分（depthAt）。
+   ×100 のような区切りは置かない（途中で単位を変えない、ユーザー判断）。前半は倍率、後半は地球時計の進み方がそろうように配分（refAt）。
    いちばん下（46億年前）から「今へ戻る」で一気に駆け上がり、最後にあなたの街 → 地球 → 宇宙の小さな点へと引いていく */
 (function () {
   'use strict';
@@ -12,15 +12,19 @@
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  // スクロールと縮尺：画面 x 枚目で、画面の底が D 年前。x = A・ln(D) + B・D/S（はじめの画面＝1年）
-  //   前半は A の項が効いて「1枚ごとに同じ倍率（約×2.5）で遠ざかる」、後半は B の項が効いて「1枚ごとに地球時計が同じだけ（約45分）進む」。
-  //   前は区間ごとに倍率を変えていて、中盤は時計がほとんど動かず、終盤は急に何時間も進んだ（ユーザーの指摘）。この式なら継ぎ目がない
-  const ZA = 1.09, ZB = 29.8, SCREENS = ZA * Math.log(S) + ZB;
-  const screensAt = (d) => ZA * Math.log(d) + ZB * d / S;
-  const depthAt = (u) => {                                             // u：0〜1（ズームの区間の中の位置）→ 画面の底の年
-    const x = Math.min(1, Math.max(0, u)) * SCREENS;
-    let lo = 0, hi = Math.log(S);
-    for (let k = 0; k < 50; k++) { const m = (lo + hi) / 2; if (screensAt(Math.exp(m)) < x) lo = m; else hi = m; }
+  // 時計が指す高さ：画面の上から55%。出来事の名前が大きい字から小さい字に変わるところで、自然と目で追っている所（ユーザーの指摘）。
+  // 画面の底（D）はその先＝ D = RY / REF。最後は RY が46億年前に届き、その下は「地球が生まれる前」
+  const REF = 0.55;
+  // スクロールと縮尺：画面 x 枚目で、時計の年が RY。x = f(RY) − f(はじめ)、はじめの画面の底＝1年
+  //   ZA：1枚ごとに同じ倍率で遠ざかる。ZC：最初の100年あまり（飛行機の初飛行のころまで）はそれよりゆっくり（文字が重ならないように、ユーザーの要望）。
+  //   ZB：後半は1枚ごとに地球時計が同じだけ（約45分）進む。前は区間ごとに倍率を決めていて、中盤はもっさり・終盤は急に速かった（ユーザーの指摘）
+  const ZA = 1.09, ZC = 1.0, ZT = 100, ZB = 29.8;
+  const f = (r) => (ZA + ZC) * Math.log(r) - ZC * 0.5 * Math.log(1 + (r / ZT) ** 2) + ZB * r / S;
+  const R0 = REF * 1, SCREENS = f(S) - f(R0);
+  const refAt = (u) => {                                               // u：0〜1（ズームの区間の中の位置）→ 時計の年
+    const x = Math.min(1, Math.max(0, u)) * SCREENS + f(R0);
+    let lo = Math.log(R0), hi = Math.log(S);
+    for (let k = 0; k < 50; k++) { const m = (lo + hi) / 2; if (f(Math.exp(m)) < x) lo = m; else hi = m; }
     return Math.exp((lo + hi) / 2);
   };
   // 並べる出来事（data.js の EVENTS の key）
@@ -29,7 +33,7 @@
     '産業革命', 'コロンブス、アメリカ到達', '釈迦・孔子・ソクラテス', 'ピラミッド', '文字の誕生', '農耕の始まり', '最古級の洞窟壁画', '出アフリカ',
     'ホモ・サピエンスの誕生', '火を使った確かな証拠', 'ルーシー', '人類の祖先（サヘラントロプス）', '類人猿の祖先', '霊長類の祖先', '恐竜の絶滅',
     'ティラノサウルスとトリケラトプス', '花を咲かせる植物', '恐竜の出現', 'ペルム紀末の大量絶滅', 'ティクターリク', '植物が陸に上がる', 'カンブリア爆発',
-    'エディアカラ生物群', '全球凍結（スターティアン氷期）', '多細胞生物が増えはじめる', '最古級の多細胞の藻類', '「退屈な10億年」', '真核生物の出現',
+    'エディアカラ生物群', '全球凍結（スターティアン氷期）', '多細胞生物が増えはじめる', '最古級の多細胞の藻類', '「退屈な10億年」のまっただ中', '真核生物の出現',
     '大酸化イベント', 'ストロマトライトの化石', '生命の誕生', '海ができる', '月の誕生', '地球誕生'];
   const EV = new Map(E.EVENTS.map((e) => [e.key, e]));
   const EVS = KEYS.map((k) => EV.get(k)).filter(Boolean).sort((a, b) => a.ya - b.ya);
@@ -37,7 +41,7 @@
   const today = new Date(), Y0 = today.getFullYear();
   const yearNow = Y0 + (today - new Date(Y0, 0, 1)) / (365.25 * 864e5);
   const sinceNewYear = yearNow - Y0;                                   // この前のお正月は何年前か（端末の日付）
-  const MINE = [[1 / 12, '先月'], [1, '1年前の今日'], [yearNow - (Y0 - 1 + 7 / 12), '去年の夏'], [5, '5年前のあなた'], [10, '10年前のあなた'],
+  const MINE = [[1 / 12, '先月'], [1, '1年前の今日'], [yearNow - (Y0 - 1 + 358.5 / 365.25), '去年のクリスマス'], [5, '5年前のあなた'], [10, '10年前のあなた'],
     [20, '20年前のあなた'], [70, '祖父母が子どもだったころ'], [105, '今生きている人は、まだほぼ誰もいない']];
   if (sinceNewYear > 0.14 && sinceNewYear < 0.94) MINE.push([sinceNewYear, 'この前のお正月']);   // 先月・1年前と重なる時期は出さない
   const ALL_MINE = MINE.map(([ya, name]) => ({ ya, name: T(name), mine: true }));
@@ -47,6 +51,8 @@
     [1998.7, 'Googleの誕生'], [1996.15, 'ポケモン（赤・緑）'], [1995.65, 'Windows 95'], [1989.86, 'ベルリンの壁の崩壊'], [1989.02, '平成のはじまり', 'jp'],
     [1985.7, 'スーパーマリオブラザーズ'], [1979.5, 'ウォークマン'], [1964.8, '東京オリンピックと新幹線', 'jp'], [1953.1, 'テレビ放送のはじまり', 'jp'],
   ].filter((m) => !m[2] || E.LANG === 'ja').map(([y, name]) => ({ ya: yearNow - y, name: T(name) }));
+  // さかのぼると、「退屈な10億年」には新しい側（8億年前）から入る。data.js の17.5億年前（はじまり）では、通り過ぎたあとに名前が出てしまう
+  MEMO.push({ ya: 8e8, name: T('「退屈な10億年」に入る') });
   const ALL = [...EVS, ...MEMO, ...ALL_MINE].sort((a, b) => a.ya - b.ya);
   // 長い空白に出す静かな一言（その時代のようす。古い順に当てはまるものを使う）
   const QUIET = [
@@ -78,7 +84,7 @@
   const agoOf = (ya) => {                                              // 「西暦26年」ではなく「2,000年前」。1年より近いときは月・日で
     if (ya < 1 / 12 - 1e-9) return T('{n}日前', { n: Math.max(1, Math.round(ya * 365)) });
     if (ya < 1 - 1e-9) return T('{n}か月前', { n: Math.round(ya * 12) });
-    const n = Math.round(ya * 10) / 10;
+    const n = ya < 100 ? Math.round(ya * 10) / 10 : Math.round(ya);    // 小数は100年まで
     if (n === 1) return T('1年前');
     if (ya < 1e4) return T('{n}年前', { n: n.toLocaleString(LOC) });
     return fmtAgo(ya);
@@ -104,8 +110,8 @@
 
   // ズームの区間：高さ＝画面 SCREENS 枚＋見える高さ。中の .stage が上に貼りついたまま、縮尺だけが変わる
   const zoomer = $('zoomer'), stageEl = $('stage'), cv = $('tl'), ctx = cv.getContext('2d');
-  let hudH = 100, W = 360, Ht = 500, dpr = 1, D = 1, U = 0;
-  sceneView($('now-scene'), () => ({ ya: Number(D.toPrecision(2)), fx: Math.abs(D - 6.6e7) < 1.2e6 ? 'impact' : null }));   // 年は丸めて、スクロールのたびに描き直さない
+  let hudH = 100, W = 360, Ht = 500, dpr = 1, D = 1, RY = REF, U = 0;
+  sceneView($('now-scene'), () => ({ ya: Number(RY.toPrecision(2)), fx: Math.abs(RY - 6.6e7) < 1.2e6 ? 'impact' : null }));   // 年は丸めて、スクロールのたびに描き直さない
   function layout() {
     hudH = document.querySelector('.hud').offsetHeight;
     const vh = window.innerHeight;
@@ -120,7 +126,7 @@
   function where() {
     const start = zoomer.offsetTop - hudH, len = zoomer.offsetHeight - (window.innerHeight - hudH);
     U = Math.min(1, Math.max(0, (window.scrollY - start) / Math.max(1, len)));
-    D = depthAt(U);
+    RY = refAt(U); D = RY / REF;
     return window.scrollY < start ? 'intro' : window.scrollY > start + len + 40 ? 'outro' : 'zoom';
   }
   const css = getComputedStyle(document.documentElement);
@@ -151,11 +157,22 @@
     // 目盛り（縮尺に合わせて、きりのいい年ごとに）
     const step = niceStep(D / 5);
     const ticks = [];                                                  // 数字は、出来事の名前と重ならないところだけ（あとで書く）
-    for (let k = 1; k * step < D * 0.97; k++) {
+    for (let k = 1; k * step < Math.min(D * 0.97, S); k++) {
       const y = Y(k * step);
       g.strokeStyle = 'rgba(170,182,200,.13)'; g.setLineDash([3, 4]); g.beginPath(); g.moveTo(20, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]);
       ticks.push([y, agoOf(k * step)]);
     }
+    // 46億年前より下：地球が生まれる前
+    if (D > S) {
+      const ys = Y(S);
+      g.fillStyle = 'rgba(170,182,200,.35)'; g.fillRect(0, ys, W, 1);
+      g.font = font(12, 700); g.textAlign = 'left'; g.textBaseline = 'top'; g.fillStyle = muted;
+      if (bot - ys > 40) g.fillText(T('地球が生まれる前'), 40, ys + Math.min(60, (bot - ys) / 2));
+    }
+    // 時計が指している高さ：左に小さな印と、うすい線
+    const yr = top + REF * span;
+    g.fillStyle = 'rgba(255,216,74,.10)'; g.fillRect(20, yr, W - 20, 1);
+    g.fillStyle = gold; g.beginPath(); g.moveTo(0, yr - 5); g.lineTo(5, yr); g.lineTo(0, yr + 5); g.fill();
     // いちばん上：今
     g.fillStyle = gold; g.fillRect(0, top - 1, W, 2);
     g.font = font(12, 900); g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillText(T('24:00 — 今'), 40, top - 4);
@@ -174,7 +191,7 @@
     for (let i = vis.length - 1; i >= 0; i--) {
       const e = vis[i], y = Y(e.ya), near = (y - top) / span;       // near：1 に近いほど画面の下（いま通り過ぎている）
       if (y - top < 14) break;                                          // 上に押し縮められたものは点だけ
-      const big = near > 0.55, hh = big ? 36 : 18;
+      const big = near > REF, hh = big ? 36 : 18;                      // 時計の線より下（これから通る）は大きく
       const ly = Math.min(y, lowest - hh / 2 - 4, bot - hh / 2 + 4);
       if (ly - hh / 2 < top + 4 || !free(ly - hh / 2, ly + hh / 2)) continue;
       used.push([ly - hh / 2, ly + hh / 2]); lowest = ly - hh / 2;
@@ -189,13 +206,13 @@
     g.textAlign = 'left';
     // 下の絵：いま画面の底にいる時代の地球。長い空白には静かな一言
     const last = vis.length ? vis[vis.length - 1].ya : 0;              // 画面2.5枚ぶん、何も通り過ぎていなければ
-    const quiet = D >= 5.4e8 && last < depthAt(Math.max(0, U - 2.5 / SCREENS)) ? quietOf(D, Math.floor(U * 18)) : '';
+    const quiet = RY >= 5.4e8 && last < refAt(Math.max(0, U - 2.5 / SCREENS)) / REF ? quietOf(RY, Math.floor(U * 18)) : '';
     $('now-cap').textContent = quiet;
   }
 
   // 上の時計：画面の底（あなたのいる時点）の時刻
   function hud(at) {
-    const ya = at === 'intro' ? 0 : at === 'outro' ? S : D;
+    const ya = at === 'intro' ? 0 : at === 'outro' ? S : RY;
     $('h-stage').textContent = at === 'intro' ? '' : eraOf(Math.max(ya, 1)).name;
     const c = T('地球時計 {c}', { c: ya < 0.5 ? '24:00:00' : fmtClock(ya, digitsOf(ya)) });
     $('h-clock').textContent = c;
