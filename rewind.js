@@ -1,7 +1,7 @@
 /* 地球の24時間 — 地球をさかのぼる
    下へスクロールすると時間がさかのぼる。画面にはいつも「今（いちばん上）」から「あなたのいる時点（いちばん下）」までが入る。
    なので進むほど縮尺がなめらかに変わり、上にあるもの（人の一生、ホモ・サピエンス、恐竜のあと…）は細く縮んでいく。
-   ×100 のような区切りは置かない（途中で単位を変えない、ユーザー判断）。深い時代ほど長くスクロールするように配分（ZOOM）。
+   ×100 のような区切りは置かない（途中で単位を変えない、ユーザー判断）。前半は倍率、後半は地球時計の進み方がそろうように配分（depthAt）。
    いちばん下（46億年前）から「今へ戻る」で一気に駆け上がり、最後にあなたの街 → 地球 → 宇宙の小さな点へと引いていく */
 (function () {
   'use strict';
@@ -12,20 +12,20 @@
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  // スクロールと縮尺：[画面の底が何年前か, そこまでに使う画面の枚数]。はじめの画面＝1年（月の目盛り。まず自分の時間から）。あいだは倍率でなめらかに（対数で補間）
-  const ZOOM = [[1, 0], [100, 5], [1e4, 5], [1e6, 5], [1e8, 9], [1e9, 10], [S, 20]];
-  const SCREENS = ZOOM.reduce((a, z) => a + z[1], 0);
+  // スクロールと縮尺：画面 x 枚目で、画面の底が D 年前。x = A・ln(D) + B・D/S（はじめの画面＝1年）
+  //   前半は A の項が効いて「1枚ごとに同じ倍率（約×2.5）で遠ざかる」、後半は B の項が効いて「1枚ごとに地球時計が同じだけ（約45分）進む」。
+  //   前は区間ごとに倍率を変えていて、中盤は時計がほとんど動かず、終盤は急に何時間も進んだ（ユーザーの指摘）。この式なら継ぎ目がない
+  const ZA = 1.09, ZB = 29.8, SCREENS = ZA * Math.log(S) + ZB;
+  const screensAt = (d) => ZA * Math.log(d) + ZB * d / S;
   const depthAt = (u) => {                                             // u：0〜1（ズームの区間の中の位置）→ 画面の底の年
-    let x = u * SCREENS;
-    for (let i = 1; i < ZOOM.length; i++) {
-      const [d, n] = ZOOM[i], d0 = ZOOM[i - 1][0];
-      if (x <= n || i === ZOOM.length - 1) return d0 * Math.pow(d / d0, Math.min(1, x / n));
-      x -= n;
-    }
-    return S;
+    const x = Math.min(1, Math.max(0, u)) * SCREENS;
+    let lo = 0, hi = Math.log(S);
+    for (let k = 0; k < 50; k++) { const m = (lo + hi) / 2; if (screensAt(Math.exp(m)) < x) lo = m; else hi = m; }
+    return Math.exp((lo + hi) / 2);
   };
   // 並べる出来事（data.js の EVENTS の key）
-  const KEYS = ['ChatGPT公開', 'スマートフォン', 'ワールド・ワイド・ウェブ', '人類、月に立つ', 'コンピュータの誕生', '第二次世界大戦',
+  const KEYS = ['ChatGPT公開', '新型コロナのパンデミック', 'スマートフォン', 'ワールド・ワイド・ウェブ', '人類、月に立つ', 'コンピュータの誕生', '第二次世界大戦',
+    'ペニシリンの発見', '第一次世界大戦', '飛行機の初飛行',
     '産業革命', 'コロンブス、アメリカ到達', '釈迦・孔子・ソクラテス', 'ピラミッド', '文字の誕生', '農耕の始まり', '最古級の洞窟壁画', '出アフリカ',
     'ホモ・サピエンスの誕生', '火を使った確かな証拠', 'ルーシー', '人類の祖先（サヘラントロプス）', '類人猿の祖先', '霊長類の祖先', '恐竜の絶滅',
     'ティラノサウルスとトリケラトプス', '花を咲かせる植物', '恐竜の出現', 'ペルム紀末の大量絶滅', 'ティクターリク', '植物が陸に上がる', 'カンブリア爆発',
@@ -34,11 +34,20 @@
   const EV = new Map(E.EVENTS.map((e) => [e.key, e]));
   const EVS = KEYS.map((k) => EV.get(k)).filter(Boolean).sort((a, b) => a.ya - b.ya);
   // あなた自身の時間（金色の名前）。いちばん最初の画面で「自分のこと」と思ってもらうために
-  const sinceNewYear = (() => { const d = new Date(); return (d - new Date(d.getFullYear(), 0, 1)) / (365.25 * 864e5); })();   // この前のお正月は何年前か（端末の日付）
-  const MINE = [[1 / 12, '先月'], [1, '1年前の今日'], [10, '10年前のあなた']];
+  const today = new Date(), Y0 = today.getFullYear();
+  const yearNow = Y0 + (today - new Date(Y0, 0, 1)) / (365.25 * 864e5);
+  const sinceNewYear = yearNow - Y0;                                   // この前のお正月は何年前か（端末の日付）
+  const MINE = [[1 / 12, '先月'], [1, '1年前の今日'], [yearNow - (Y0 - 1 + 7 / 12), '去年の夏'], [5, '5年前のあなた'], [10, '10年前のあなた'],
+    [20, '20年前のあなた'], [70, '祖父母が子どもだったころ'], [105, '今生きている人は、まだほぼ誰もいない']];
   if (sinceNewYear > 0.14 && sinceNewYear < 0.94) MINE.push([sinceNewYear, 'この前のお正月']);   // 先月・1年前と重なる時期は出さない
   const ALL_MINE = MINE.map(([ya, name]) => ({ ya, name: T(name), mine: true }));
-  const ALL = [...EVS, ...ALL_MINE].sort((a, b) => a.ya - b.ya);
+  // みんなが知っている出来事（「そうだったよね」と思える、暮らしの中の出来事）。[西暦, 名前, jp＝日本語のときだけ]
+  const MEMO = [
+    [2021.55, '東京オリンピック（2021年）', 'jp'], [2019.33, '令和のはじまり', 'jp'], [2005.1, 'YouTubeのはじまり'], [2000.0, '2000年（ミレニアム）'],
+    [1998.7, 'Googleの誕生'], [1996.15, 'ポケモン（赤・緑）'], [1995.65, 'Windows 95'], [1989.86, 'ベルリンの壁の崩壊'], [1989.02, '平成のはじまり', 'jp'],
+    [1985.7, 'スーパーマリオブラザーズ'], [1979.5, 'ウォークマン'], [1964.8, '東京オリンピックと新幹線', 'jp'], [1953.1, 'テレビ放送のはじまり', 'jp'],
+  ].filter((m) => !m[2] || E.LANG === 'ja').map(([y, name]) => ({ ya: yearNow - y, name: T(name) }));
+  const ALL = [...EVS, ...MEMO, ...ALL_MINE].sort((a, b) => a.ya - b.ya);
   // 長い空白に出す静かな一言（その時代のようす。古い順に当てはまるものを使う）
   const QUIET = [
     [4.4e9, ['まだ、海もありません。', 'とけた岩と、熱い空。']],
@@ -95,8 +104,8 @@
 
   // ズームの区間：高さ＝画面 SCREENS 枚＋見える高さ。中の .stage が上に貼りついたまま、縮尺だけが変わる
   const zoomer = $('zoomer'), stageEl = $('stage'), cv = $('tl'), ctx = cv.getContext('2d');
-  let hudH = 100, W = 360, Ht = 500, dpr = 1, D = ZOOM[0][0], U = 0;
-  sceneView($('now-scene'), () => ({ ya: D, fx: Math.abs(D - 6.6e7) < 1.2e6 ? 'impact' : null }));
+  let hudH = 100, W = 360, Ht = 500, dpr = 1, D = 1, U = 0;
+  sceneView($('now-scene'), () => ({ ya: Number(D.toPrecision(2)), fx: Math.abs(D - 6.6e7) < 1.2e6 ? 'impact' : null }));   // 年は丸めて、スクロールのたびに描き直さない
   function layout() {
     hudH = document.querySelector('.hud').offsetHeight;
     const vh = window.innerHeight;
@@ -114,6 +123,8 @@
     D = depthAt(U);
     return window.scrollY < start ? 'intro' : window.scrollY > start + len + 40 ? 'outro' : 'zoom';
   }
+  const css = getComputedStyle(document.documentElement);
+  const COL = Object.fromEntries(['gold', 'muted', 'text', 'bg'].map((n) => [n, css.getPropertyValue(`--${n}`).trim()]));
   const niceStep = (x) => {
     if (x < 1) return [1 / 12, 2 / 12, 3 / 12, 6 / 12, 1].find((m) => m >= x) || 1;   // 1年より細かいときは月で
     const p = Math.pow(10, Math.floor(Math.log10(x))), m = x / p;
@@ -129,9 +140,7 @@
     g.clearRect(0, 0, W, Ht);
     const top = 26, bot = Ht - 10, span = bot - top;
     const Y = (ya) => top + (ya / D) * span;
-    const css = getComputedStyle(document.documentElement);
-    const col = (n) => css.getPropertyValue(n).trim();
-    const gold = col('--gold'), muted = col('--muted'), text = col('--text'), bg = col('--bg');
+    const { gold, muted, text, bg } = COL;
     const font = (px, w = 700) => `${w} ${px}px system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif`;
     // 左のレール：時代の色
     for (const e of ERAS) {
