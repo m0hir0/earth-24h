@@ -223,12 +223,9 @@
     $('h-ago').textContent = ya < 0.5 ? T('今') : fmtAgo(ya);
     $('h-bar').style.width = `${(ya / S) * 100}%`;
     $('h-pct').textContent = T('46億年の{p}%', { p: pctOf(ya) });
-    if (au && au.on) {                                                  // 深くなるほど、音も少し低く
-      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      const f = 1 - 0.3 * Math.min(1, window.scrollY / max);
-      au.osc.forEach((o, i) => o.frequency.setTargetAtTime(au.base[i] * f, au.ctx.currentTime, 0.6));
-    }
+    if (au && au.on) au.amb.setDepth(depthOf());                      // 深くなるほど低く、今へ戻ると上がっていく
   }
+  const depthOf = () => Math.min(1, window.scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight));
   // 46億年のうち何%か（小さいときは0が並ぶまま見せる：0.0000022%）
   function pctOf(ya) {
     const p = (ya / S) * 100;
@@ -237,33 +234,33 @@
     return p.toFixed(Math.min(12, Math.ceil(-Math.log10(p)) + 1));
   }
 
-  // 低く静かな音（任意。最初は消えている）
+  // 静かなアンビエント音楽（任意。最初は消えている。中身は ambient.js）
   let au = null;
   function sound(on) {
     if (on && !au) {
       const C = window.AudioContext || window.webkitAudioContext;
-      if (!C) return;
+      if (!C || !E.ambient) return;
       const ctx = new C();
-      const out = ctx.createGain(); out.gain.value = 0; out.connect(ctx.destination);
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 380; lp.Q.value = 0.7; lp.connect(out);
-      const base = [55, 82.4, 110.3];
-      const osc = base.map((f, i) => {
-        const o = ctx.createOscillator(); o.type = i === 1 ? 'triangle' : 'sine'; o.frequency.value = f; o.detune.value = i * 4;
-        const g = ctx.createGain(); g.gain.value = [0.5, 0.2, 0.12][i]; o.connect(g); g.connect(lp); o.start();
-        return o;
-      });
-      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.06;      // ゆっくり揺れる
-      const lg = ctx.createGain(); lg.gain.value = 120; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
-      au = { ctx, out, osc, base, on: false };
+      const amb = E.ambient.create(ctx);
+      amb.setDepth(depthOf());
+      au = { ctx, amb, on: false, timer: 0 };
     }
     if (!au) return;
     au.on = on;
-    if (on) au.ctx.resume();
-    au.out.gain.setTargetAtTime(on ? 0.1 : 0, au.ctx.currentTime, 0.8);
+    clearInterval(au.timer);
+    if (on) {
+      au.ctx.resume();
+      const tick = () => au.amb.schedule(au.ctx.currentTime + 1.5);
+      tick(); au.timer = setInterval(tick, 300);
+    }
+    au.amb.fade(on);
     $('r-sound').setAttribute('aria-pressed', String(on));
     $('r-sound').textContent = on ? T('♪ 音を消す') : T('♪ 音');
-    if (on) hud();
   }
+  document.addEventListener('visibilitychange', () => {                // ほかのタブにいるあいだは止める
+    if (!au || !au.on) return;
+    if (document.hidden) au.ctx.suspend(); else au.ctx.resume();
+  });
   $('r-sound').textContent = T('♪ 音');
   $('r-sound').addEventListener('click', () => sound(!(au && au.on)));
   let ticking = false;
