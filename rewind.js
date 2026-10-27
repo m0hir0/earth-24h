@@ -12,8 +12,8 @@
   const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  // スクロールと縮尺：[画面の底が何年前か, そこまでに使う画面の枚数]。はじめの画面＝人の一生（100年）。あいだは倍率でなめらかに（対数で補間）
-  const ZOOM = [[100, 0], [1e4, 5], [1e6, 5], [1e8, 9], [1e9, 10], [S, 20]];
+  // スクロールと縮尺：[画面の底が何年前か, そこまでに使う画面の枚数]。はじめの画面＝1年（月の目盛り。まず自分の時間から）。あいだは倍率でなめらかに（対数で補間）
+  const ZOOM = [[1, 0], [100, 5], [1e4, 5], [1e6, 5], [1e8, 9], [1e9, 10], [S, 20]];
   const SCREENS = ZOOM.reduce((a, z) => a + z[1], 0);
   const depthAt = (u) => {                                             // u：0〜1（ズームの区間の中の位置）→ 画面の底の年
     let x = u * SCREENS;
@@ -33,8 +33,12 @@
     '大酸化イベント', 'ストロマトライトの化石', '生命の誕生', '海ができる', '月の誕生', '地球誕生'];
   const EV = new Map(E.EVENTS.map((e) => [e.key, e]));
   const EVS = KEYS.map((k) => EV.get(k)).filter(Boolean).sort((a, b) => a.ya - b.ya);
-  // 金の目印：今からその時点まで。縮尺が変わるにつれて細くなっていく
-  const MARKS = [[100, '人の一生（100年）'], [(EV.get('ホモ・サピエンスの誕生') || { ya: 3e5 }).ya, 'ホモ・サピエンスの歴史'], [6.6e7, '恐竜がいなくなってから']];
+  // あなた自身の時間（金色の名前）。いちばん最初の画面で「自分のこと」と思ってもらうために
+  const sinceNewYear = (() => { const d = new Date(); return (d - new Date(d.getFullYear(), 0, 1)) / (365.25 * 864e5); })();   // この前のお正月は何年前か（端末の日付）
+  const MINE = [[1 / 12, '先月'], [1, '1年前の今日'], [10, '10年前のあなた']];
+  if (sinceNewYear > 0.14 && sinceNewYear < 0.94) MINE.push([sinceNewYear, 'この前のお正月']);   // 先月・1年前と重なる時期は出さない
+  const ALL_MINE = MINE.map(([ya, name]) => ({ ya, name: T(name), mine: true }));
+  const ALL = [...EVS, ...ALL_MINE].sort((a, b) => a.ya - b.ya);
   // 長い空白に出す静かな一言（その時代のようす。古い順に当てはまるものを使う）
   const QUIET = [
     [4.4e9, ['まだ、海もありません。', 'とけた岩と、熱い空。']],
@@ -51,8 +55,25 @@
   if (E.LANG === 'en') document.title = T('地球をさかのぼる | 地球の24時間');
   try { localStorage.removeItem('earth24.birthYear'); } catch (e) { /* 生まれた年の入力は廃止 */ }
 
-  const clockOf = (ya) => (ya < 0.5 ? '24:00:00' : fmtClock(ya, clockDecFor(ya)));
-  const agoOf = (ya) => (ya < 1e4 ? T('{n}年前', { n: Math.round(ya).toLocaleString(E.LANG === 'en' ? 'en-US' : 'ja-JP') }) : fmtAgo(ya));   // 「西暦26年」ではなく「2,000年前」
+  // 地球時計：24:00 にごく近いときは、小数を並べるかわりに「24:00の19マイクロ秒前」
+  const clockOf = (ya) => {
+    if (ya <= 0) return '24:00:00';
+    const left = (ya / S) * DAY;
+    return left < 1e-3 ? T('24:00の{s}前', { s: fmtSec(left) }) : fmtClock(ya, clockDecFor(ya));
+  };
+  const digitsOf = (ya) => {                                          // 上の時計は数字のまま（23:59:59.999981）。0が並ぶところまで見せる
+    const left = (ya / S) * DAY;
+    return left > 0 && left < 1e-3 ? Math.min(9, Math.ceil(-Math.log10(left)) + 1) : clockDecFor(ya);
+  };
+  const LOC = E.LANG === 'en' ? 'en-US' : 'ja-JP';
+  const agoOf = (ya) => {                                              // 「西暦26年」ではなく「2,000年前」。1年より近いときは月・日で
+    if (ya < 1 / 12 - 1e-9) return T('{n}日前', { n: Math.max(1, Math.round(ya * 365)) });
+    if (ya < 1 - 1e-9) return T('{n}か月前', { n: Math.round(ya * 12) });
+    const n = Math.round(ya * 10) / 10;
+    if (n === 1) return T('1年前');
+    if (ya < 1e4) return T('{n}年前', { n: n.toLocaleString(LOC) });
+    return fmtAgo(ya);
+  };
 
   // はじめと、戻ってきたとき
   function intro(final) {
@@ -93,7 +114,11 @@
     D = depthAt(U);
     return window.scrollY < start ? 'intro' : window.scrollY > start + len + 40 ? 'outro' : 'zoom';
   }
-  const niceStep = (x) => { const p = Math.pow(10, Math.floor(Math.log10(x))), m = x / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
+  const niceStep = (x) => {
+    if (x < 1) return [1 / 12, 2 / 12, 3 / 12, 6 / 12, 1].find((m) => m >= x) || 1;   // 1年より細かいときは月で
+    const p = Math.pow(10, Math.floor(Math.log10(x))), m = x / p;
+    return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p;
+  };
 
   function draw() {
     const at = where();
@@ -125,22 +150,8 @@
     // いちばん上：今
     g.fillStyle = gold; g.fillRect(0, top - 1, W, 2);
     g.font = font(12, 900); g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillText(T('24:00 — 今'), 40, top - 4);
-    // 金の目印（人の一生・ホモ・サピエンス・恐竜のあと）：今からその時点まで。小さくなっても名前は上に積んで残す
     const used = [];                                                   // 文字を置いた高さ（重ならないように）
     const free = (a, b) => used.every(([p, q]) => b < p || a > q);
-    let stack = top + 4;
-    g.textBaseline = 'middle';
-    MARKS.forEach(([ya, name], i) => {
-      if (ya > D) return;
-      const x = 22 + i * 5, yb = Y(ya);
-      g.strokeStyle = gold; g.lineWidth = 2; g.beginPath(); g.moveTo(x, top); g.lineTo(x, Math.max(top + 1, yb)); g.lineTo(x + 3, Math.max(top + 1, yb)); g.stroke(); g.lineWidth = 1;
-      const ly = Math.min(bot - 8, Math.max(yb + 10, stack + 8));
-      if (ly - yb > 14) { g.strokeStyle = 'rgba(255,216,74,.45)'; g.beginPath(); g.moveTo(x + 3, yb); g.lineTo(38, ly); g.stroke(); }
-      g.font = font(12, 800); g.fillStyle = gold;
-      g.fillText(`↑ ${T(name)}`, 40, ly);
-      used.push([ly - 9, ly + 9]);
-      stack = ly + 9;
-    });
     // 文字：うしろの目盛りの数字を隠すように、地の色を敷いてから
     const label = (str, y, f, color, alpha, h) => {
       g.font = f; g.textBaseline = 'middle'; g.textAlign = 'left';
@@ -148,20 +159,19 @@
       g.globalAlpha = alpha; g.fillStyle = color; g.fillText(str, 40, y);
     };
     // 出来事：点はいつも本当の位置に。名前は下（いま通り過ぎているところ）から順に、重ならないものだけ
-    g.fillStyle = text;
-    const vis = EVS.filter((e) => e.ya <= D);
-    for (const e of vis) { g.beginPath(); g.arc(11, Y(e.ya), 3.2, 0, Math.PI * 2); g.fill(); }
+    const vis = ALL.filter((e) => e.ya <= D);
+    for (const e of vis) { g.fillStyle = e.mine ? gold : text; g.beginPath(); g.arc(11, Y(e.ya), 3.2, 0, Math.PI * 2); g.fill(); }
     let lowest = bot;
     for (let i = vis.length - 1; i >= 0; i--) {
       const e = vis[i], y = Y(e.ya), near = (y - top) / span;       // near：1 に近いほど画面の下（いま通り過ぎている）
       if (y - top < 14) break;                                          // 上に押し縮められたものは点だけ
       const big = near > 0.55, hh = big ? 36 : 18;
-      let ly = Math.min(y, lowest - hh / 2 - 4);
+      const ly = Math.min(y, lowest - hh / 2 - 4, bot - hh / 2 + 4);
       if (ly - hh / 2 < top + 4 || !free(ly - hh / 2, ly + hh / 2)) continue;
       used.push([ly - hh / 2, ly + hh / 2]); lowest = ly - hh / 2;
       const a = big ? 1 : 0.55;
       g.globalAlpha = a; g.strokeStyle = muted; g.beginPath(); g.moveTo(15, y); g.lineTo(36, ly - (big ? 8 : 0)); g.stroke();
-      label(e.name, ly - (big ? 8 : 0), font(big ? 15.5 : 13, big ? 800 : 700), text, a, big ? 20 : 16);
+      label(e.name, ly - (big ? 8 : 0), font(big ? 15.5 : 13, big ? 800 : 700), e.mine ? gold : text, a, big ? 20 : 16);
       if (big) label(`${T('地球時計 {c}', { c: clockOf(e.ya) })}　${agoOf(e.ya)}`, ly + 10, font(11.5, 500), muted, 1, 15);
       g.globalAlpha = 1;
     }
@@ -178,7 +188,9 @@
   function hud(at) {
     const ya = at === 'intro' ? 0 : at === 'outro' ? S : D;
     $('h-stage').textContent = at === 'intro' ? '' : eraOf(Math.max(ya, 1)).name;
-    $('h-clock').textContent = T('地球時計 {c}', { c: clockOf(ya) });
+    const c = T('地球時計 {c}', { c: ya < 0.5 ? '24:00:00' : fmtClock(ya, digitsOf(ya)) });
+    $('h-clock').textContent = c;
+    $('h-clock').classList.toggle('long', c.length > 24);              // 英語で桁が多いときは1行に収まるよう小さく
     $('h-ago').textContent = ya < 0.5 ? T('今') : agoOf(ya);
     $('h-bar').style.width = `${(ya / S) * 100}%`;
     $('h-pct').textContent = T('46億年の{p}%', { p: pctOf(ya) });
