@@ -2,11 +2,11 @@
 <html lang="ja" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<script src="move.js?v=202610272023"></script>
+<script src="move.js?v=202610272036"></script>
 <link rel="canonical" href="https://earth24h.com/rewind">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>地球をさかのぼる | 地球の24時間</title>
-<meta name="description" content="今から下へスクロールすると、時間がさかのぼる。最後の100年、1万年、100万年……と遠ざかるほど、人類の歴史は細い線になっていく。46億年の底から見た、あなたの今。">
+<meta name="description" content="下へスクロールすると、時間がさかのぼる。画面にはいつも、今からあなたのいる時点までが入り、進むほど人類の歴史は細い線に縮んでいく。46億年の底から見た、あなたの今。">
 <meta property="og:title" content="地球をさかのぼる">
 <meta property="og:description" content="スクロールで46億年をさかのぼる。人類の歴史は、いちばん上の細い線の中。">
 <meta property="og:type" content="website">
@@ -14,7 +14,7 @@
 <meta property="og:image" content="https://earth24h.com/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <style>
-  /* 地球をさかのぼる：縦に長い1本の時間。上が今、下が46億年前。段ごとに遠ざかり、最後の46億年は本当の縮尺で長い */
+  /* 地球をさかのぼる：上が今、下があなたのいる時点。スクロールすると縮尺がなめらかに変わり、上のものが縮んでいく */
   :root {
     color-scheme: dark;
     --bg: #07090f; --surface: #10141e; --line: #222a3a; --text: #eef2f8; --text-2: #aab6c8; --muted: #6f7c90;
@@ -41,58 +41,27 @@
   .hud .clock { font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.25; }
   .hud .ago { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 
-  .intro, .outro, .zoom { min-height: 80svh; display: flex; flex-direction: column; justify-content: center; padding: 24px 0; }
-  .zoom { min-height: 70svh; text-align: center; }
+  .intro, .outro { min-height: 80svh; display: flex; flex-direction: column; justify-content: center; padding: 24px 0; }
   .kick { font-size: 12px; font-weight: 900; letter-spacing: .08em; color: var(--accent); }
   .big { font-size: clamp(24px, 7vw, 34px); line-height: 1.4; font-weight: 900; margin: 6px 0 12px; white-space: pre-line; }
   .body { font-size: 15.5px; color: var(--text-2); margin: 0 0 10px; }
   .body b { color: var(--text); }
   .hint { font-size: 13px; color: var(--muted); margin-top: 18px; animation: bob 1.6s ease-in-out infinite; }
   @keyframes bob { 50% { transform: translateY(6px); } }
-  .zoom .x { font-size: 44px; font-weight: 900; color: var(--gold); letter-spacing: .02em; }
 
-  .year { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; font-size: 14px; color: var(--text-2); }
-  .year input { width: 96px; font: inherit; font-size: 16px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
-  .year button, .btn { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 10px; padding: 6px 12px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .btn { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 10px; padding: 6px 12px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
   .btn.main { background: var(--accent); color: #141413; border: none; border-radius: 999px; padding: 13px 22px; font-size: 16px; font-weight: 900; text-decoration: none; display: inline-flex; justify-content: center; }
   .btn.ghost { border-radius: 999px; text-decoration: none; display: inline-flex; padding: 9px 16px; color: var(--text-2); }
   .actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 14px; }
   .actions .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 
-  /* 時間の段（section） */
-  .sec { position: relative; margin: 0 0 0 0; }
-  .sec .title { position: absolute; left: 30px; top: -2px; font-size: 12px; font-weight: 900; color: var(--accent); }
-  .rail { position: absolute; left: 6px; top: 0; bottom: 0; width: 10px; border-radius: 5px; overflow: hidden; }
-  .rail i { position: absolute; left: 0; right: 0; display: block; }
-  .band { position: absolute; left: 0; right: 0; top: 0; background: rgba(255, 216, 74, .9); border-radius: 2px; box-shadow: 0 0 14px rgba(255, 216, 74, .6); }
-  .band-label { position: absolute; left: 30px; font-size: 12px; color: var(--gold); font-weight: 800; }
-  .life { position: absolute; left: 0; right: 0; top: 0; background: rgba(255, 216, 74, .16); border-top: 2px solid var(--gold); }
-  .life span { position: absolute; right: 0; top: 4px; font-size: 12px; font-weight: 900; color: var(--gold); }
-  .tick { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(170, 182, 200, .12); }
-  .tick span { position: absolute; right: 0; top: 2px; font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .ev { position: absolute; left: 30px; right: 0; }
-  .ev .dot { position: absolute; left: -26px; width: 12px; height: 12px; border-radius: 50%; background: var(--text); border: 2px solid var(--bg); }
-  .ev .lead { position: absolute; left: -14px; width: 10px; border-top: 1px solid var(--muted); }
-  .ev b { display: block; font-size: 15px; line-height: 1.4; }
-  .ev small { display: block; font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .ev canvas { display: block; width: min(100%, 280px); height: auto; aspect-ratio: 3 / 1; margin-top: 4px; border-radius: 8px; image-rendering: crisp-edges; image-rendering: pixelated; }
-  .quiet { position: absolute; left: 30px; right: 0; font-size: 13px; color: var(--muted); }
-  .ev.ghost { opacity: .5; }
-  .ev.ghost b { font-size: 13px; font-weight: 700; }
-  .ev.ghost .dot { width: 8px; height: 8px; left: -24px; background: var(--gold); }
-  .band-top { position: absolute; left: 30px; right: 0; top: 4px; font-size: 12px; color: var(--gold); font-weight: 800; }
-
-  /* 今に戻ったあと：あなたの街 → 地球 → 宇宙の小さな点 */
-  .pb { position: fixed; inset: 0; z-index: 20; background: #000; transition: opacity .9s ease; }
-  .pb.out { opacity: 0; }
-  .pb canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .pb-cap { position: absolute; left: 16px; right: 16px; bottom: 16%; margin: 0; text-align: center; font-size: clamp(17px, 5vw, 22px); font-weight: 800; color: #eef2f8;
-    white-space: pre-line; transition: opacity 1s ease; opacity: 0; }
-  .pb-cap.on { opacity: 1; }
-  .pb button { position: absolute; right: 16px; top: max(14px, env(safe-area-inset-top, 0px)); background: none; border: 1px solid #333a48; color: #aab6c8; border-radius: 999px;
-    padding: 4px 12px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
-  .now-line { position: absolute; left: 0; right: 0; top: 0; border-top: 2px solid var(--gold); }
-  .now-line span { position: absolute; left: 30px; top: -10px; font-size: 12px; color: var(--gold); font-weight: 900; background: var(--bg); padding: 0 6px; }
+  /* ズームの区間：中の .zstage が上に貼りついたまま、縮尺だけがなめらかに変わる */
+  .zoomer { position: relative; }
+  .zstage { position: sticky; display: flex; flex-direction: column; padding: 4px 0 10px; }
+  #tl { flex: 1; min-height: 0; width: 100%; display: block; }
+  .now { position: relative; flex: none; }
+  #now-scene { display: block; width: 100%; height: auto; aspect-ratio: 3 / 1; border-radius: 10px; image-rendering: crisp-edges; image-rendering: pixelated; }
+  .now .cap { position: absolute; left: 8px; right: 8px; bottom: 6px; font-size: 13px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0, 0, 0, .9); }
   .final .big { font-size: clamp(24px, 7vw, 32px); }
   @media (prefers-reduced-motion: reduce) { .hint { animation: none; } }
 </style>
@@ -105,16 +74,23 @@
     <div class="row3"><span class="ago" id="h-ago"></span><span class="stage" id="h-stage"></span></div>
     <div class="prog"><span class="bar"><i id="h-bar"></i></span><span id="h-pct"></span></div>
   </div>
-  <div id="track"></div>
+  <div class="intro" id="intro"></div>
+  <div class="zoomer" id="zoomer">
+    <div class="zstage" id="stage">
+      <canvas id="tl" aria-hidden="true"></canvas>
+      <div class="now"><canvas id="now-scene" aria-hidden="true"></canvas><span class="cap" id="now-cap" aria-live="polite"></span></div>
+    </div>
+  </div>
+  <div class="outro" id="outro"></div>
 </div>
 <div class="pb" id="pb" hidden><canvas id="pb-c" aria-hidden="true"></canvas><p class="pb-cap" id="pb-cap" aria-live="polite"></p><button type="button" id="pb-skip"></button></div>
-<script src="i18n.js?v=202610272023"></script>
-<script src="data.js?v=202610272023"></script>
-<script src="scenes.js?v=202610272023"></script>
-<script src="globe.js?v=202610272023"></script>
-<script src="evo.js?v=202610272023"></script>
-<script src="lang-en.js?v=202610272023"></script>
-<script src="ambient.js?v=202610272023"></script>
-<script src="rewind.js?v=202610272023"></script>
+<script src="i18n.js?v=202610272036"></script>
+<script src="data.js?v=202610272036"></script>
+<script src="scenes.js?v=202610272036"></script>
+<script src="globe.js?v=202610272036"></script>
+<script src="evo.js?v=202610272036"></script>
+<script src="lang-en.js?v=202610272036"></script>
+<script src="ambient.js?v=202610272036"></script>
+<script src="rewind.js?v=202610272036"></script>
 </body>
 </html>
