@@ -18,7 +18,7 @@ const D = ctx.E24.DICT, evo = ctx.E24.evo;
 const ja = /[ぁ-んァ-ン一-龥]/;
 const miss = new Set();
 
-for (const f of ['app.js', 'story.js', 'museum.js', 'again.js']) {
+for (const f of ['app.js', 'story.js', 'museum.js', 'again.js', 'rewind.js']) {
   if (!fs.existsSync(path.join(dir, f))) continue;
   const src = fs.readFileSync(path.join(dir, f), 'utf8');
   for (const m of src.matchAll(/\bT\('((?:[^'\\]|\\.)*)'/g)) {
